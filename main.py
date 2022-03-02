@@ -3,6 +3,7 @@ from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
 from generators.java_generator import JavaCodeGenerator
+from generators.ts_generator import TsCodeGenerator
 
 def json_to_file(file_name, data):
     with open(file_name, "w") as f:
@@ -25,3 +26,6 @@ json_to_file("examples/simple_class_syntax_tree.json", syntax_tree)
 
 java_code_gen = JavaCodeGenerator(syntax_tree, "examples/example_code")
 java_code_gen.generate_code()
+
+ts_code_gen = TsCodeGenerator(syntax_tree, "examples/example_tscode")
+ts_code_gen.generate_code()
