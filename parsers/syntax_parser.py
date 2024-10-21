@@ -62,7 +62,7 @@ class SyntaxParser:
             for relationship in relationships.keys():
                 self._add_relationships(syntax_tree, relationships[relationship])
         except Exception as e:
-            print(f"SyntaxParser.convert_to_sytax_tree ERROR: {e}")
+            print(f"SyntaxParser.convert_to_syntax_tree ERROR: {e}")
 
         return syntax_tree
 
@@ -108,7 +108,7 @@ class SyntaxParser:
             _pos = _class_name.find(">>")
             if _pos >= 0:
                 _class_modifier = _class_name[0:_pos]
-                _class_name = _class_name[_pos:].strip()
+                _class_name = _class_name[_pos + 2:].strip()
             else:
                 raise ValueError(f"Invalid type name: {_class_name}")
 

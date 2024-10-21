@@ -47,8 +47,10 @@ class PhpCodeGenerator(CodeGeneratorInterface):
                 self.get_interface_methods(_class['relationships']['implements'], interface_methods)
 
                 file += self.generate_classes(_class['type'], _class['name'], inheritance, implementation)
-                file += self.generate_properties(_class['properties'])
-                if _class['type'] != "enum":
+                if _class['type'] == "enum":
+                    file += self.generate_properties(_class['properties'], True)
+                else:
+                    file += self.generate_properties(_class['properties'], False)
                     file += "\n"
                     if _class['type'].endswith("class"):
                         file += self.generate_property_accessors(_class['properties'])
@@ -88,22 +90,28 @@ class PhpCodeGenerator(CodeGeneratorInterface):
 
         return self.__classes
 
-    def generate_properties(self, properties):
+    def generate_properties(self, properties, is_enum):
         """
-        Generate properties for the class 
+        Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
+            is_enum: tells if we are generating enum members
 
         Returns:
             properties_string: string of the properties
         """
 
         properties_string = ""
+
         for _, _property_def in properties.items():
-            p = f"\t{_property_def['access']} ${_property_def['name']};\n"
-            self.__properties.append(p)
+            if is_enum:
+                p = f"\tcase {_property_def['name']};"
+            else:
+                p = f"\t{_property_def['access']} ${_property_def['name']};\n"
+
             properties_string += p
+            self.__properties.append(p)
 
         return properties_string
 

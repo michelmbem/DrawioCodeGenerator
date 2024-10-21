@@ -55,8 +55,10 @@ class PythonCodeGenerator(CodeGeneratorInterface):
                 self.get_interface_methods(_class['relationships']['implements'], interface_methods)
 
                 file += self.generate_classes(_class['type'], _class['name'], inheritance, implementation)
-                file += self.generate_properties(_class['properties'])
-                if _class['type'] != "enum":
+                if _class['type'] == "enum":
+                    file += self.generate_properties(_class['properties'], True)
+                else:
+                    file += self.generate_properties(_class['properties'], False)
                     file += "\n"
                     if _class['type'].endswith("class"):
                         file += self.generate_property_accessors(_class['properties'])
@@ -67,7 +69,7 @@ class PythonCodeGenerator(CodeGeneratorInterface):
             self.generate_files()
 
         except Exception as e:
-            print(f"TypeScriptCodeGenerator.generate_code ERROR: {e}")
+            print(f"PythonCodeGenerator.generate_code ERROR: {e}")
 
     def generate_classes(self, class_type, class_name, extends, implements):
         """
@@ -83,8 +85,13 @@ class PythonCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
-        class_header = "from abc import ABC, abstractmethod\n\n\n"
-        class_ancestors = "(" + f"ABC, {extends}, {implements}".strip(", ") + ")"
+        if class_type == "enum":
+            class_header = "from enum import Enum, auto\n\n\n"
+            class_ancestors = "(Enum)"
+        else:
+            class_header = "from abc import ABC, abstractmethod\n\n\n"
+            class_ancestors = "(" + f"ABC, {extends}, {implements}".strip(", ") + ")"
+
         class_header += f"class {class_name}{class_ancestors}:\n"
         class_header = re.sub(' +', ' ', class_header)
         self.__classes.append(class_header)
@@ -97,22 +104,28 @@ class PythonCodeGenerator(CodeGeneratorInterface):
 
         return self.__classes
 
-    def generate_properties(self, properties):
+    def generate_properties(self, properties, is_enum):
         """
-        Generate properties for the class 
+        Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
+            is_enum: tells if we are generating enum members
 
         Returns:
             properties_string: string of the properties
         """
 
-        properties_string = "\tdef __init__(self):\n"
+        properties_string = ""
+
         for _, _property_def in properties.items():
-            p = f"\t\tself.{_property_def['name']} = None\n"
-            self.__properties.append(p)
+            if is_enum:
+                p = f"\t{_property_def['name']} = auto()\n"
+            else:
+                p = f"\t\tself.{_property_def['name']} = None\n"
+
             properties_string += p
+            self.__properties.append(p)
 
         return properties_string
 
@@ -225,7 +238,7 @@ class PythonCodeGenerator(CodeGeneratorInterface):
                 with open(self.file_path + f"/{file_name}", "w") as f:
                     f.write(file_contents)
         except Exception as e:
-            print(f"TypeScriptCodeGenerator.generate_files ERROR: {e}")
+            print(f"PythonCodeGenerator.generate_files ERROR: {e}")
 
     def get_files(self):
         """

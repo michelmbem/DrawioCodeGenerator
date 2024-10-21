@@ -23,9 +23,10 @@ class CodeGeneratorInterface(ABC):
     @abstractmethod
     def get_classes(self):
         pass
+        pass
     
     @abstractmethod
-    def generate_properties(self, properties):
+    def generate_properties(self, properties, is_enum):
         pass
     
     @abstractmethod

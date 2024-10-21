@@ -28,12 +28,12 @@ class SqlCodeGenerator(CodeGeneratorInterface):
 
         try:
             for _, _class in self.__syntax_tree.items():
-                file = ""
+                if _class['type'] != "class":
+                    continue
 
-                file += self.generate_classes(_class['type'], _class['name'], None, None)
-                file += self.generate_properties(_class['properties'])
+                file = self.generate_classes(None, _class['name'], None, None)
+                file += self.generate_properties(_class['properties'], None)
                 file += "\n);\n"
-
                 self.__files.append([_class['name'], file])
 
             self.generate_files()
@@ -66,12 +66,13 @@ class SqlCodeGenerator(CodeGeneratorInterface):
 
         return self.__classes
 
-    def generate_properties(self, properties):
+    def generate_properties(self, properties, _):
         """
-        Generate properties for the class 
+        Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
+            _: ignored! should tell if we are generating enum members
 
         Returns:
             properties_string: string of the properties

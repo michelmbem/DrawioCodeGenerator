@@ -38,7 +38,7 @@ class CSharpCodeGenerator(CodeGeneratorInterface):
                     inheritance += ": "
                     inheritance += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['extends']]).strip(", ")
                     
-                implementation = "" 
+                implementation = ""
                 if len(_class['relationships']['implements']) > 0:
                     implementation += ", " if inheritance != "" else ": "
                     implementation += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['implements']]).strip(", ")
@@ -47,8 +47,10 @@ class CSharpCodeGenerator(CodeGeneratorInterface):
                 self.get_interface_methods(_class['relationships']['implements'], interface_methods)
 
                 file += self.generate_classes(_class['type'], _class['name'], inheritance, implementation)
-                file += self.generate_properties(_class['properties'])
-                if _class['type'] != "enum":
+                if _class['type'] == "enum":
+                    file += self.generate_properties(_class['properties'], True)
+                else:
+                    file += self.generate_properties(_class['properties'], False)
                     file += "\n"
                     if _class['type'].endswith("class"):
                         file += self.generate_property_accessors(_class['properties'])
@@ -89,22 +91,34 @@ class CSharpCodeGenerator(CodeGeneratorInterface):
 
         return self.__classes
  
-    def generate_properties(self, properties):
+    def generate_properties(self, properties, is_enum):
         """
-        Generate properties for the class 
+        Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
+            is_enum: tells if we are generating enum members
 
         Returns:
             properties_string: string of the properties
         """
 
         properties_string = ""
+        first_prop = True
+
         for _, _property_def in properties.items():
-            p = f"\t{_property_def['access']} {_property_def['type']} {_property_def['name']};\n"
+            if is_enum:
+                if first_prop:
+                    first_prop = False
+                else:
+                    properties_string += ",\n"
+
+                p = f"\t{_property_def['name']}"
+            else:
+                p = f"\t{_property_def['access']} {_property_def['type']} {_property_def['name']};\n"
+
+            properties_string += p
             self.__properties.append(p)
-            properties_string += p 
  
         return properties_string
 

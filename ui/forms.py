@@ -67,9 +67,6 @@ class MainFrameBase ( wx.Frame ):
 
         languageSizer = wx.BoxSizer( wx.HORIZONTAL )
 
-        self.chkLangTS = wx.CheckBox( self, wx.ID_ANY, u"TypeScript", wx.DefaultPosition, wx.DefaultSize, 0 )
-        languageSizer.Add( self.chkLangTS, 0, wx.ALL, 5 )
-
         self.chkLangJava = wx.CheckBox( self, wx.ID_ANY, u"Java", wx.DefaultPosition, wx.DefaultSize, 0 )
         languageSizer.Add( self.chkLangJava, 0, wx.ALL, 5 )
 
@@ -79,11 +76,14 @@ class MainFrameBase ( wx.Frame ):
         self.chkLangCpp = wx.CheckBox( self, wx.ID_ANY, u"C++", wx.DefaultPosition, wx.DefaultSize, 0 )
         languageSizer.Add( self.chkLangCpp, 0, wx.ALL, 5 )
 
-        self.chkLangPHP = wx.CheckBox( self, wx.ID_ANY, u"PHP", wx.DefaultPosition, wx.DefaultSize, 0 )
-        languageSizer.Add( self.chkLangPHP, 0, wx.ALL, 5 )
-
         self.chkLangPython = wx.CheckBox( self, wx.ID_ANY, u"Python", wx.DefaultPosition, wx.DefaultSize, 0 )
         languageSizer.Add( self.chkLangPython, 0, wx.ALL, 5 )
+
+        self.chkLangTS = wx.CheckBox( self, wx.ID_ANY, u"TypeScript", wx.DefaultPosition, wx.DefaultSize, 0 )
+        languageSizer.Add( self.chkLangTS, 0, wx.ALL, 5 )
+
+        self.chkLangPHP = wx.CheckBox( self, wx.ID_ANY, u"PHP", wx.DefaultPosition, wx.DefaultSize, 0 )
+        languageSizer.Add( self.chkLangPHP, 0, wx.ALL, 5 )
 
         self.chkLangSQL = wx.CheckBox( self, wx.ID_ANY, u"SQL", wx.DefaultPosition, wx.DefaultSize, 0 )
         languageSizer.Add( self.chkLangSQL, 0, wx.ALL, 5 )
