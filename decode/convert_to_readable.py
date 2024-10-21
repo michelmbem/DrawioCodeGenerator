@@ -1,8 +1,16 @@
+import re
 import base64
 import zlib
 from urllib.parse import unquote
+from bs4 import BeautifulSoup
 
-from bs4 import BeautifulSoup as bs
+
+def is_base64(s):
+    if len(s) % 4 != 0:
+        return False
+    if re.match('^[A-Za-z0-9+/]*={0,2}$', s):
+        return True
+    return False
 
 
 class DecodeAndDecompress:
@@ -27,36 +35,21 @@ class DecodeAndDecompress:
             with open(drawio_filepath, "r") as f:
                 content = "".join(f.readlines())
 
-            drawio_file_raw = bs(content, "lxml")
+            drawio_file_raw = BeautifulSoup(content, "lxml")
             diagram_tag = drawio_file_raw.find("diagram")
-            diagram_tag_text = base64.b64decode(diagram_tag.text)
+            diagram_tag_text = diagram_tag.text
 
-            decoded_xml = unquote(zlib.decompress(diagram_tag_text, -15).decode('utf8'))
+            if is_base64(diagram_tag_text):
+                diagram_tag_text = base64.b64decode(diagram_tag_text)
+                decoded_xml = unquote(zlib.decompress(diagram_tag_text, -15).decode('utf8'))
+            else:
+                diagram_tag_text = str(diagram_tag)
+                start = diagram_tag_text.find(">") + 1
+                end = diagram_tag_text.rfind("<")
+                decoded_xml = diagram_tag_text[start:end].strip().replace("\n", "")
 
             return decoded_xml
 
         except Exception as e:
             print(f"DecodeAndDecompress.convert ERROR: {e}")
-            return False
-
-    @staticmethod
-    def write_xml_file(xml_file_name, decoded_xml):
-        """
-        Write the decoded XML to file
-
-        Paramters:
-          xml_file_name: name to give the xml file
-          decoded_xml: the decoded XML to write to file
-
-        Returns:
-          boolean: if successful or not
-        """
-
-        try:
-            with open(f"{xml_file_name}.xml", "w") as f:
-                f.write(decoded_xml)
-
-            return True
-        except Exception as e:
-            print(f"DecodeAndDecompress.write_xml_file ERROR: {e}")
             return False

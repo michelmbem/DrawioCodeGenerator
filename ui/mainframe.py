@@ -55,6 +55,10 @@ class MainFrame (MainFrameBase):
 
     def btnGenerateOnButtonClick(self, event):
         decoded_xml = DecodeAndDecompress.convert(self.txtDiagramPath.GetValue())
+        if not decoded_xml:
+            wx.MessageBox("Failed to decode diagram XML", "Code generation")
+            return
+
         pretty_xml = BeautifulSoup(decoded_xml, "lxml").prettify()
         self.stcDecodedXml.SetReadOnly(False)
         self.stcDecodedXml.SetValue(pretty_xml)
@@ -89,4 +93,4 @@ class MainFrame (MainFrameBase):
         self.Destroy()
 
     def asset_path(self, bitmap_path):
-        return path.join(path.dirname(__file__), "ui", bitmap_path)
+        return path.join(path.dirname(__file__), bitmap_path)
