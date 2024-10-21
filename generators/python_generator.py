@@ -12,9 +12,9 @@ def parameter_name(property_name):
     return "arg" + property_name.capitalize()
 
 
-class TsCodeGenerator(CodeGeneratorInterface):
+class PythonCodeGenerator(CodeGeneratorInterface):
     """
-    Generate Typescript code
+    Generate Python code
 
     Parameters:
         syntax_tree: syntax_tree of the drawio file 
@@ -29,12 +29,12 @@ class TsCodeGenerator(CodeGeneratorInterface):
         self.__accessors = []
         self.__methods = []
         self.__files = []
-    
+
     def generate_code(self):
         """
         Use the syntax tree to generate code files for the UML class diagrams 
         """
-        
+
         print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
 
         CodeGeneratorInterface.ensure_dir_exists(self.file_path)
@@ -42,16 +42,14 @@ class TsCodeGenerator(CodeGeneratorInterface):
         try:
             for _, _class in self.__syntax_tree.items():
                 file = ""
-                
+
                 inheritance = ""
                 if len(_class['relationships']['extends']) > 0:
-                    inheritance += "extends "
-                    inheritance += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['extends']]).strip(", ")
-                    
-                implementation = "" 
+                    inheritance = ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['extends']]).strip(", ")
+
+                implementation = ""
                 if len(_class['relationships']['implements']) > 0:
-                    implementation += "implements "
-                    implementation += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['implements']]).strip(", ")
+                    implementation = ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['implements']]).strip(", ")
 
                 interface_methods = []
                 self.get_interface_methods(_class['relationships']['implements'], interface_methods)
@@ -63,12 +61,11 @@ class TsCodeGenerator(CodeGeneratorInterface):
                     if _class['type'].endswith("class"):
                         file += self.generate_property_accessors(_class['properties'])
                     file += self.generate_methods(_class['methods'], _class['properties'], _class['type'], interface_methods)
-                file += "}\n" 
 
                 self.__files.append([_class['name'], file])
 
             self.generate_files()
-        
+
         except Exception as e:
             print(f"TypeScriptCodeGenerator.generate_code ERROR: {e}")
 
@@ -86,18 +83,20 @@ class TsCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
-        class_header = f"{class_type} {class_name} {extends} {implements} {{\n"
+        class_header = "from abc import ABC, abstractmethod\n\n\n"
+        class_ancestors = "(" + f"ABC, {extends}, {implements}".strip(", ") + ")"
+        class_header += f"class {class_name}{class_ancestors}:\n"
         class_header = re.sub(' +', ' ', class_header)
         self.__classes.append(class_header)
         return class_header
-   
+
     def get_classes(self):
         """
         Getter for classes
         """
 
         return self.__classes
- 
+
     def generate_properties(self, properties):
         """
         Generate properties for the class 
@@ -109,12 +108,12 @@ class TsCodeGenerator(CodeGeneratorInterface):
             properties_string: string of the properties
         """
 
-        properties_string = ""
+        properties_string = "\tdef __init__(self):\n"
         for _, _property_def in properties.items():
-            p = f"\t{_property_def['access']} {_property_def['name']} : {_property_def['type']};\n"
+            p = f"\t\tself.{_property_def['name']} = None\n"
             self.__properties.append(p)
-            properties_string += p 
- 
+            properties_string += p
+
         return properties_string
 
     def get_properties(self):
@@ -138,14 +137,14 @@ class TsCodeGenerator(CodeGeneratorInterface):
         accessors_string = ""
         for _, _property_def in properties.items():
             if _property_def['access'] == "private":
-                getter = (f"\tpublic get {accessor_name(_property_def['name'])}() : {_property_def['type']} {{\n"
-                          f"\t\treturn this.{_property_def['name']};\n\t}}\n\n")
+                getter = (f"\t@property\n\tdef {accessor_name(_property_def['name'])}(self):\n"
+                          f"\t\treturn self.{_property_def['name']}\n\n")
                 accessors_string += getter
                 self.__accessors.append(getter)
 
-                setter = (f"\tpublic set {accessor_name(_property_def['name'])}({parameter_name(_property_def['name'])} :"
-                          f" {_property_def['type']}) {{\n\t\tthis.{_property_def['name']} ="
-                          f" {parameter_name(_property_def['name'])};\n\t}}\n\n")
+                setter = (f"\t@{accessor_name(_property_def['name'])}.setter\n\tdef {accessor_name(_property_def['name'])}"
+                          f"(self, {parameter_name(_property_def['name'])}):\n\t\tself.{_property_def['name']} ="
+                          f" {parameter_name(_property_def['name'])}\n\n")
                 accessors_string += setter
                 self.__accessors.append(setter)
 
@@ -171,19 +170,18 @@ class TsCodeGenerator(CodeGeneratorInterface):
         Returns:
             methods_string: string of the methods 
         """
-        
+
         methods_string = ""
         for _, method_def in methods.items():
-            m = f"\t{method_def['access']} {method_def['name']}() : {method_def['return_type']} {{\n\t}}\n\n"
+            m = f"\tdef {method_def['name']}(self):\n\t\tpass\n\n"
             methods_string += m
             self.__methods.append(m)
 
         # inherited abstract methods
         if class_type.endswith("class"):
-            comment = "// ***requires implementation***"
+            comment = "# ***requires implementation***"
             for interface_method in interface_methods:
-                m = (f"\t{interface_method['access']} {interface_method['name']}() : {interface_method['return_type']}"
-                     f" {{\n\t\t{comment}\n\t}}\n\n")
+                m = f"\tdef {interface_method['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
                 methods_string += m
                 self.__methods.append(m)
 
@@ -192,11 +190,11 @@ class TsCodeGenerator(CodeGeneratorInterface):
     def get_methods(self):
         """
         Getter for the methods
-        """        
+        """
 
         return self.__methods
 
-    def get_interface_methods(self, implements, interface_list): 
+    def get_interface_methods(self, implements, interface_list):
         """
         Get the interface methods that require implementation
         
@@ -222,12 +220,12 @@ class TsCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.get_files():
-                file_name = file[0] + ".ts"
+                file_name = file[0] + ".py"
                 file_contents = file[1]
                 with open(self.file_path + f"/{file_name}", "w") as f:
                     f.write(file_contents)
         except Exception as e:
-            print(f"TypeScriptCodeGenerator.generate_files ERROR: {e}")            
+            print(f"TypeScriptCodeGenerator.generate_files ERROR: {e}")
 
     def get_files(self):
         """

@@ -1,10 +1,9 @@
-import re
 from generators.code_generator import CodeGeneratorInterface
 
 
-class JavaCodeGenerator(CodeGeneratorInterface):
+class SqlCodeGenerator(CodeGeneratorInterface):
     """
-    Generate Java code
+    Generate SQL code
 
     Parameters:
         syntax_tree: syntax_tree of the drawio file 
@@ -16,15 +15,13 @@ class JavaCodeGenerator(CodeGeneratorInterface):
         self.file_path = file_path.strip('/')
         self.__classes = []
         self.__properties = []
-        self.__accessors = []
-        self.__methods = []
         self.__files = []
-    
+
     def generate_code(self):
         """
         Use the syntax tree to generate code files for the UML class diagrams 
         """
-        
+
         print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
 
         CodeGeneratorInterface.ensure_dir_exists(self.file_path)
@@ -32,35 +29,17 @@ class JavaCodeGenerator(CodeGeneratorInterface):
         try:
             for _, _class in self.__syntax_tree.items():
                 file = ""
-                
-                inheritance = ""
-                if len(_class['relationships']['extends']) > 0:
-                    inheritance += "extends "
-                    inheritance += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['extends']]).strip(", ")
-                    
-                implementation = "" 
-                if len(_class['relationships']['implements']) > 0:
-                    implementation += "implements "
-                    implementation += ", ".join([self.__syntax_tree[r]['name'] for r in _class['relationships']['implements']]).strip(", ")
 
-                interface_methods = []
-                self.get_interface_methods(_class['relationships']['implements'], interface_methods)
-
-                file += self.generate_classes(_class['type'], _class['name'], inheritance, implementation)
+                file += self.generate_classes(_class['type'], _class['name'], None, None)
                 file += self.generate_properties(_class['properties'])
-                if _class['type'] != "enum":
-                    file += "\n"
-                    if _class['type'].endswith("class"):
-                        file += self.generate_property_accessors(_class['properties'])
-                    file += self.generate_methods(_class['methods'], _class['properties'], _class['type'], interface_methods)
-                file += "}\n"
+                file += "\n);\n"
 
                 self.__files.append([_class['name'], file])
 
             self.generate_files()
-        
+
         except Exception as e:
-            print(f"JavaCodeGenerator.generate_code ERROR: {e}")
+            print(f"SqlCodeGenerator.generate_code ERROR: {e}")
 
     def generate_classes(self, class_type, class_name, extends, implements):
         """
@@ -76,18 +55,17 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
-        class_header = f"public {class_type} {class_name} {extends} {implements} {{\n"
-        class_header = re.sub(' +', ' ', class_header)
+        class_header = f"CREATE TABLE {class_name} (\n"
         self.__classes.append(class_header)
         return class_header
-   
+
     def get_classes(self):
         """
         Getter for classes
         """
 
         return self.__classes
- 
+
     def generate_properties(self, properties):
         """
         Generate properties for the class 
@@ -100,11 +78,18 @@ class JavaCodeGenerator(CodeGeneratorInterface):
         """
 
         properties_string = ""
+        first_prop = True
+
         for _, _property_def in properties.items():
-            p = f"\t{_property_def['access']} {_property_def['type']} {_property_def['name']};\n"
+            if first_prop:
+                first_prop = False
+            else:
+                properties_string += ",\n"
+
+            p = f"\t{_property_def['name']} {_property_def['type']}"
+            properties_string += p
             self.__properties.append(p)
-            properties_string += p 
- 
+
         return properties_string
 
     def get_properties(self):
@@ -125,28 +110,14 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             accessors_string: string of the property accessors
         """
 
-        accessors_string = ""
-        for _, _property_def in properties.items():
-            if _property_def['access'] == "private":
-                getter = (f"\tpublic {_property_def['type']} get{_property_def['name'].capitalize()}() {{\n"
-                          f"\t\treturn {_property_def['name']};\n\t}}\n\n")
-                accessors_string += getter
-                self.__accessors.append(getter)
-
-                setter = (f"\tpublic void set{_property_def['name'].capitalize()}({_property_def['type']}"
-                          f" {_property_def['name']}) {{\n\t\tthis.{_property_def['name']} ="
-                          f" {_property_def['name']};\n\t}}\n\n")
-                accessors_string += setter
-                self.__accessors.append(setter)
-
-        return accessors_string
+        return None
 
     def get_property_accessors(self):
         """
         Getter for the property accessors
         """
 
-        return self.__accessors
+        return None
 
     def generate_methods(self, methods, properties, class_type, interface_methods):
         """
@@ -162,30 +133,16 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             methods_string: string of the methods 
         """
 
-        methods_string = ""
-        for _, method_value in methods.items():
-            m = f"\t{method_value['access']} {method_value['return_type']} {method_value['name']}() {{\n\t}}\n\n"
-            methods_string += m + "\n"
-            self.__methods.append(m)
-
-        if class_type.endswith("class"):
-            comment = "// ***requires implementation***"
-            for interface_method in interface_methods:
-                m = (f"\t {interface_method['access']} {interface_method['return_type']} {interface_method['name']}()"
-                     f" {{\n\t\t{comment}\n\t}}\n\n")
-                methods_string += m
-                self.__methods.append(m)
-
-        return methods_string
+        return None
 
     def get_methods(self):
         """
         Getter for the methods
-        """        
+        """
 
-        return self.__methods
+        return None
 
-    def get_interface_methods(self, implements, interface_list): 
+    def get_interface_methods(self, implements, interface_list):
         """
         Get the interface methods that require implementation
         
@@ -194,10 +151,7 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             interface_list: list of interface methods
         """
 
-        for i in implements:
-            interface_obj = self.__syntax_tree[i]
-            interface_list += interface_obj['methods'].values()
-            self.get_interface_methods(interface_obj['relationships']['implements'], interface_list)
+        pass
 
     def generate_files(self):
         """
@@ -211,12 +165,12 @@ class JavaCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.get_files():
-                file_name = file[0] + ".java"
+                file_name = file[0] + ".sql"
                 file_contents = file[1]
                 with open(self.file_path + f"/{file_name}", "w") as f:
                     f.write(file_contents)
         except Exception as e:
-            print(f"JavaCodeGenerator.generate_files ERROR: {e}")            
+            print(f"SqlCodeGenerator.generate_files ERROR: {e}")
 
     def get_files(self):
         """
