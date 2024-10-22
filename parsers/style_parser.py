@@ -1,6 +1,6 @@
 import re
+import traceback
 from collections import OrderedDict
-
 from bs4 import BeautifulSoup as bs
 
 
@@ -68,6 +68,7 @@ class StyleParser:
             return self.style_tree
         except Exception as e:
             print(f"StyleParser.convert_to_style_tree ERROR: {e}")
+            traceback.print_exception(e)
             return False
 
     def _add_root_parent(self, attrs):
@@ -166,8 +167,14 @@ class StyleParser:
           vals: list of the final values
         """
 
-        temp_val = ""
+        # Prevent the removal of annotations
+        values = values.replace("<<", "&lt;&lt;").replace(">>", "&gt;&gt;")
+        # Strip HTML tags
+        values = bs(values, "lxml").text
+
         vals = []
+        temp_val = ""
+
         for v in values:
             if v in ['+', '-', "#"]:
                 if temp_val:

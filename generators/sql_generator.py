@@ -1,4 +1,28 @@
+import traceback
+
 from generators.code_generator import CodeGeneratorInterface
+
+
+TYPE_MAPPINGS = {
+    "boolean": "bit",
+    "int8": "tinyint",
+    "uint8": "tinyint unsigned",
+    "int16": "smallint",
+    "uint16": "smallint unsigned",
+    "int32": "integer",
+    "uint32": "integer unsigned",
+    "int64": "bigint",
+    "uint64": "bigint unsigned",
+    "single": "float(24)",
+    "double": "float(53)",
+    "bigint": "decimal(36, 0)",
+    "decimal": "decimal(36, 18)",
+    "string": "varchar(50)",
+}
+
+
+def map_type(typename):
+    return TYPE_MAPPINGS.get(typename.lower(), typename)
 
 
 class SqlCodeGenerator(CodeGeneratorInterface):
@@ -11,11 +35,9 @@ class SqlCodeGenerator(CodeGeneratorInterface):
     """
 
     def __init__(self, syntax_tree, file_path):
-        self.__syntax_tree = syntax_tree
+        self.syntax_tree = syntax_tree
         self.file_path = file_path.strip('/')
-        self.__classes = []
-        self.__properties = []
-        self.__files = []
+        self.files = []
 
     def generate_code(self):
         """
@@ -27,19 +49,20 @@ class SqlCodeGenerator(CodeGeneratorInterface):
         CodeGeneratorInterface.ensure_dir_exists(self.file_path)
 
         try:
-            for _, _class in self.__syntax_tree.items():
-                if _class['type'] != "class":
+            for class_def in self.syntax_tree.values():
+                if class_def['type'] != "class":
                     continue
 
-                file = self.generate_classes(None, _class['name'], None, None)
-                file += self.generate_properties(_class['properties'], None)
+                file = self.generate_classes(None, class_def['name'], None, None)
+                file += self.generate_properties(class_def['properties'], None)
                 file += "\n);\n"
-                self.__files.append([_class['name'], file])
+                self.files.append((class_def['name'], file))
 
             self.generate_files()
 
         except Exception as e:
             print(f"SqlCodeGenerator.generate_code ERROR: {e}")
+            traceback.print_exception(e)
 
     def generate_classes(self, class_type, class_name, extends, implements):
         """
@@ -56,15 +79,7 @@ class SqlCodeGenerator(CodeGeneratorInterface):
         """
 
         class_header = f"CREATE TABLE {class_name} (\n"
-        self.__classes.append(class_header)
         return class_header
-
-    def get_classes(self):
-        """
-        Getter for classes
-        """
-
-        return self.__classes
 
     def generate_properties(self, properties, _):
         """
@@ -81,24 +96,16 @@ class SqlCodeGenerator(CodeGeneratorInterface):
         properties_string = ""
         first_prop = True
 
-        for _, _property_def in properties.items():
+        for property_def in properties.values():
             if first_prop:
                 first_prop = False
             else:
                 properties_string += ",\n"
 
-            p = f"\t{_property_def['name']} {_property_def['type']}"
+            p = f"\t{property_def['name']} {map_type(property_def['type'])}"
             properties_string += p
-            self.__properties.append(p)
 
         return properties_string
-
-    def get_properties(self):
-        """
-        Getter for properties
-        """
-
-        return self.__properties
 
     def generate_property_accessors(self, properties):
         """
@@ -113,32 +120,17 @@ class SqlCodeGenerator(CodeGeneratorInterface):
 
         return None
 
-    def get_property_accessors(self):
-        """
-        Getter for the property accessors
-        """
-
-        return None
-
-    def generate_methods(self, methods, properties, class_type, interface_methods):
+    def generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
         Parameters:
             methods: dictionary of methods
-            properties: dictionary of properties
-            class_type: type of current class
+            class_type: one of class, abstract class, interface or enum
             interface_methods: methods of implemented interfaces
         
         Returns:
             methods_string: string of the methods 
-        """
-
-        return None
-
-    def get_methods(self):
-        """
-        Getter for the methods
         """
 
         return None
@@ -165,17 +157,11 @@ class SqlCodeGenerator(CodeGeneratorInterface):
         print(f"<<< WRITING FILES TO {self.file_path} >>>")
 
         try:
-            for file in self.get_files():
+            for file in self.files:
                 file_name = file[0] + ".sql"
                 file_contents = file[1]
                 with open(self.file_path + f"/{file_name}", "w") as f:
                     f.write(file_contents)
         except Exception as e:
             print(f"SqlCodeGenerator.generate_files ERROR: {e}")
-
-    def get_files(self):
-        """
-        Getter for the files 
-        """
-
-        return self.__files
+            traceback.print_exception(e)

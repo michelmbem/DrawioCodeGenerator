@@ -1,6 +1,6 @@
 import wx
+
 from os import path, startfile
-from bs4 import BeautifulSoup
 from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
@@ -8,6 +8,7 @@ from generators.code_generators import CodeGenerators
 from ui.forms import MainFrameBase
 from ui.xmlstyledtextctrl import XMLStyledTextCtrl
 from ui.symboltreectrl import SymbolTreeCtrl
+from bs4 import BeautifulSoup as bs
 
 
 class MainFrame (MainFrameBase):
@@ -25,11 +26,11 @@ class MainFrame (MainFrameBase):
         self.stcDecodedXml = XMLStyledTextCtrl(self.nbTrees)
         self.nbTrees.AddPage(self.stcDecodedXml, "Decoded XML", True)
 
-        self.trcStyle = SymbolTreeCtrl(self.nbTrees)
-        self.nbTrees.AddPage(self.trcStyle, "Style tree")
+        self.tlcStyle = SymbolTreeCtrl(self.nbTrees)
+        self.nbTrees.AddPage(self.tlcStyle, "Style tree")
 
-        self.trcSyntax = SymbolTreeCtrl(self.nbTrees)
-        self.nbTrees.AddPage(self.trcSyntax, "Syntax tree")
+        self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
+        self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree")
 
     def btnChooseDiagramPathOnButtonClick(self, event):
         open_file_dialog = wx.FileDialog(self, message="Open a diagram",
@@ -59,18 +60,17 @@ class MainFrame (MainFrameBase):
             wx.MessageBox("Failed to decode diagram XML", "Code generation")
             return
 
-        pretty_xml = BeautifulSoup(decoded_xml, "lxml").prettify()
         self.stcDecodedXml.SetReadOnly(False)
-        self.stcDecodedXml.SetValue(pretty_xml)
+        self.stcDecodedXml.SetValue(bs(decoded_xml, "lxml").prettify())
         self.stcDecodedXml.SetReadOnly(True)
 
         style_parser = StyleParser(decoded_xml)
         style_tree = style_parser.convert_to_style_tree()
-        self.trcStyle.load_dict(style_tree)
+        self.tlcStyle.load_dict(style_tree)
 
         syntax_parser = SyntaxParser(style_tree)
         syntax_tree = syntax_parser.convert_to_syntax_tree()
-        self.trcSyntax.load_dict(syntax_tree)
+        self.tlcSyntax.load_dict(syntax_tree)
 
         language_selected = False
 

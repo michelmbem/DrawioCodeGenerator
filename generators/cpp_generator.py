@@ -1,5 +1,30 @@
 import re
+import traceback
+
 from generators.code_generator import CodeGeneratorInterface
+
+
+TYPE_MAPPINGS = {
+    "boolean": "bool",
+    "int8": "signed char",
+    "uint8": "unsigned char",
+    "int16": "short",
+    "uint16": "unsigned short",
+    "int32": "int",
+    "uint32": "unsigned int",
+    "int64": "long long",
+    "uint64": "unsigned long long",
+    "single": "float",
+    "double": "double",
+    "string": "std::string",
+    "date": "time_t",
+    "time": "time_t",
+    "datetime": "time_t",
+}
+
+
+def map_type(typename):
+    return TYPE_MAPPINGS.get(typename.lower(), typename)
 
 
 class CppCodeGenerator(CodeGeneratorInterface):
@@ -12,13 +37,9 @@ class CppCodeGenerator(CodeGeneratorInterface):
     """
 
     def __init__(self, syntax_tree, file_path):
-        self.__syntax_tree = syntax_tree
+        self.syntax_tree = syntax_tree
         self.file_path = file_path.strip('/')
-        self.__classes = []
-        self.__properties = []
-        self.__accessors = []
-        self.__methods = []
-        self.__files = []
+        self.files = []
 
     def generate_code(self):
         """
@@ -30,39 +51,38 @@ class CppCodeGenerator(CodeGeneratorInterface):
         CodeGeneratorInterface.ensure_dir_exists(self.file_path)
 
         try:
-            for _, _class in self.__syntax_tree.items():
+            for class_def in self.syntax_tree.values():
                 file = ""
 
                 inheritance = ""
-                if len(_class['relationships']['extends']) > 0:
+                if len(class_def['relationships']['extends']) > 0:
                     inheritance += ": "
-                    inheritance += ", ".join(["public " + self.__syntax_tree[r]['name'] for r in _class['relationships']['extends']]).strip(", ")
+                    inheritance += ", ".join(["public " + self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]).strip(", ")
 
                 implementation = ""
-                if len(_class['relationships']['implements']) > 0:
+                if len(class_def['relationships']['implements']) > 0:
                     implementation += ", " if inheritance != "" else ": "
-                    implementation += ", ".join(["public " + self.__syntax_tree[r]['name'] for r in _class['relationships']['implements']]).strip(", ")
+                    implementation += ", ".join(["public " + self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]).strip(", ")
 
                 interface_methods = []
-                self.get_interface_methods(_class['relationships']['implements'], interface_methods)
+                self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
 
-                file += self.generate_classes(_class['type'], _class['name'], inheritance, implementation)
-                if _class['type'] == "enum":
-                    file += self.generate_properties(_class['properties'], True)
-                else:
-                    file += self.generate_properties(_class['properties'], False)
-                    file += "\n"
-                    if _class['type'].endswith("class"):
-                        file += self.generate_property_accessors(_class['properties'])
-                    file += self.generate_methods(_class['methods'], _class['properties'], _class['type'], interface_methods)
+                file += self.generate_classes(class_def['type'], class_def['name'], inheritance, implementation)
+                file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file += "\n"
+                if class_def['type'].endswith("class"):
+                    file += self.generate_property_accessors(class_def['properties'])
+                if class_def['type'] != "enum":
+                    file += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
                 file += "};\n"
 
-                self.__files.append([_class['name'], file])
+                self.files.append((class_def['name'], file))
 
             self.generate_files()
 
         except Exception as e:
             print(f"CppCodeGenerator.generate_code ERROR: {e}")
+            traceback.print_exception(e)
 
     def generate_classes(self, class_type, class_name, extends, implements):
         """
@@ -86,15 +106,7 @@ class CppCodeGenerator(CodeGeneratorInterface):
         class_header = "#pragma once\n\n\n"
         class_header += f"{type_of_class} {class_name} {extends} {implements}\n{{\n"
         class_header = re.sub(' +', ' ', class_header)
-        self.__classes.append(class_header)
         return class_header
-
-    def get_classes(self):
-        """
-        Getter for classes
-        """
-
-        return self.__classes
 
     def generate_properties(self, properties, is_enum):
         """
@@ -111,28 +123,20 @@ class CppCodeGenerator(CodeGeneratorInterface):
         properties_string = ""
         first_prop = True
 
-        for _, _property_def in properties.items():
+        for property_def in properties.values():
             if is_enum:
                 if first_prop:
                     first_prop = False
                 else:
                     properties_string += ",\n"
 
-                p = f"\t{_property_def['name']}"
+                p = f"\t{property_def['name']}"
             else:
-                p = f"\t{_property_def['access']}: {_property_def['type']} {_property_def['name']};\n"
+                p = f"\t{property_def['access']}: {map_type(property_def['type'])} {property_def['name']};\n"
 
             properties_string += p
-            self.__properties.append(p)
 
         return properties_string
-
-    def get_properties(self):
-        """
-        Getter for properties
-        """
-
-        return self.__properties
 
     def generate_property_accessors(self, properties):
         """
@@ -146,36 +150,26 @@ class CppCodeGenerator(CodeGeneratorInterface):
         """
 
         accessors_string = ""
-        for _, _property_def in properties.items():
-            if _property_def['access'] == "private":
-                getter = (f"\tpublic: {_property_def['type']} Get{_property_def['name'].capitalize()}() {{\n"
-                          f"\t\treturn {_property_def['name']};\n\t}}\n\n")
+        for property_def in properties.values():
+            if property_def['access'] == "private":
+                getter = (f"\tpublic: {map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
+                          f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
-                self.__accessors.append(getter)
 
-                setter = (f"\tpublic: void Set{_property_def['name'].capitalize()}({_property_def['type']}"
-                          f" {_property_def['name']}) {{\n\t\tthis->{_property_def['name']} ="
-                          f" {_property_def['name']};\n\t}}\n\n")
+                setter = (f"\tpublic: void Set{property_def['name'].capitalize()}({map_type(property_def['type'])}"
+                          f" {property_def['name']}) {{\n\t\tthis->{property_def['name']} ="
+                          f" {property_def['name']};\n\t}}\n\n")
                 accessors_string += setter
-                self.__accessors.append(setter)
 
         return accessors_string
 
-    def get_property_accessors(self):
-        """
-        Getter for the property accessors
-        """
-
-        return self.__accessors
-
-    def generate_methods(self, methods, properties, class_type, interface_methods):
+    def generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
         Parameters:
             methods: dictionary of methods
-            properties: dictionary of properties
-            class_type: type of current class
+            class_type: one of class, abstract class, interface or enum
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -183,27 +177,18 @@ class CppCodeGenerator(CodeGeneratorInterface):
         """
 
         methods_string = ""
-        for _, method_value in methods.items():
-            m = f"\t{method_value['access']}: {method_value['return_type']} {method_value['name']}()\n\t{{\n\t}}\n\n"
+        for method_def in methods.values():
+            m = f"\t{method_def['access']}: {map_type(method_def['return_type'])} {method_def['name']}()\n\t{{\n\t}}\n\n"
             methods_string += m
-            self.__methods.append(m)
 
             if class_type.endswith("class"):
                 comment = "// ***requires implementation***"
                 for interface_method in interface_methods:
-                    m = (f"\t {interface_method['access']}: {interface_method['return_type']} {interface_method['name']}()"
-                         f"\n\t{{\n\t\n\t\t{comment}\n\t}}\n\n")
+                    m = (f"\t {interface_method['access']}: {map_type(interface_method['return_type'])}"
+                         f" {interface_method['name']}()\n\t{{\n\t\n\t\t{comment}\n\t}}\n\n")
                     methods_string += m
-                    self.__methods.append(m)
 
         return methods_string
-
-    def get_methods(self):
-        """
-        Getter for the methods
-        """
-
-        return self.__methods
 
     def get_interface_methods(self, implements, interface_list):
         """
@@ -215,7 +200,7 @@ class CppCodeGenerator(CodeGeneratorInterface):
         """
 
         for i in implements:
-            interface_obj = self.__syntax_tree[i]
+            interface_obj = self.syntax_tree[i]
             interface_list += interface_obj['methods'].values()
             self.get_interface_methods(interface_obj['relationships']['implements'], interface_list)
 
@@ -230,17 +215,11 @@ class CppCodeGenerator(CodeGeneratorInterface):
         print(f"<<< WRITING FILES TO {self.file_path} >>>")
 
         try:
-            for file in self.get_files():
+            for file in self.files:
                 file_name = file[0] + ".hpp"
                 file_contents = file[1]
                 with open(self.file_path + f"/{file_name}", "w") as f:
                     f.write(file_contents)
         except Exception as e:
             print(f"CppCodeGenerator.generate_files ERROR: {e}")
-
-    def get_files(self):
-        """
-        Getter for the files 
-        """
-
-        return self.__files
+            traceback.print_exception(e)

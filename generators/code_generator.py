@@ -1,4 +1,4 @@
-from os import path, makedirs
+from os import makedirs
 from abc import ABC, abstractmethod
 
 
@@ -9,8 +9,7 @@ class CodeGeneratorInterface(ABC):
 
     @staticmethod
     def ensure_dir_exists(dir_path):
-        if not path.isdir(dir_path):
-            makedirs(dir_path)
+        makedirs(dir_path, exist_ok=True)
 
     @abstractmethod
     def generate_code(self):
@@ -19,18 +18,9 @@ class CodeGeneratorInterface(ABC):
     @abstractmethod
     def generate_classes(self, class_type, class_name, extends, implements):
         pass
-
-    @abstractmethod
-    def get_classes(self):
-        pass
-        pass
     
     @abstractmethod
     def generate_properties(self, properties, is_enum):
-        pass
-    
-    @abstractmethod
-    def get_properties(self):
         pass
 
     @abstractmethod
@@ -38,21 +28,9 @@ class CodeGeneratorInterface(ABC):
         pass
 
     @abstractmethod
-    def get_property_accessors(self):
-        pass
-
-    @abstractmethod
-    def generate_methods(self, methods, properties, class_type, interface_methods):
-        pass
-
-    @abstractmethod
-    def get_methods(self):
+    def generate_methods(self, methods, class_type, interface_methods):
         pass
 
     @abstractmethod
     def generate_files(self):
-        pass
-    
-    @abstractmethod
-    def get_files(self):
         pass

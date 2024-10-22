@@ -1,3 +1,23 @@
+import traceback
+
+
+def parse_class_name(class_name):
+    class_modifier = None
+    delimiters = [("<<", ">>"), ("&lt;&lt;", "&gt;&gt;")]
+
+    for delimiter in delimiters:
+        if class_name.startswith(delimiter[0]):
+            pos = class_name.find(delimiter[1])
+            if pos >= 0:
+                class_modifier = class_name[len(delimiter[0]):pos].strip()
+                class_name = class_name[pos + len(delimiter[1]):].strip()
+            else:
+                raise ValueError(f"Invalid type name: {class_name}")
+            break
+
+    return class_name, class_modifier
+
+
 class SyntaxParser:
     """
     Parse the style tree into the syntax tree
@@ -37,7 +57,7 @@ class SyntaxParser:
 
                 _style_type = value['style']['type'].lower()
 
-                if value['parent_id'] == parent and _style_type == 'swimlane' or _style_type == 'html':
+                if value['parent_id'] == parent and _style_type in ('swimlane', 'html', 'text'):
                     # start of a new cell
                     syntax_tree[key] = self._tree_template(value)
                     properties_done = False
@@ -63,6 +83,7 @@ class SyntaxParser:
                 self._add_relationships(syntax_tree, relationships[relationship])
         except Exception as e:
             print(f"SyntaxParser.convert_to_syntax_tree ERROR: {e}")
+            traceback.print_exception(e)
 
         return syntax_tree
 
@@ -91,34 +112,24 @@ class SyntaxParser:
             }
         }
 
-        if main_cell['style']['type'] == "html":
+        if main_cell['style']['type'] in ("html", "text"):
             values_length = len(main_cell['values'])
-            name = main_cell['values'][0] if values_length > 0 else None
+            name = main_cell['values'][0] if values_length > 0 else ""
             properties = {'values': main_cell['values'][1] if values_length > 1 else None}
             methods = {'values': main_cell['values'][2] if values_length > 2 else None}
 
             template['name'] = name[0]
-            template['properties'] = self._properties_template(properties, 0) if not None else []
-            template['methods'] = self._methods_template(methods, 0) if not None else []
+            template['properties'] = self._properties_template(properties, 0) or {}
+            template['methods'] = self._methods_template(methods, 0) or {}
 
-        _class_name = template['name']
-        _class_modifier = ""
+        class_name, class_modifier = parse_class_name(template['name'])
+        template['name'] = class_name
 
-        if _class_name.startswith("<<"):
-            _pos = _class_name.find(">>")
-            if _pos >= 0:
-                _class_modifier = _class_name[0:_pos]
-                _class_name = _class_name[_pos + 2:].strip()
-            else:
-                raise ValueError(f"Invalid type name: {_class_name}")
-
-        template['name'] = _class_name
-
-        if _class_modifier == "abstract":
+        if class_modifier == "abstract":
             template['type'] = "abstract class"
-        elif _class_modifier == "interface":
+        elif class_modifier == "interface":
             template['type'] = "interface"
-        elif _class_modifier == "enum":
+        elif class_modifier == "enum":
             template['type'] = "enum"
 
         return template
@@ -138,21 +149,22 @@ class SyntaxParser:
         values = property_dict['values']
         template = {}
 
-        for val in values:
-            if len(val) == 0:
-                continue
+        if values:
+            for val in values:
+                if len(val) == 0:
+                    continue
 
-            _id += 1
+                _id += 1
 
-            val = val.strip()
-            access_modifier_symbol = val[0]
-            temp_val = val[1:].split(":")
+                val = val.strip()
+                access_modifier_symbol = val[0]
+                temp_val = val[1:].split(":")
 
-            template[_id] = {
-                'access': self._get_access_modifier(access_modifier_symbol),
-                'name': temp_val[0].strip(),
-                'type': temp_val[1].strip(),
-            }
+                template[_id] = {
+                    'access': self._get_access_modifier(access_modifier_symbol),
+                    'name': temp_val[0].strip(),
+                    'type': temp_val[1].strip() if len(temp_val) > 1 else None,
+                }
 
         return template
 
@@ -171,21 +183,22 @@ class SyntaxParser:
         values = method_dict['values']
         template = {}
 
-        for val in values:
-            if len(val) == 0:
-                continue
+        if values:
+            for val in values:
+                if len(val) == 0:
+                    continue
 
-            _id += 1
+                _id += 1
 
-            val = val.strip()
-            access_modifier_symbol = val[0]
-            temp_val = val[1:].split(":")
+                val = val.strip()
+                access_modifier_symbol = val[0]
+                temp_val = val[1:].split(":")
 
-            template[_id] = {
-                'access': self._get_access_modifier(access_modifier_symbol),
-                'name': temp_val[0].strip(),
-                'return_type': temp_val[1].strip() if len(temp_val) > 1 else "void",
-            }
+                template[_id] = {
+                    'access': self._get_access_modifier(access_modifier_symbol),
+                    'name': temp_val[0].strip(),
+                    'return_type': temp_val[1].strip() if len(temp_val) > 1 else "void",
+                }
 
         return template
 
@@ -224,7 +237,7 @@ class SyntaxParser:
         source_cell = syntax_tree[source]
         target_cell = syntax_tree[target]
 
-        if "endArrow" in style.keys() and (style['endArrow'].lower() == "block" or style['endArrow'].lower() == "none"):
+        if "endArrow" in style.keys() and style['endArrow'].lower() in ("block", "none"):
             if style['endArrow'].lower() == "none" or style['endFill'].lower() == "1":
                 # association
                 target_cell['relationships']['association'] += [source]
