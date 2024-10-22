@@ -16,7 +16,7 @@ class CodeGeneratorInterface(ABC):
         pass
 
     @abstractmethod
-    def generate_classes(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, extends, implements):
         pass
     
     @abstractmethod

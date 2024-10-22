@@ -1,6 +1,7 @@
 import re
 import traceback
 
+from os import path
 from generators.code_generator import CodeGeneratorInterface
 
 
@@ -26,18 +27,33 @@ def default(typename):
     return "None"
 
 
+def get_parameter_list(param_types):
+    param_list = "("
+
+    for _ndx in range(len(param_types)):
+        if _ndx > 0:
+            param_list += ", "
+        param_list += f"arg{_ndx}"
+
+    param_list += ")"
+
+    return param_list
+
+
 class PythonCodeGenerator(CodeGeneratorInterface):
     """
     Generate Python code
 
     Parameters:
         syntax_tree: syntax_tree of the drawio file 
-        file_path: path for the code files to be written to 
+        file_path: path for the code files to be written to
+        options: set of additional options
     """
 
-    def __init__(self, syntax_tree, file_path):
+    def __init__(self, syntax_tree, file_path, options):
         self.syntax_tree = syntax_tree
-        self.file_path = file_path.strip('/')
+        self.file_path = path.abspath(file_path)
+        self.options = options
         self.files = []
 
     def generate_code(self):
@@ -51,8 +67,6 @@ class PythonCodeGenerator(CodeGeneratorInterface):
 
         try:
             for class_def in self.syntax_tree.values():
-                file = ""
-
                 inheritance = ""
                 if len(class_def['relationships']['extends']) > 0:
                     inheritance = ", ".join([self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]).strip(", ")
@@ -64,7 +78,7 @@ class PythonCodeGenerator(CodeGeneratorInterface):
                 interface_methods = []
                 self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
 
-                file += self.generate_classes(class_def['type'], class_def['name'], inheritance, implementation)
+                file = self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
                 if len(class_def['properties']) <= 0 and len(class_def['methods']) <= 0 and len(interface_methods) <= 0:
                     file += "\tpass\n"
                 else:
@@ -83,7 +97,7 @@ class PythonCodeGenerator(CodeGeneratorInterface):
             print(f"PythonCodeGenerator.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_classes(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, extends, implements):
         """
         Generate the class header 
 
@@ -97,15 +111,28 @@ class PythonCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
+        class_header = ""
+
         if class_type == "enum":
-            class_header = "from enum import Enum, auto\n\n\n"
+            class_header += "from enum import Enum, auto\n"
             class_ancestors = "(Enum)"
         else:
-            class_header = "from abc import ABC, abstractmethod\n\n\n"
-            class_ancestors = "(" + f"ABC, {extends}, {implements}".strip(", ") + ")"
+            for _import in self.options['imports']:
+                class_header += f"import {_import}\n"
 
+            class_header += "from abc import ABC, abstractmethod\n"
+
+            class_ancestors = "(ABC"
+            if extends:
+                class_ancestors += f", {extends}"
+            if implements:
+                class_ancestors += f", {implements}"
+            class_ancestors += ")"
+
+        class_header += "\n\n"
         class_header += f"class {class_name}{class_ancestors}:\n"
         class_header = re.sub(' +', ' ', class_header)
+
         return class_header
 
     def generate_properties(self, properties, is_enum):
@@ -129,11 +156,18 @@ class PythonCodeGenerator(CodeGeneratorInterface):
         for property_def in properties.values():
             if is_enum:
                 p = f"\t{property_def['name']}"
-                if "=" not in property_def['name']:
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
+                else:
                     p += " = auto()"
-                p += "\n"
             else:
-                p = f"\t\tself.{property_def['name']} = {default(property_def['type'])}\n"
+                p = f"\t\tself.{property_def['name']}"
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
+                else:
+                    p += f" = {default(property_def['type'])}"
+
+            p += "\n"
 
             properties_string += p
             met_property = True
@@ -182,8 +216,12 @@ class PythonCodeGenerator(CodeGeneratorInterface):
         """
 
         methods_string = ""
+
         for method_def in methods.values():
-            m = f"\tdef {method_def['name']}(self):\n\t\tpass\n\n"
+            m = ""
+            if class_type in ("interface", "abstract class"):
+                m += "\t@abstractmethod\n"
+            m += f"\tdef {method_def['name']}(self):\n\t\tpass\n\n"
             methods_string += m
 
         # inherited abstract methods
@@ -221,10 +259,8 @@ class PythonCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.files:
-                file_name = file[0] + ".py"
-                file_contents = file[1]
-                with open(self.file_path + f"/{file_name}", "w") as f:
-                    f.write(file_contents)
+                with open(path.join(self.file_path, f"{file[0]}.py"), "w") as f:
+                    f.write(file[1])
         except Exception as e:
             print(f"PythonCodeGenerator.generate_files ERROR: {e}")
             traceback.print_exception(e)

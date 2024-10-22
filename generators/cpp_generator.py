@@ -1,6 +1,7 @@
 import re
 import traceback
 
+from os import path
 from generators.code_generator import CodeGeneratorInterface
 
 
@@ -27,18 +28,51 @@ def map_type(typename):
     return TYPE_MAPPINGS.get(typename.lower(), typename)
 
 
+def default(typename):
+    typename = map_type(typename)
+    if typename == "bool":
+        return "false"
+    if typename == "char":
+        return "'\\0'"
+    if typename in ("signed char", "unsigned char", "short", "unsigned short", "int",
+                    "unsigned int", "long long", "unsigned long long", "float", "double"):
+        return "0"
+    if typename == "std::string":
+        return '""'
+    if typename.endswith("*"):
+        return "nullptr"
+    return f"{typename}()"
+
+
+def get_parameter_list(param_types):
+    _ndx = 0
+    param_list = "("
+
+    for param_type in param_types:
+        if _ndx > 0:
+            param_list += ", "
+        param_list += f"{param_type} arg{_ndx}"
+        _ndx += 1
+
+    param_list += ")"
+
+    return param_list
+
+
 class CppCodeGenerator(CodeGeneratorInterface):
     """
     Generate C++ code
 
     Parameters:
-        syntax_tree: syntax_tree of the drawio file 
-        file_path: path for the code files to be written to 
+        syntax_tree: syntax tree of the drawio file
+        file_path: path for the code files to be written to
+        options: set of additional options
     """
 
-    def __init__(self, syntax_tree, file_path):
+    def __init__(self, syntax_tree, file_path, options):
         self.syntax_tree = syntax_tree
-        self.file_path = file_path.strip('/')
+        self.file_path = path.abspath(file_path)
+        self.options = options
         self.files = []
 
     def generate_code(self):
@@ -52,8 +86,6 @@ class CppCodeGenerator(CodeGeneratorInterface):
 
         try:
             for class_def in self.syntax_tree.values():
-                file = ""
-
                 inheritance = ""
                 if len(class_def['relationships']['extends']) > 0:
                     inheritance += ": "
@@ -67,14 +99,14 @@ class CppCodeGenerator(CodeGeneratorInterface):
                 interface_methods = []
                 self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
 
-                file += self.generate_classes(class_def['type'], class_def['name'], inheritance, implementation)
+                file = self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
                 file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
                 file += "\n"
                 if class_def['type'].endswith("class"):
                     file += self.generate_property_accessors(class_def['properties'])
                 if class_def['type'] != "enum":
                     file += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
-                file += "};\n"
+                file += "\t};\n}"
 
                 self.files.append((class_def['name'], file))
 
@@ -84,7 +116,7 @@ class CppCodeGenerator(CodeGeneratorInterface):
             print(f"CppCodeGenerator.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_classes(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, extends, implements):
         """
         Generate the class header 
 
@@ -98,13 +130,24 @@ class CppCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
+        class_header = "#pragma once\n\n"
+
+        if class_type != "enum" and len(self.options['imports']) > 0:
+            for _import in self.options['imports']:
+                class_header += f"#include {_import}\n"
+            class_header += "\n"
+
+        if self.options['package']:
+            class_header += f"namespace {self.options['package']}\n{{\n"
+        else:
+            class_header += "namespace __default__\n{\n"
+
         if class_type == "enum":
             type_of_class = "enum class"
         else:
             type_of_class = "class"
 
-        class_header = "#pragma once\n\n\n"
-        class_header += f"{type_of_class} {class_name} {extends} {implements}\n{{\n"
+        class_header += f"\t{type_of_class} {class_name} {extends} {implements}\n\t{{\n"
         class_header = re.sub(' +', ' ', class_header)
         return class_header
 
@@ -130,9 +173,14 @@ class CppCodeGenerator(CodeGeneratorInterface):
                 else:
                     properties_string += ",\n"
 
-                p = f"\t{property_def['name']}"
+                p = f"\t\t{property_def['name']}"
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']}: {map_type(property_def['type'])} {property_def['name']};\n"
+                p = f"\t\t{property_def['access']}: {map_type(property_def['type'])} {property_def['name']}"
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
+                p += ";\n"
 
             properties_string += p
 
@@ -152,13 +200,13 @@ class CppCodeGenerator(CodeGeneratorInterface):
         accessors_string = ""
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\tpublic: {map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
-                          f"\t\treturn {property_def['name']};\n\t}}\n\n")
+                getter = (f"\t\tpublic: {map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
+                          f"\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\tpublic: void Set{property_def['name'].capitalize()}({map_type(property_def['type'])}"
-                          f" {property_def['name']}) {{\n\t\tthis->{property_def['name']} ="
-                          f" {property_def['name']};\n\t}}\n\n")
+                setter = (f"\t\tpublic: void Set{property_def['name'].capitalize()}({map_type(property_def['type'])}"
+                          f" {property_def['name']}) {{\n\t\t\tthis->{property_def['name']} ="
+                          f" {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += setter
 
         return accessors_string
@@ -177,16 +225,27 @@ class CppCodeGenerator(CodeGeneratorInterface):
         """
 
         methods_string = ""
-        for method_def in methods.values():
-            m = f"\t{method_def['access']}: {map_type(method_def['return_type'])} {method_def['name']}()\n\t{{\n\t}}\n\n"
-            methods_string += m
 
-            if class_type.endswith("class"):
-                comment = "// ***requires implementation***"
-                for interface_method in interface_methods:
-                    m = (f"\t {interface_method['access']}: {map_type(interface_method['return_type'])}"
-                         f" {interface_method['name']}()\n\t{{\n\t\n\t\t{comment}\n\t}}\n\n")
-                    methods_string += m
+        for method_def in methods.values():
+            params = get_parameter_list(method_def['parameters'])
+            if class_type == "interface":
+                m = f"\t\tpublic: virtual {map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
+            else:
+                m = f"\t\t{method_def['access']}: {map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
+                if method_def['return_type'] != "void":
+                    m += f"\t\t\treturn {default(method_def['return_type'])};\n"
+                m += "\t\t}"
+
+            methods_string += m + "\n\n"
+
+        if class_type.endswith("class"):
+            for interface_method in interface_methods:
+                params = get_parameter_list(interface_method['parameters'])
+                m = f"\t\tpublic: {map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
+                if interface_method['return_type'] != "void":
+                    m += f"\t\t\treturn {default(interface_method['return_type'])};\n"
+                m += "\t\t}"
+                methods_string += m + "\n\n"
 
         return methods_string
 
@@ -216,10 +275,8 @@ class CppCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.files:
-                file_name = file[0] + ".hpp"
-                file_contents = file[1]
-                with open(self.file_path + f"/{file_name}", "w") as f:
-                    f.write(file_contents)
+                with open(path.join(self.file_path, f"{file[0]}.hpp"), "w") as f:
+                    f.write(file[1])
         except Exception as e:
             print(f"CppCodeGenerator.generate_files ERROR: {e}")
             traceback.print_exception(e)

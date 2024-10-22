@@ -1,6 +1,7 @@
 import re
 import traceback
 
+from os import path
 from generators.code_generator import CodeGeneratorInterface
 
 
@@ -29,18 +30,48 @@ def map_type(typename):
     return TYPE_MAPPINGS.get(typename.lower(), typename)
 
 
+def default(typename):
+    typename = map_type(typename)
+    if typename == "boolean":
+        return "false"
+    if typename == "char":
+        return "'\\0'"
+    if typename in ("byte", "short", "int", "long", "float", "double"):
+        return "0"
+    if typename == "String":
+        return '""'
+    return "null"
+
+
+def get_parameter_list(param_types):
+    _ndx = 0
+    param_list = "("
+
+    for param_type in param_types:
+        if _ndx > 0:
+            param_list += ", "
+        param_list += f"{param_type} arg{_ndx}"
+        _ndx += 1
+
+    param_list += ")"
+
+    return param_list
+
+
 class JavaCodeGenerator(CodeGeneratorInterface):
     """
     Generate Java code
 
     Parameters:
-        syntax_tree: syntax_tree of the drawio file 
-        file_path: path for the code files to be written to 
+        syntax_tree: syntax tree of the drawio file
+        file_path: path for the code files to be written to
+        options: set of additional options
     """
 
-    def __init__(self, syntax_tree, file_path):
+    def __init__(self, syntax_tree, file_path, options):
         self.syntax_tree = syntax_tree
-        self.file_path = file_path.strip('/')
+        self.file_path = path.abspath(file_path)
+        self.options = options
         self.files = []
     
     def generate_code(self):
@@ -54,8 +85,6 @@ class JavaCodeGenerator(CodeGeneratorInterface):
 
         try:
             for class_def in self.syntax_tree.values():
-                file = ""
-                
                 inheritance = ""
                 if len(class_def['relationships']['extends']) > 0:
                     inheritance += "extends "
@@ -69,7 +98,7 @@ class JavaCodeGenerator(CodeGeneratorInterface):
                 interface_methods = []
                 self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
 
-                file += self.generate_classes(class_def['type'], class_def['name'], inheritance, implementation)
+                file = self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
                 file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
                 file += "\n"
                 if class_def['type'].endswith("class"):
@@ -86,7 +115,7 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             print(f"JavaCodeGenerator.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_classes(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, extends, implements):
         """
         Generate the class header 
 
@@ -100,8 +129,19 @@ class JavaCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
-        class_header = f"public {class_type} {class_name} {extends} {implements} {{\n"
+        class_header = ""
+
+        if self.options['package']:
+            class_header += f"package {self.options['package']};\n\n"
+
+        if class_type != "enum" and len(self.options['imports']) > 0:
+            for _import in self.options['imports']:
+                class_header += f"import {_import};\n"
+            class_header += "\n"
+
+        class_header += f"public {class_type} {class_name} {extends} {implements} {{\n"
         class_header = re.sub(' +', ' ', class_header)
+
         return class_header
  
     def generate_properties(self, properties, is_enum):
@@ -127,8 +167,13 @@ class JavaCodeGenerator(CodeGeneratorInterface):
                     properties_string += ",\n"
 
                 p = f"\t{property_def['name']}"
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {map_type(property_def['type'])} {property_def['name']};\n"
+                p = f"\t{property_def['access']} {map_type(property_def['type'])} {property_def['name']}"
+                if property_def['default_value']:
+                    p += f" = {property_def['default_value']}"
+                p += ";\n"
 
             properties_string += p
  
@@ -173,16 +218,27 @@ class JavaCodeGenerator(CodeGeneratorInterface):
         """
 
         methods_string = ""
+
         for method_def in methods.values():
-            m = f"\t{method_def['access']} {map_type(method_def['return_type'])} {method_def['name']}() {{\n\t}}\n\n"
-            methods_string += m + "\n"
+            params = get_parameter_list(method_def['parameters'])
+            if class_type == "interface":
+                m = f"\t{map_type(method_def['return_type'])} {method_def['name']}{params};"
+            else:
+                m = f"\t{method_def['access']} {map_type(method_def['return_type'])} {method_def['name']}{params} {{\n"
+                if method_def['return_type'] != "void":
+                    m += f"\t\treturn {default(method_def['return_type'])};\n"
+                m += "\t}"
+
+            methods_string += m + "\n\n"
 
         if class_type.endswith("class"):
-            comment = "// ***requires implementation***"
             for interface_method in interface_methods:
-                m = (f"\t {interface_method['access']} {map_type(interface_method['return_type'])}"
-                     f" {interface_method['name']}() {{\n\t\t{comment}\n\t}}\n\n")
-                methods_string += m
+                params = get_parameter_list(interface_method['parameters'])
+                m = f"\tpublic {map_type(interface_method['return_type'])} {interface_method['name']}{params} {{\n"
+                if interface_method['return_type'] != "void":
+                    m += f"\t\treturn {default(interface_method['return_type'])};\n"
+                m += "\t}"
+                methods_string += m + "\n\n"
 
         return methods_string
 
@@ -212,10 +268,8 @@ class JavaCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.files:
-                file_name = file[0] + ".java"
-                file_contents = file[1]
-                with open(self.file_path + f"/{file_name}", "w") as f:
-                    f.write(file_contents)
+                with open(path.join(self.file_path, f"{file[0]}.java"), "w") as f:
+                    f.write(file[1])
         except Exception as e:
             print(f"JavaCodeGenerator.generate_files ERROR: {e}")
             traceback.print_exception(e)

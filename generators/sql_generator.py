@@ -1,5 +1,6 @@
 import traceback
 
+from os import path
 from generators.code_generator import CodeGeneratorInterface
 
 
@@ -31,12 +32,14 @@ class SqlCodeGenerator(CodeGeneratorInterface):
 
     Parameters:
         syntax_tree: syntax_tree of the drawio file 
-        file_path: path for the code files to be written to 
+        file_path: path for the code files to be written to
+        options: set of additional options
     """
 
-    def __init__(self, syntax_tree, file_path):
+    def __init__(self, syntax_tree, file_path, options):
         self.syntax_tree = syntax_tree
-        self.file_path = file_path.strip('/')
+        self.file_path = path.abspath(file_path)
+        self.options = options
         self.files = []
 
     def generate_code(self):
@@ -53,7 +56,7 @@ class SqlCodeGenerator(CodeGeneratorInterface):
                 if class_def['type'] != "class":
                     continue
 
-                file = self.generate_classes(None, class_def['name'], None, None)
+                file = self.generate_class_header(None, class_def['name'], None, None)
                 file += self.generate_properties(class_def['properties'], None)
                 file += "\n);\n"
                 self.files.append((class_def['name'], file))
@@ -64,7 +67,7 @@ class SqlCodeGenerator(CodeGeneratorInterface):
             print(f"SqlCodeGenerator.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_classes(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, extends, implements):
         """
         Generate the class header 
 
@@ -78,7 +81,10 @@ class SqlCodeGenerator(CodeGeneratorInterface):
             class_header: class header string
         """
 
-        class_header = f"CREATE TABLE {class_name} (\n"
+        class_header = ""
+        if self.options['package']:
+            class_header += f"use {self.options['package']};\n\n"
+        class_header += f"CREATE TABLE {class_name} (\n"
         return class_header
 
     def generate_properties(self, properties, _):
@@ -103,6 +109,9 @@ class SqlCodeGenerator(CodeGeneratorInterface):
                 properties_string += ",\n"
 
             p = f"\t{property_def['name']} {map_type(property_def['type'])}"
+            if property_def['default_value']:
+                p += f" default {property_def['default_value']}"
+
             properties_string += p
 
         return properties_string
@@ -158,10 +167,8 @@ class SqlCodeGenerator(CodeGeneratorInterface):
 
         try:
             for file in self.files:
-                file_name = file[0] + ".sql"
-                file_contents = file[1]
-                with open(self.file_path + f"/{file_name}", "w") as f:
-                    f.write(file_contents)
+                with open(path.join(self.file_path, f"{file[0]}.sql"), "w") as f:
+                    f.write(file[1])
         except Exception as e:
             print(f"SqlCodeGenerator.generate_files ERROR: {e}")
             traceback.print_exception(e)

@@ -2,20 +2,56 @@ import traceback
 
 
 def parse_class_name(class_name):
-    class_modifier = None
-    delimiters = [("<<", ">>"), ("&lt;&lt;", "&gt;&gt;")]
+    if class_name.startswith("<<"):
+        pos = class_name.find(">>")
+        if pos >= 0:
+            stereotype = class_name[2:pos].strip().lower()
+            class_name = class_name[pos + 2:].strip()
+        else:
+            raise ValueError(f"Invalid type name: {class_name}")
+    else:
+        stereotype = None
 
-    for delimiter in delimiters:
-        if class_name.startswith(delimiter[0]):
-            pos = class_name.find(delimiter[1])
-            if pos >= 0:
-                class_modifier = class_name[len(delimiter[0]):pos].strip()
-                class_name = class_name[pos + len(delimiter[1]):].strip()
-            else:
-                raise ValueError(f"Invalid type name: {class_name}")
-            break
+    return class_name, stereotype
 
-    return class_name, class_modifier
+
+def parse_property_signature(property_sig):
+    property_sig = property_sig.strip()
+    access_modifier_symbol = property_sig[0]
+    parts = property_sig[1:].split(":")
+
+    if len(parts) > 1:
+        name = parts[0].strip()
+        parts = parts[1].split("=")
+        data_type = parts[0].strip()
+    else:
+        data_type = None
+        parts = parts[0].split("=")
+        name = parts[0].strip()
+
+    default_value = parts[1].strip() if len(parts) > 1 else None
+
+    return access_modifier_symbol, name, data_type, default_value
+
+
+def parse_method_signature(method_sig):
+    method_sig = method_sig.strip()
+    access_modifier_symbol = method_sig[0]
+    parts = method_sig[1:].split(":")
+    name = parts[0].strip()
+    return_type = parts[1].strip() if len(parts) > 1 else "void"
+
+    if name.endswith(")"):
+        lpar = name.find("(")
+        if lpar < 0:
+            raise ValueError(f"Malformed method signature: {method_sig}. Missing opening parenthesis")
+        else:
+            parameters = [s.strip() for s in name[lpar + 1:-1].split(",")]
+            name = name[:lpar].strip()
+    else:
+        parameters = []
+
+    return access_modifier_symbol, name, parameters, return_type
 
 
 class SyntaxParser:
@@ -47,37 +83,37 @@ class SyntaxParser:
             parent = self.style_tree['root']['id']
 
             properties_done = False
-
             _id = 0
-            for key, value in cells.items():
 
+            for key, value in cells.items():
                 if value['parent_id'] in relationships.keys() or "endArrow" in value['style'].keys():
                     # skip the label for relationships
                     continue
 
-                _style_type = value['style']['type'].lower()
-
-                if value['parent_id'] == parent and _style_type in ('swimlane', 'html', 'text'):
+                if value['parent_id'] == parent and value['style']['type'].lower() in ('swimlane', 'html', 'text'):
                     # start of a new cell
                     syntax_tree[key] = self._tree_template(value)
                     properties_done = False
                     _id = 0
                 else:
                     # properties and methods in the cell
-                    if _style_type == 'line' and value['parent_id'] in syntax_tree.keys():
+                    if value['style']['type'].lower() == 'line' and value['parent_id'] in syntax_tree.keys():
                         # line separating the properties and methods
                         properties_done = True
                         _id = 0
                     else:
-                        if not properties_done:  # properties
+                        if properties_done:  # methods
+                            syntax_tree[value['parent_id']]['methods'] = {
+                                **syntax_tree[value['parent_id']]['methods'],
+                                **self._methods_template(value, _id)
+                            }
+                        else:  # properties
                             syntax_tree[value['parent_id']]['properties'] = {
                                 **syntax_tree[value['parent_id']]['properties'],
-                                **self._properties_template(value, _id)}
-                            _id += len(value['values'])
-                        else:  # methods
-                            syntax_tree[value['parent_id']]['methods'] = {**syntax_tree[value['parent_id']]['methods'],
-                                                                          **self._methods_template(value, _id)}
-                            _id += len(value['values'])
+                                **self._properties_template(value, _id)
+                            }
+
+                        _id += len(value['values'])
 
             for relationship in relationships.keys():
                 self._add_relationships(syntax_tree, relationships[relationship])
@@ -101,6 +137,7 @@ class SyntaxParser:
         template = {
             'type': "class",
             'name': main_cell['values'][0] if len(main_cell['values']) > 0 else "",
+            'stereotype': None,
             'properties': {},
             'methods': {},
             'relationships': {
@@ -122,15 +159,15 @@ class SyntaxParser:
             template['properties'] = self._properties_template(properties, 0) or {}
             template['methods'] = self._methods_template(methods, 0) or {}
 
-        class_name, class_modifier = parse_class_name(template['name'])
-        template['name'] = class_name
+        name, stereotype = parse_class_name(template['name'])
+        template['name'] = name
 
-        if class_modifier == "abstract":
+        if stereotype == "abstract":
             template['type'] = "abstract class"
-        elif class_modifier == "interface":
-            template['type'] = "interface"
-        elif class_modifier == "enum":
-            template['type'] = "enum"
+        elif stereotype in ("interface", "enum"):
+            template['type'] = stereotype
+        else:
+            template['stereotype'] = stereotype
 
         return template
 
@@ -143,7 +180,7 @@ class SyntaxParser:
           _id: id for the keys in the dictionary
 
         Returns:
-          template: the properties tempate (dictionary)
+          template: the properties template (dictionary)
         """
 
         values = property_dict['values']
@@ -155,15 +192,12 @@ class SyntaxParser:
                     continue
 
                 _id += 1
-
-                val = val.strip()
-                access_modifier_symbol = val[0]
-                temp_val = val[1:].split(":")
-
+                access_modifier_symbol, name, data_type, default_value = parse_property_signature(val)
                 template[_id] = {
                     'access': self._get_access_modifier(access_modifier_symbol),
-                    'name': temp_val[0].strip(),
-                    'type': temp_val[1].strip() if len(temp_val) > 1 else None,
+                    'name': name,
+                    'type': data_type,
+                    'default_value': default_value,
                 }
 
         return template
@@ -177,7 +211,7 @@ class SyntaxParser:
           _id: id for the keys in the dictionary
 
         Returns:
-          template: the methods tempate (dictionary)
+          template: the methods template (dictionary)
         """
 
         values = method_dict['values']
@@ -189,15 +223,12 @@ class SyntaxParser:
                     continue
 
                 _id += 1
-
-                val = val.strip()
-                access_modifier_symbol = val[0]
-                temp_val = val[1:].split(":")
-
+                access_modifier_symbol, name, parameters, return_type = parse_method_signature(val)
                 template[_id] = {
                     'access': self._get_access_modifier(access_modifier_symbol),
-                    'name': temp_val[0].strip(),
-                    'return_type': temp_val[1].strip() if len(temp_val) > 1 else "void",
+                    'name': name,
+                    'parameters': parameters,
+                    'return_type': return_type,
                 }
 
         return template

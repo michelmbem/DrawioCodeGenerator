@@ -32,6 +32,12 @@ class MainFrame (MainFrameBase):
         self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
         self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree")
 
+        self.options = {
+            'package': "example",
+            'imports': [],
+            'encapsulate_all_props': False,
+        }
+
     def btnChooseDiagramPathOnButtonClick(self, event):
         open_file_dialog = wx.FileDialog(self, message="Open a diagram",
                                          wildcard="Draw.io diagram files (*.drawio)|*.drawio",
@@ -79,7 +85,7 @@ class MainFrame (MainFrameBase):
             if checkbox.IsChecked():
                 language = checkbox.GetLabel()
                 output_dir = path.join(self.txtOutputPath.GetValue(), language)
-                code_gen = CodeGenerators.create(language, syntax_tree, output_dir)
+                code_gen = CodeGenerators.create(language, syntax_tree, output_dir, self.options)
                 code_gen.generate_code()
                 language_selected = True
 

@@ -13,7 +13,7 @@ class CodeGenerators:
     """
 
     @staticmethod
-    def create(language, syntax_tree, output_dir):
+    def create(language, syntax_tree, output_dir, options):
         """
         Creates an instance of a class that implements the CodeGeneratorInterface for the given language.
         :param language: The name of the language for which to generate a code generator
@@ -25,19 +25,19 @@ class CodeGenerators:
         language = language.lower()
 
         if language == "ts" or language == "typescript":
-            code_gen = TsCodeGenerator(syntax_tree, output_dir)
+            code_gen = TsCodeGenerator(syntax_tree, output_dir, options)
         elif language == "java":
-            code_gen = JavaCodeGenerator(syntax_tree, output_dir)
+            code_gen = JavaCodeGenerator(syntax_tree, output_dir, options)
         elif language == "c#" or language == "cs" or language == "csharp" or language == "c-sharp":
-            code_gen = CSharpCodeGenerator(syntax_tree, output_dir)
+            code_gen = CSharpCodeGenerator(syntax_tree, output_dir, options)
         elif language == "c++" or language == "cpp" or language == "cplusplus":
-            code_gen = CppCodeGenerator(syntax_tree, output_dir)
+            code_gen = CppCodeGenerator(syntax_tree, output_dir, options)
         elif language == "php":
-            code_gen = PhpCodeGenerator(syntax_tree, output_dir)
+            code_gen = PhpCodeGenerator(syntax_tree, output_dir, options)
         elif language == "python":
-            code_gen = PythonCodeGenerator(syntax_tree, output_dir)
+            code_gen = PythonCodeGenerator(syntax_tree, output_dir, options)
         elif language == "sql":
-            code_gen = SqlCodeGenerator(syntax_tree, output_dir)
+            code_gen = SqlCodeGenerator(syntax_tree, output_dir, options)
         else:
             raise ValueError(f"{language} language is not supported for code generation")
 
