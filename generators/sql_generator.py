@@ -41,24 +41,24 @@ class SqlCodeGenerator(CodeGenerator):
         print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
 
         try:
-            self.ensure_dir_exists(self.file_path)
+            self._ensure_dir_exists(self._file_path)
 
-            for class_def in self.syntax_tree.values():
+            for class_def in self._syntax_tree.values():
                 if class_def['type'] != "class":
                     continue
 
-                file_contents = self.generate_class_header(class_def['type'], class_def['name'], None, None, None)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
-                file_contents += self.generate_class_footer(class_def['type'], class_def['name'])
+                file_contents = self._generate_class_header(class_def['type'], class_def['name'], None, None, None)
+                file_contents += self._generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file_contents += self._generate_class_footer(class_def['type'], class_def['name'])
 
-                self.files.append((class_def['name'], file_contents))
+                self._files.append((class_def['name'], file_contents))
 
-            self.generate_files()
+            self._generate_files()
         except Exception as e:
             print(f"{self.__class__.__name__}.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
 
@@ -74,12 +74,12 @@ class SqlCodeGenerator(CodeGenerator):
         """
 
         class_header = ""
-        if self.options['package']:
-            class_header += f"use {self.options['package']};\n\n"
+        if self._options['package']:
+            class_header += self._package_directive(self._options['package'])
         class_header += f"CREATE TABLE {class_name} (\n"
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -93,7 +93,7 @@ class SqlCodeGenerator(CodeGenerator):
 
         return "\n);\n"
 
-    def generate_properties(self, properties, _):
+    def _generate_properties(self, properties, _):
         """
         Generate properties for the class
 
@@ -114,7 +114,7 @@ class SqlCodeGenerator(CodeGenerator):
             else:
                 properties_string += ",\n"
 
-            p = f"\t{property_def['name']} {self.map_type(property_def['type'])}"
+            p = f"\t{property_def['name']} {self._map_type(property_def['type'])}"
             if property_def['default_value']:
                 p += f" default {property_def['default_value']}"
 
@@ -122,7 +122,7 @@ class SqlCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -135,7 +135,7 @@ class SqlCodeGenerator(CodeGenerator):
 
         return None
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -150,10 +150,13 @@ class SqlCodeGenerator(CodeGenerator):
 
         return None
 
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
+        return f"use {'_'.join(self._split_package_name(package_name))};\n\n"
+
+    def _map_type(self, typename):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-    def default_value(self, typename):
+    def _default_value(self, typename):
         typename = typename.lower()
         if typename == "boolean":
             return "False"
@@ -164,7 +167,7 @@ class SqlCodeGenerator(CodeGenerator):
             return '""'
         return "None"
 
-    def get_parameter_list(self, param_types):
+    def _get_parameter_list(self, param_types):
         _ndx = 0
         param_list = "("
 
@@ -178,5 +181,5 @@ class SqlCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def get_file_extension(self):
+    def _get_file_extension(self):
         return "sql"

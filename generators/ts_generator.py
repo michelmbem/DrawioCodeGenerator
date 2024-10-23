@@ -35,16 +35,16 @@ class TsCodeGenerator(CodeGenerator):
         CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
     @staticmethod
-    def accessor_name(property_name):
+    def _accessor_name(property_name):
         if property_name.startswith("_"):
             return property_name[1:]
         return property_name + "Prop"
 
     @staticmethod
-    def parameter_name(property_name):
+    def _parameter_name(property_name):
         return "arg" + property_name.capitalize()
 
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
 
@@ -64,7 +64,7 @@ class TsCodeGenerator(CodeGenerator):
         if class_type != "enum":
             add_linebreak = False
 
-            for module, symbols in self.options['imports'].items():
+            for module, symbols in self._options['imports'].items():
                 class_header += f"import {{ {', '.join(symbols)} }} from '{module}';\n"
                 add_linebreak = True
 
@@ -92,7 +92,7 @@ class TsCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -106,7 +106,7 @@ class TsCodeGenerator(CodeGenerator):
 
         return "}\n"
  
-    def generate_properties(self, properties, is_enum):
+    def _generate_properties(self, properties, is_enum):
         """
         Generate properties for the class
 
@@ -132,7 +132,7 @@ class TsCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {property_def['name']} : {self.map_type(property_def['type'])}"
+                p = f"\t{property_def['access']} {property_def['name']} : {self._map_type(property_def['type'])}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -141,7 +141,7 @@ class TsCodeGenerator(CodeGenerator):
  
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -155,18 +155,18 @@ class TsCodeGenerator(CodeGenerator):
         accessors_string = ""
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\tpublic get {self.accessor_name(property_def['name'])}() : {self.map_type(property_def['type'])}"
+                getter = (f"\tpublic get {self._accessor_name(property_def['name'])}() : {self._map_type(property_def['type'])}"
                           f" {{\n\t\treturn this.{property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\tpublic set {self.accessor_name(property_def['name'])}({self.parameter_name(property_def['name'])} :"
-                          f" {self.map_type(property_def['type'])}) {{\n\t\tthis.{property_def['name']} ="
-                          f" {self.parameter_name(property_def['name'])};\n\t}}\n\n")
+                setter = (f"\tpublic set {self._accessor_name(property_def['name'])}({self._parameter_name(property_def['name'])} :"
+                          f" {self._map_type(property_def['type'])}) {{\n\t\tthis.{property_def['name']} ="
+                          f" {self._parameter_name(property_def['name'])};\n\t}}\n\n")
                 accessors_string += setter
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -182,25 +182,28 @@ class TsCodeGenerator(CodeGenerator):
         methods_string = ""
 
         for method_def in methods.values():
-            params = self.get_parameter_list(method_def['parameters'])
+            params = self._get_parameter_list(method_def['parameters'])
             if class_type == "interface":
-                m = f"\t{method_def['name']}{params} : {self.map_type(method_def['return_type'])};"
+                m = f"\t{method_def['name']}{params} : {self._map_type(method_def['return_type'])};"
             else:
-                m = f"\t{method_def['access']} {method_def['name']}{params} : {self.map_type(method_def['return_type'])} {{\n\t}}"
+                m = f"\t{method_def['access']} {method_def['name']}{params} : {self._map_type(method_def['return_type'])} {{\n\t}}"
             methods_string += m + "\n\n"
 
         if class_type.endswith("class"):
             for interface_method in interface_methods:
-                params = self.get_parameter_list(interface_method['parameters'])
-                m = f"\tpublic {interface_method['name']}{params} : {self.map_type(interface_method['return_type'])} {{\n\t}}"
+                params = self._get_parameter_list(interface_method['parameters'])
+                m = f"\tpublic {interface_method['name']}{params} : {self._map_type(interface_method['return_type'])} {{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
+        return None
+
+    def _map_type(self, typename):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-    def default_value(self, typename):
+    def _default_value(self, typename):
         typename = typename.lower()
         if typename == "boolean":
             return "False"
@@ -211,7 +214,7 @@ class TsCodeGenerator(CodeGenerator):
             return '""'
         return "None"
 
-    def get_parameter_list(self, param_types):
+    def _get_parameter_list(self, param_types):
         _ndx = 0
         param_list = "("
 
@@ -225,5 +228,5 @@ class TsCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def get_file_extension(self):
+    def _get_file_extension(self):
         return "ts"

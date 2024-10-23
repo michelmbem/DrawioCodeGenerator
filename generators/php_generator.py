@@ -14,7 +14,7 @@ class PhpCodeGenerator(CodeGenerator):
     def __init__(self, syntax_tree, file_path, options):
         CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
 
@@ -31,13 +31,13 @@ class PhpCodeGenerator(CodeGenerator):
 
         class_header = "<?php\n"
 
-        if self.options['package']:
-            class_header += f"namespace {self.options['package']};\n\n"
+        if self._options['package']:
+            class_header += self._package_directive(self._options['package'])
 
         if class_type != "enum":
             add_linebreak = False
 
-            for module, symbols in self.options['imports'].items():
+            for module, symbols in self._options['imports'].items():
                 class_header += f"require_once '{module}';\n"
                 add_linebreak = True
 
@@ -65,7 +65,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -79,7 +79,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return "}\n"
 
-    def generate_properties(self, properties, is_enum):
+    def _generate_properties(self, properties, is_enum):
         """
         Generate properties for the class
 
@@ -107,7 +107,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -131,7 +131,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -147,7 +147,7 @@ class PhpCodeGenerator(CodeGenerator):
         methods_string = ""
 
         for method_def in methods.values():
-            params = self.get_parameter_list(method_def['parameters'])
+            params = self._get_parameter_list(method_def['parameters'])
             if class_type == "interface":
                 m = f"\t{method_def['access']} function {method_def['name']}{params};"
             else:
@@ -156,19 +156,22 @@ class PhpCodeGenerator(CodeGenerator):
 
         if class_type.endswith("class"):
             for interface_method in interface_methods:
-                params = self.get_parameter_list(interface_method['parameters'])
+                params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\t{interface_method['access']} function {interface_method['name']}{params}\n\t{{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
+        return f"namespace {'\\'.join(self._split_package_name(package_name))};\n\n"
+
+    def _map_type(self, typename):
         return None
 
-    def default_value(self, typename):
+    def _default_value(self, typename):
         return None
 
-    def get_parameter_list(self, param_types):
+    def _get_parameter_list(self, param_types):
         param_list = "("
 
         for _ndx in range(len(param_types)):
@@ -180,5 +183,5 @@ class PhpCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def get_file_extension(self):
+    def _get_file_extension(self):
         return "php"

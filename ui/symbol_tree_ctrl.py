@@ -17,10 +17,8 @@ class SymbolTreeCtrl(gizmos.TreeListCtrl):
         self.file_img_ndx = image_list.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, image_size))
         self.SetImageList(image_list)
 
-        self.AddColumn("Attribute name")
-        self.AddColumn("Attribue value")
-        self.SetColumnWidth(0, 250)
-        self.SetColumnWidth(1, 450)
+        self.AddColumn("Attribute name", width=300)
+        self.AddColumn("Attribue value", width=600)
         self.SetMainColumn(0)
 
     def load_dict(self, dictionary):

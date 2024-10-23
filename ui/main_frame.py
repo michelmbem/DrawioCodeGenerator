@@ -87,7 +87,7 @@ class MainFrame (MainFrameBase):
             if checkbox.IsChecked():
                 language = checkbox.GetLabel()
                 output_dir = path.join(self.txtOutputPath.GetValue(), language)
-                code_gen = CodeGenerators.create(language, syntax_tree, output_dir, self.options)
+                code_gen = CodeGenerators.get(language, syntax_tree, output_dir, self.options)
                 code_gen.generate_code()
                 language_selected = True
 
@@ -106,29 +106,40 @@ class MainFrame (MainFrameBase):
     @staticmethod
     def _default_options():
         return {
-            'package': "example",
-            'generate': {'default_ctor': False, 'full_arg_ctor': False, 'equal_hashcode': False, 'to_string': False},
+            'package': "com.example",
+            'generate': {
+                'default_ctor': False,
+                'full_arg_ctor': False,
+                'equal_hashcode': False,
+                'to_string': False
+            },
             'encapsulate_all_props': False,
-            'imports': {
+            'language_specific': {
                 'Java': {
-                    'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
+                    'imports': {
+                        'java.math': ["BigInteger", "BigDecimal"],
+                        'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
+                        'java.util': ["List", "Set", "Map"],
+                    }
                 },
                 'C#': {
-                    'System': [],
-                    'System.Collections.Generic': [],
-                    'System.Numerics': [],
+                    'imports': {
+                        'System': None,
+                        'System.Collections.Generic': None,
+                        'System.Numerics': None,
+                    }
                 },
                 'C++': {
-                    '<ctime>': [],
-                    '<string>': [],
+                    'imports': {
+                        '<ctime>': None,
+                        '<string>': None,
+                        '<vector>': None,
+                        '<map>': None,
+                    }
                 },
-                'Python': {
-                },
-                'TypeScript': {
-                },
-                'PHP': {
-                },
-                'SQL': {
-                },
+                'Python': {},
+                'TypeScript': {},
+                'PHP': {},
+                'SQL': {},
             },
         }

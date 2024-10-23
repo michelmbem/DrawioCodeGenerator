@@ -13,7 +13,7 @@ class CodeGenerators:
     """
 
     @staticmethod
-    def create(language, syntax_tree, output_dir, options):
+    def get(language, syntax_tree, output_dir, options):
         """
         Creates an instance of a class that implements the CodeGeneratorInterface for the given language.
         :param language: The name of the language for which to generate a code generator
@@ -47,4 +47,4 @@ class CodeGenerators:
 
     @staticmethod
     def _extract_language_option(options, language):
-        return {**options, 'imports': options['imports'][language]}
+        return {**options, 'imports': options['language_specific'][language].get('imports', {})}

@@ -17,10 +17,12 @@ class OptionDialog(OptionDialogBase):
         self.chkGenerateToString.SetValue(options['generate']['to_string'])
         self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
 
+        language_specific = options['language_specific']
         languages = ["Java", "C#", "C++", "Python", "TypeScript", "PHP", "SQL"]
 
         for language in languages:
-            option_page = LanguageOptionPage(self.nbLanguageOptions, language, options['imports'][language])
+            language_options = language_specific.get(language, {})
+            option_page = LanguageOptionPage(self.nbLanguageOptions, language, language_options)
             self.nbLanguageOptions.AddPage(option_page, language)
 
         # self.DoLayoutAdaptation()
@@ -30,11 +32,11 @@ class OptionDialog(OptionDialogBase):
         return self._options
 
     def dialogButtonSizerOnApplyButtonClick(self, event):
-        _imports = {}
+        language_options = {}
 
         for i in range(self.nbLanguageOptions.PageCount):
             option_page = self.nbLanguageOptions.GetPage(i)
-            _imports[option_page.language] = option_page.imports
+            language_options[option_page.language] = option_page.options
 
         self._options = {
             'package': self.txtRootPackage.GetValue(),
@@ -45,7 +47,7 @@ class OptionDialog(OptionDialogBase):
                 'to_string': self.chkGenerateToString.IsChecked(),
             },
             'encapsulate_all_props': self.chkEncapsulateAllProps.IsChecked(),
-            'imports': _imports,
+            'language_specific': language_options,
         }
 
     def dialogButtonSizerOnCancelButtonClick(self, event):

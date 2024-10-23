@@ -30,7 +30,7 @@ class MainFrameBase ( wx.Frame ):
         formSizer.SetFlexibleDirection( wx.BOTH )
         formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.m_staticText1 = wx.StaticText( self, wx.ID_ANY, u"Dragram path:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText1 = wx.StaticText( self, wx.ID_ANY, u"Diagram path:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText1.Wrap( -1 )
 
         formSizer.Add( self.m_staticText1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
@@ -45,7 +45,7 @@ class MainFrameBase ( wx.Frame ):
 
         formSizer.Add( self.btnChooseDiagramPath, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
 
-        self.m_staticText2 = wx.StaticText( self, wx.ID_ANY, u"Output path:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText2 = wx.StaticText( self, wx.ID_ANY, u"Output directory:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText2.Wrap( -1 )
 
         formSizer.Add( self.m_staticText2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
@@ -198,35 +198,30 @@ class OptionDialogBase ( wx.Dialog ):
         self.txtRootPackage = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         formSizer.Add( self.txtRootPackage, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
-        self.m_staticText7 = wx.StaticText( self, wx.ID_ANY, u"Generate methods:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText7 = wx.StaticText( self, wx.ID_ANY, u"Generated members:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText7.Wrap( -1 )
 
         formSizer.Add( self.m_staticText7, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        generationSizer = wx.BoxSizer( wx.HORIZONTAL )
+        genMemberSizer = wx.WrapSizer( wx.HORIZONTAL, wx.WRAPSIZER_DEFAULT_FLAGS )
 
         self.chkGenerateDefaultCtor = wx.CheckBox( self, wx.ID_ANY, u"Default constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
-        generationSizer.Add( self.chkGenerateDefaultCtor, 0, wx.ALL, 5 )
+        genMemberSizer.Add( self.chkGenerateDefaultCtor, 0, wx.ALL, 5 )
 
         self.chkGenerateFullArgCtor = wx.CheckBox( self, wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
-        generationSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
+        genMemberSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
 
         self.chkGenerateEqHc = wx.CheckBox( self, wx.ID_ANY, u"Equals and Hashcode", wx.DefaultPosition, wx.DefaultSize, 0 )
-        generationSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
+        genMemberSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
 
         self.chkGenerateToString = wx.CheckBox( self, wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
-        generationSizer.Add( self.chkGenerateToString, 0, wx.ALL, 5 )
-
-
-        formSizer.Add( generationSizer, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 5 )
-
-        self.m_staticText6 = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText6.Wrap( -1 )
-
-        formSizer.Add( self.m_staticText6, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        genMemberSizer.Add( self.chkGenerateToString, 0, wx.ALL, 5 )
 
         self.chkEncapsulateAllProps = wx.CheckBox( self, wx.ID_ANY, u"Make all properties private and generate public accessors", wx.DefaultPosition, wx.DefaultSize, 0 )
-        formSizer.Add( self.chkEncapsulateAllProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        genMemberSizer.Add( self.chkEncapsulateAllProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        formSizer.Add( genMemberSizer, 1, wx.EXPAND, 5 )
 
 
         mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )

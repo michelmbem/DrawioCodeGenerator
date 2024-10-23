@@ -32,7 +32,7 @@ class CppCodeGenerator(CodeGenerator):
     def __init__(self, syntax_tree, file_path, options):
         CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header 
 
@@ -52,7 +52,7 @@ class CppCodeGenerator(CodeGenerator):
         if class_type != "enum":
             add_linebreak = False
 
-            for module in self.options['imports'].keys():
+            for module in self._options['imports'].keys():
                 class_header += f"#include {module}\n"
                 add_linebreak = True
 
@@ -71,8 +71,8 @@ class CppCodeGenerator(CodeGenerator):
             if add_linebreak:
                 class_header += "\n"
 
-        if self.options['package']:
-            class_header += f"namespace {self.options['package']}\n{{\n"
+        if self._options['package']:
+            class_header += self._package_directive(self._options['package'])
         else:
             class_header += "namespace __default__\n{\n"
 
@@ -94,7 +94,7 @@ class CppCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -106,9 +106,14 @@ class CppCodeGenerator(CodeGenerator):
             properties_string: the closing brace of a class definition
         """
 
-        return "\t};\n}"
+        if self._options['package']:
+            braces = '}' * len(self._split_package_name(self._options['package']))
+        else:
+            braces = '}'
 
-    def generate_properties(self, properties, is_enum):
+        return "\t};\n" + ''.join(braces)
+
+    def _generate_properties(self, properties, is_enum):
         """
         Generate properties for the class
 
@@ -134,7 +139,7 @@ class CppCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t\t{property_def['access']}: {self.map_type(property_def['type'])} {property_def['name']}"
+                p = f"\t\t{property_def['access']}: {self._map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -143,7 +148,7 @@ class CppCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -155,20 +160,20 @@ class CppCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
+
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\t\tpublic: {self.map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
-                          f"\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
+                getter = (f"\t\tpublic: {self._map_type(property_def['type'])} Get{property_def['name'].capitalize()}()"
+                          f"\n\t\t{{\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\t\tpublic: void Set{property_def['name'].capitalize()}({self.map_type(property_def['type'])}"
-                          f" {property_def['name']}) {{\n\t\t\tthis->{property_def['name']} ="
-                          f" {property_def['name']};\n\t\t}}\n\n")
+                setter = (f"\t\tpublic: void Set{property_def['name'].capitalize()}({self._map_type(property_def['type'])}"
+                          f" {property_def['name']})\n\t\t{{\n\t\t\tthis->{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += setter
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -184,33 +189,36 @@ class CppCodeGenerator(CodeGenerator):
         methods_string = ""
 
         for method_def in methods.values():
-            params = self.get_parameter_list(method_def['parameters'])
+            params = self._get_parameter_list(method_def['parameters'])
             if class_type == "interface":
-                m = f"\t\tpublic: virtual {self.map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
+                m = f"\t\tpublic: virtual {self._map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
             else:
-                m = f"\t\t{method_def['access']}: {self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
+                m = f"\t\t{method_def['access']}: {self._map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
                 if method_def['return_type'] != "void":
-                    m += f"\t\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += f"\t\t\treturn {self._default_value(method_def['return_type'])};\n"
                 m += "\t\t}"
 
             methods_string += m + "\n\n"
 
         if class_type.endswith("class"):
             for interface_method in interface_methods:
-                params = self.get_parameter_list(interface_method['parameters'])
-                m = f"\t\tpublic: {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
+                params = self._get_parameter_list(interface_method['parameters'])
+                m = f"\t\tpublic: {self._map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
                 if interface_method['return_type'] != "void":
-                    m += f"\t\t\treturn {self.default_value(interface_method['return_type'])};\n"
+                    m += f"\t\t\treturn {self._default_value(interface_method['return_type'])};\n"
                 m += "\t\t}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
+        return " { ".join([f"namespace {ns}" for ns in self._split_package_name(package_name)]) + "\n{\n"
+
+    def _map_type(self, typename):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-    def default_value(self, typename):
-        typename = self.map_type(typename)
+    def _default_value(self, typename):
+        typename = self._map_type(typename)
         if typename == "bool":
             return "false"
         if typename == "char":
@@ -224,7 +232,7 @@ class CppCodeGenerator(CodeGenerator):
             return "nullptr"
         return f"{typename}()"
 
-    def get_parameter_list(self, param_types):
+    def _get_parameter_list(self, param_types):
         _ndx = 0
         param_list = "("
 
@@ -238,5 +246,5 @@ class CppCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def get_file_extension(self):
+    def _get_file_extension(self):
         return "hpp"

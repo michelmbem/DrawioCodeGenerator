@@ -15,16 +15,16 @@ class PythonCodeGenerator(CodeGenerator):
         CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
     @staticmethod
-    def accessor_name(property_name):
+    def _accessor_name(property_name):
         if property_name.startswith("_"):
             return property_name[1:]
         return property_name + "Prop"
 
     @staticmethod
-    def parameter_name(property_name):
+    def _parameter_name(property_name):
         return "arg" + property_name.capitalize()
 
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
 
@@ -51,7 +51,7 @@ class PythonCodeGenerator(CodeGenerator):
                 class_header += "from abc import ABC, abstractmethod\n"
                 add_linebreaks = True
 
-            for module, symbols in self.options['imports'].items():
+            for module, symbols in self._options['imports'].items():
                 class_header += f"from {module} import {', '.join(symbols)}\n"
                 add_linebreaks = True
 
@@ -87,7 +87,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -101,7 +101,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         return ""
 
-    def generate_properties(self, properties, is_enum):
+    def _generate_properties(self, properties, is_enum):
         """
         Generate properties for the class
 
@@ -131,7 +131,7 @@ class PythonCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 else:
-                    p += f" = {self.default_value(property_def['type'])}"
+                    p += f" = {self._default_value(property_def['type'])}"
 
             p += "\n"
 
@@ -143,7 +143,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -157,18 +157,18 @@ class PythonCodeGenerator(CodeGenerator):
         accessors_string = ""
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\t@property\n\tdef {self.accessor_name(property_def['name'])}(self):\n"
+                getter = (f"\t@property\n\tdef {self._accessor_name(property_def['name'])}(self):\n"
                           f"\t\treturn self.{property_def['name']}\n\n")
                 accessors_string += getter
 
-                setter = (f"\t@{self.accessor_name(property_def['name'])}.setter\n\tdef {self.accessor_name(property_def['name'])}"
-                          f"(self, {self.parameter_name(property_def['name'])}):\n\t\tself.{property_def['name']} ="
-                          f" {self.parameter_name(property_def['name'])}\n\n")
+                setter = (f"\t@{self._accessor_name(property_def['name'])}.setter\n\tdef {self._accessor_name(property_def['name'])}"
+                          f"(self, {self._parameter_name(property_def['name'])}):\n\t\tself.{property_def['name']} ="
+                          f" {self._parameter_name(property_def['name'])}\n\n")
                 accessors_string += setter
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -199,10 +199,13 @@ class PythonCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
         return None
 
-    def default_value(self, typename):
+    def _map_type(self, typename):
+        return None
+
+    def _default_value(self, typename):
         typename = typename.lower()
         if typename == "boolean":
             return "False"
@@ -213,7 +216,7 @@ class PythonCodeGenerator(CodeGenerator):
             return '""'
         return "None"
 
-    def get_parameter_list(self, param_types):
+    def _get_parameter_list(self, param_types):
         param_list = "("
 
         for _ndx in range(len(param_types)):
@@ -225,5 +228,5 @@ class PythonCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def get_file_extension(self):
+    def _get_file_extension(self):
         return "py"

@@ -1,3 +1,4 @@
+import re
 import traceback
 
 from os import makedirs, path
@@ -15,14 +16,18 @@ class CodeGenerator(ABC):
     """
 
     def __init__(self, syntax_tree, file_path, options):
-        self.syntax_tree = syntax_tree
-        self.file_path = path.abspath(file_path)
-        self.options = options
-        self.files = []
+        self._syntax_tree = syntax_tree
+        self._file_path = path.abspath(file_path)
+        self._options = options
+        self._files = []
 
     @staticmethod
-    def ensure_dir_exists(dir_path):
+    def _ensure_dir_exists(dir_path):
         makedirs(dir_path, exist_ok=True)
+
+    @staticmethod
+    def _split_package_name(package_name):
+        return re.split(r"[./\\]|::", package_name)
 
     def generate_code(self):
         """
@@ -32,33 +37,33 @@ class CodeGenerator(ABC):
         print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
 
         try:
-            self.ensure_dir_exists(self.file_path)
+            self._ensure_dir_exists(self._file_path)
 
-            for class_def in self.syntax_tree.values():
-                baseclasses, interfaces, references = self.get_class_dependencies(class_def)
+            for class_def in self._syntax_tree.values():
+                baseclasses, interfaces, references = self._get_class_dependencies(class_def)
 
-                file_contents = self.generate_class_header(class_def['type'], class_def['name'], baseclasses, interfaces, references)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file_contents = self._generate_class_header(class_def['type'], class_def['name'], baseclasses, interfaces, references)
+                file_contents += self._generate_properties(class_def['properties'], class_def['type'] == "enum")
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
-                    file_contents += self.generate_property_accessors(class_def['properties'])
+                    file_contents += self._generate_property_accessors(class_def['properties'])
 
                 if class_def['type'] != "enum":
                     interface_methods = []
-                    self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
-                    file_contents += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
+                    self._get_interface_methods(class_def['relationships']['implements'], interface_methods)
+                    file_contents += self._generate_methods(class_def['methods'], class_def['type'], interface_methods)
 
-                file_contents += self.generate_class_footer(class_def['type'], class_def['name'])
+                file_contents += self._generate_class_footer(class_def['type'], class_def['name'])
 
-                self.files.append((class_def['name'], file_contents))
+                self._files.append((class_def['name'], file_contents))
 
-            self.generate_files()
+            self._generate_files()
         except Exception as e:
             print(f"{self.__class__.__name__}.generate_code ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_files(self):
+    def _generate_files(self):
         """
         Write generated code to file
 
@@ -66,18 +71,18 @@ class CodeGenerator(ABC):
             boolean: True if successful, False if unsuccessful
         """
 
-        print(f"<<< WRITING FILES TO {self.file_path} >>>")
+        print(f"<<< WRITING FILES TO {self._file_path} >>>")
 
         try:
-            for filename, contents in self.files:
-                file_path = path.join(self.file_path, f"{filename}.{self.get_file_extension()}")
+            for filename, contents in self._files:
+                file_path = path.join(self._file_path, f"{filename}.{self._get_file_extension()}")
                 with open(file_path, "w") as f:
                     f.write(contents)
         except Exception as e:
             print(f"{self.__class__.__name__}.generate_files ERROR: {e}")
             traceback.print_exception(e)
 
-    def get_class_dependencies(self, class_def):
+    def _get_class_dependencies(self, class_def):
         """
         Get a tuple of all the classes that this class depends on
 
@@ -87,23 +92,23 @@ class CodeGenerator(ABC):
 
         baseclasses = []
         if len(class_def['relationships']['extends']) > 0:
-            baseclasses += [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
+            baseclasses += [self._syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
 
         interfaces = []
         if len(class_def['relationships']['implements']) > 0:
-            interfaces += [self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]
+            interfaces += [self._syntax_tree[r]['name'] for r in class_def['relationships']['implements']]
 
         references = []
         if len(class_def['relationships']['association']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['association']]
+            references += [self._syntax_tree[r]['name'] for r in class_def['relationships']['association']]
         if len(class_def['relationships']['aggregation']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
+            references += [self._syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
         if len(class_def['relationships']['composition']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
+            references += [self._syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
 
         return baseclasses, interfaces, references
 
-    def get_interface_methods(self, interface_ids, interface_methods):
+    def _get_interface_methods(self, interface_ids, interface_methods):
         """
         Get the interface methods that require implementation
 
@@ -113,42 +118,46 @@ class CodeGenerator(ABC):
         """
 
         for interface_id in interface_ids:
-            interface = self.syntax_tree[interface_id]
+            interface = self._syntax_tree[interface_id]
             interface_methods += interface['methods'].values()
-            self.get_interface_methods(interface['relationships']['implements'], interface_methods)
+            self._get_interface_methods(interface['relationships']['implements'], interface_methods)
 
     @abstractmethod
-    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         pass
 
     @abstractmethod
-    def generate_class_footer(self, class_type, class_name):
+    def _generate_class_footer(self, class_type, class_name):
         pass
     
     @abstractmethod
-    def generate_properties(self, properties, is_enum):
+    def _generate_properties(self, properties, is_enum):
         pass
 
     @abstractmethod
-    def generate_property_accessors(self, properties):
+    def _generate_property_accessors(self, properties):
         pass
 
     @abstractmethod
-    def generate_methods(self, methods, class_type, interface_methods):
+    def _generate_methods(self, methods, class_type, interface_methods):
         pass
 
     @abstractmethod
-    def map_type(self, typename):
+    def _package_directive(self, package_name):
         pass
 
     @abstractmethod
-    def default_value(self, typename):
+    def _map_type(self, typename):
         pass
 
     @abstractmethod
-    def get_parameter_list(self, param_types):
+    def _default_value(self, typename):
         pass
 
     @abstractmethod
-    def get_file_extension(self):
+    def _get_parameter_list(self, param_types):
+        pass
+
+    @abstractmethod
+    def _get_file_extension(self):
         pass
