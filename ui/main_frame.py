@@ -119,13 +119,11 @@ class MainFrame (MainFrameBase):
                     'imports': {
                         'java.math': ["BigInteger", "BigDecimal"],
                         'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
-                        'java.util': ["List", "Set", "Map"],
                     }
                 },
                 'C#': {
                     'imports': {
                         'System': None,
-                        'System.Collections.Generic': None,
                         'System.Numerics': None,
                     }
                 },
@@ -133,8 +131,6 @@ class MainFrame (MainFrameBase):
                     'imports': {
                         '<ctime>': None,
                         '<string>': None,
-                        '<vector>': None,
-                        '<map>': None,
                     }
                 },
                 'Python': {},

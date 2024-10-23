@@ -1,3 +1,4 @@
+import re
 import wx
 
 from ui.forms import LanguageOptionPageBase
@@ -16,7 +17,7 @@ class LanguageOptionPage(LanguageOptionPageBase):
         self.lstModules.InsertColumn(1, "Imported symbols", width=340)
 
         for module, symbols in options.get('imports', {}).items():
-            self._add_import(module, symbols or [])
+            self._add_import(module, symbols)
 
     @property
     def language(self):
@@ -24,19 +25,27 @@ class LanguageOptionPage(LanguageOptionPageBase):
 
     @property
     def options(self):
-        _imports = {}
+        imports = {}
 
         for i in range(self._count):
-            _imports[self.lstModules.GetItemText(i, 0)] = self.lstModules.GetItemText(i, 1).split(", ")
+            module = self.lstModules.GetItemText(i, 0)
+            symbols = self._split_symbol_string(self.lstModules.GetItemText(i, 1))
+            imports[module] = symbols
 
-        return {'imports': _imports}
+        return {'imports': imports}
+
+    @staticmethod
+    def _split_symbol_string(string):
+        return re.split(r"[\s,]+", string)
 
     def btnAddModuleOnButtonClick(self, event):
-        module, symbols = self.txtModuleName.GetValue().strip(), self.txtSymbolNames.GetValue().strip()
-        if module and symbols:
+        module = self.txtModuleName.GetValue().strip()
+        symbols = [s for s in self._split_symbol_string(self.txtSymbolNames.GetValue()) if s]
+
+        if module:
             self._add_import(module, symbols)
         else:
-            wx.MessageBox("Please supply a module name and a list of symbols to import")
+            wx.MessageBox("Please supply a module name")
 
     def btnRemoveModuleOnButtonClick(self, event):
         selected_index = self.lstModules.GetFirstSelected()
@@ -49,7 +58,7 @@ class LanguageOptionPage(LanguageOptionPageBase):
 
     def _add_import(self, module, symbols):
         self.lstModules.InsertItem(self._count, module)
-        self.lstModules.SetItem(self._count, 1, ", ".join(symbols))
+        self.lstModules.SetItem(self._count, 1, ', '.join(symbols or []))
         self.lstModules.SetItemBackgroundColour(self._count, self.LINE_COLORS[self._count % 2])
         self._count += 1
 

@@ -27,7 +27,7 @@ class CodeGenerator(ABC):
 
     @staticmethod
     def _split_package_name(package_name):
-        return re.split(r"[./\\]|::", package_name)
+        return re.split(r"[./\\:]+", package_name)
 
     def generate_code(self):
         """

@@ -18,25 +18,25 @@ class OptionDialog(OptionDialogBase):
         self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
 
         language_specific = options['language_specific']
-        languages = ["Java", "C#", "C++", "Python", "TypeScript", "PHP", "SQL"]
+        languages = ["Java", "C#", "C++", "Python", "TypeScript", "PHP"]
 
         for language in languages:
             language_options = language_specific.get(language, {})
             option_page = LanguageOptionPage(self.nbLanguageOptions, language, language_options)
             self.nbLanguageOptions.AddPage(option_page, language)
 
-        # self.DoLayoutAdaptation()
-
     @property
     def options(self):
         return self._options
 
     def dialogButtonSizerOnApplyButtonClick(self, event):
-        language_options = {}
+        language_options = {
+            'SQL': {}
+        }
 
-        for i in range(self.nbLanguageOptions.PageCount):
-            option_page = self.nbLanguageOptions.GetPage(i)
-            language_options[option_page.language] = option_page.options
+        for page_index in range(self.nbLanguageOptions.PageCount):
+            page = self.nbLanguageOptions.GetPage(page_index)
+            language_options[page.language] = page.options
 
         self._options = {
             'package': self.txtRootPackage.GetValue(),
