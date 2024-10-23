@@ -1,65 +1,7 @@
-import re
-import traceback
-
-from os import path
-from generators.code_generator import CodeGeneratorInterface
+from generators.code_generator import CodeGenerator
 
 
-TYPE_MAPPINGS = {
-    "boolean": "bool",
-    "int8": "signed char",
-    "uint8": "unsigned char",
-    "int16": "short",
-    "uint16": "unsigned short",
-    "int32": "int",
-    "uint32": "unsigned int",
-    "int64": "long long",
-    "uint64": "unsigned long long",
-    "single": "float",
-    "double": "double",
-    "string": "std::string",
-    "date": "time_t",
-    "time": "time_t",
-    "datetime": "time_t",
-}
-
-
-def map_type(typename):
-    return TYPE_MAPPINGS.get(typename.lower(), typename)
-
-
-def default(typename):
-    typename = map_type(typename)
-    if typename == "bool":
-        return "false"
-    if typename == "char":
-        return "'\\0'"
-    if typename in ("signed char", "unsigned char", "short", "unsigned short", "int",
-                    "unsigned int", "long long", "unsigned long long", "float", "double"):
-        return "0"
-    if typename == "std::string":
-        return '""'
-    if typename.endswith("*"):
-        return "nullptr"
-    return f"{typename}()"
-
-
-def get_parameter_list(param_types):
-    _ndx = 0
-    param_list = "("
-
-    for param_type in param_types:
-        if _ndx > 0:
-            param_list += ", "
-        param_list += f"{param_type} arg{_ndx}"
-        _ndx += 1
-
-    param_list += ")"
-
-    return param_list
-
-
-class CppCodeGenerator(CodeGeneratorInterface):
+class CppCodeGenerator(CodeGenerator):
     """
     Generate C++ code
 
@@ -69,62 +11,37 @@ class CppCodeGenerator(CodeGeneratorInterface):
         options: set of additional options
     """
 
+    TYPE_MAPPINGS = {
+        "boolean": "bool",
+        "int8": "signed char",
+        "uint8": "unsigned char",
+        "int16": "short",
+        "uint16": "unsigned short",
+        "int32": "int",
+        "uint32": "unsigned int",
+        "int64": "long long",
+        "uint64": "unsigned long long",
+        "single": "float",
+        "double": "double",
+        "string": "std::string",
+        "date": "time_t",
+        "time": "time_t",
+        "datetime": "time_t",
+    }
+
     def __init__(self, syntax_tree, file_path, options):
-        self.syntax_tree = syntax_tree
-        self.file_path = path.abspath(file_path)
-        self.options = options
-        self.files = []
+        CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
-    def generate_code(self):
-        """
-        Use the syntax tree to generate code files for the UML class diagrams 
-        """
-
-        print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
-
-        CodeGeneratorInterface.ensure_dir_exists(self.file_path)
-
-        try:
-            for class_def in self.syntax_tree.values():
-                inheritance = ""
-                if len(class_def['relationships']['extends']) > 0:
-                    inheritance += ": "
-                    inheritance += ", ".join(["public " + self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]).strip(", ")
-
-                implementation = ""
-                if len(class_def['relationships']['implements']) > 0:
-                    implementation += ", " if inheritance != "" else ": "
-                    implementation += ", ".join(["public " + self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]).strip(", ")
-
-                interface_methods = []
-                self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
-
-                file = self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
-                file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
-                file += "\n"
-                if class_def['type'].endswith("class"):
-                    file += self.generate_property_accessors(class_def['properties'])
-                if class_def['type'] != "enum":
-                    file += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
-                file += "\t};\n}"
-
-                self.files.append((class_def['name'], file))
-
-            self.generate_files()
-
-        except Exception as e:
-            print(f"CppCodeGenerator.generate_code ERROR: {e}")
-            traceback.print_exception(e)
-
-    def generate_class_header(self, class_type, class_name, extends, implements):
+    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header 
 
         Parameters:
-            class_type: type of class; 'class', 'abstract', 'interface, enum'
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
             class_name: name of class
-            extends: the classes extended by this class
-            implements: the interfaces implemented by this class
+            baseclasses: the classes extended by this class
+            interfaces: the interfaces implemented by this class
+            references: other classes referenced by this class
 
         Returns:
             class_header: class header string
@@ -132,10 +49,27 @@ class CppCodeGenerator(CodeGeneratorInterface):
 
         class_header = "#pragma once\n\n"
 
-        if class_type != "enum" and len(self.options['imports']) > 0:
-            for _import in self.options['imports']:
-                class_header += f"#include {_import}\n"
-            class_header += "\n"
+        if class_type != "enum":
+            add_linebreak = False
+
+            for module in self.options['imports'].keys():
+                class_header += f"#include {module}\n"
+                add_linebreak = True
+
+            for baseclass in baseclasses:
+                class_header += f"#include \"{baseclass}.hpp\"\n"
+                add_linebreak = True
+
+            for interface in interfaces:
+                class_header += f"#include \"{interface}.hpp\"\n"
+                add_linebreak = True
+
+            for reference in references:
+                class_header += f"#include \"{reference}.hpp\"\n"
+                add_linebreak = True
+
+            if add_linebreak:
+                class_header += "\n"
 
         if self.options['package']:
             class_header += f"namespace {self.options['package']}\n{{\n"
@@ -147,9 +81,32 @@ class CppCodeGenerator(CodeGeneratorInterface):
         else:
             type_of_class = "class"
 
-        class_header += f"\t{type_of_class} {class_name} {extends} {implements}\n\t{{\n"
-        class_header = re.sub(' +', ' ', class_header)
+        class_header += f"\t{type_of_class} {class_name}"
+        if len(baseclasses) > 0:
+            class_header += f" : {', '.join([f"public {baseclass}" for baseclass in baseclasses])}"
+        if len(interfaces) > 0:
+            if len(baseclasses) > 0:
+                class_header += ", "
+            else:
+                class_header += " : "
+            class_header += ', '.join([f"public {interface}" for interface in interfaces])
+        class_header += "\n\t{\n"
+
         return class_header
+
+    def generate_class_footer(self, class_type, class_name):
+        """
+        Generate the class footer
+
+        Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
+
+        Returns:
+            properties_string: the closing brace of a class definition
+        """
+
+        return "\t};\n}"
 
     def generate_properties(self, properties, is_enum):
         """
@@ -177,7 +134,7 @@ class CppCodeGenerator(CodeGeneratorInterface):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t\t{property_def['access']}: {map_type(property_def['type'])} {property_def['name']}"
+                p = f"\t\t{property_def['access']}: {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -200,11 +157,11 @@ class CppCodeGenerator(CodeGeneratorInterface):
         accessors_string = ""
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\t\tpublic: {map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
+                getter = (f"\t\tpublic: {self.map_type(property_def['type'])} Get{property_def['name'].capitalize()}() {{\n"
                           f"\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\t\tpublic: void Set{property_def['name'].capitalize()}({map_type(property_def['type'])}"
+                setter = (f"\t\tpublic: void Set{property_def['name'].capitalize()}({self.map_type(property_def['type'])}"
                           f" {property_def['name']}) {{\n\t\t\tthis->{property_def['name']} ="
                           f" {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += setter
@@ -227,56 +184,59 @@ class CppCodeGenerator(CodeGeneratorInterface):
         methods_string = ""
 
         for method_def in methods.values():
-            params = get_parameter_list(method_def['parameters'])
+            params = self.get_parameter_list(method_def['parameters'])
             if class_type == "interface":
-                m = f"\t\tpublic: virtual {map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
+                m = f"\t\tpublic: virtual {self.map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
             else:
-                m = f"\t\t{method_def['access']}: {map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
+                m = f"\t\t{method_def['access']}: {self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
                 if method_def['return_type'] != "void":
-                    m += f"\t\t\treturn {default(method_def['return_type'])};\n"
+                    m += f"\t\t\treturn {self.default_value(method_def['return_type'])};\n"
                 m += "\t\t}"
 
             methods_string += m + "\n\n"
 
         if class_type.endswith("class"):
             for interface_method in interface_methods:
-                params = get_parameter_list(interface_method['parameters'])
-                m = f"\t\tpublic: {map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
+                params = self.get_parameter_list(interface_method['parameters'])
+                m = f"\t\tpublic: {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
                 if interface_method['return_type'] != "void":
-                    m += f"\t\t\treturn {default(interface_method['return_type'])};\n"
+                    m += f"\t\t\treturn {self.default_value(interface_method['return_type'])};\n"
                 m += "\t\t}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def get_interface_methods(self, implements, interface_list):
-        """
-        Get the interface methods that require implementation
-        
-        Parameters:
-            implements: list of interfaces
-            interface_list: list of interface methods
-        """
+    def map_type(self, typename):
+        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-        for i in implements:
-            interface_obj = self.syntax_tree[i]
-            interface_list += interface_obj['methods'].values()
-            self.get_interface_methods(interface_obj['relationships']['implements'], interface_list)
+    def default_value(self, typename):
+        typename = self.map_type(typename)
+        if typename == "bool":
+            return "false"
+        if typename == "char":
+            return "'\\0'"
+        if typename in ("signed char", "unsigned char", "short", "unsigned short", "int",
+                        "unsigned int", "long long", "unsigned long long", "float", "double"):
+            return "0"
+        if typename == "std::string":
+            return '""'
+        if typename.endswith("*"):
+            return "nullptr"
+        return f"{typename}()"
 
-    def generate_files(self):
-        """
-        Write generated code to file 
+    def get_parameter_list(self, param_types):
+        _ndx = 0
+        param_list = "("
 
-        Returns:
-            boolean: True if successful, False if unsuccessful
-        """
+        for param_type in param_types:
+            if _ndx > 0:
+                param_list += ", "
+            param_list += f"{param_type} arg{_ndx}"
+            _ndx += 1
 
-        print(f"<<< WRITING FILES TO {self.file_path} >>>")
+        param_list += ")"
 
-        try:
-            for file in self.files:
-                with open(path.join(self.file_path, f"{file[0]}.hpp"), "w") as f:
-                    f.write(file[1])
-        except Exception as e:
-            print(f"CppCodeGenerator.generate_files ERROR: {e}")
-            traceback.print_exception(e)
+        return param_list
+
+    def get_file_extension(self):
+        return "hpp"

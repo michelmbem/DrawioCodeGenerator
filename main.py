@@ -1,5 +1,5 @@
 from wx import App
-from ui.mainframe import MainFrame
+from ui.main_frame import MainFrame
 
 
 app = App()

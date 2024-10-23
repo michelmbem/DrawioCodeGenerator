@@ -17,14 +17,14 @@ import wx.xrc
 class MainFrameBase ( wx.Frame ):
 
     def __init__( self, parent ):
-        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Draw.io Code Generator", pos = wx.DefaultPosition, size = wx.Size( 800,600 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
+        wx.Frame.__init__ ( self, parent, id = wx.ID_ANY, title = u"Draw.io Code Generator", pos = wx.DefaultPosition, size = wx.Size( 1000,750 ), style = wx.DEFAULT_FRAME_STYLE|wx.TAB_TRAVERSAL )
 
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
         self.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_BTNFACE ) )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
 
-        formSizer = wx.FlexGridSizer( 3, 3, 0, 0 )
+        formSizer = wx.FlexGridSizer( 0, 3, 0, 0 )
         formSizer.AddGrowableCol( 1 )
         formSizer.AddGrowableRow( 2 )
         formSizer.SetFlexibleDirection( wx.BOTH )
@@ -33,37 +33,37 @@ class MainFrameBase ( wx.Frame ):
         self.m_staticText1 = wx.StaticText( self, wx.ID_ANY, u"Dragram path:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText1.Wrap( -1 )
 
-        formSizer.Add( self.m_staticText1, 0, wx.ALL, 5 )
+        formSizer.Add( self.m_staticText1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtDiagramPath = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        formSizer.Add( self.txtDiagramPath, 1, wx.ALL|wx.EXPAND, 5 )
+        formSizer.Add( self.txtDiagramPath, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.LEFT|wx.TOP, 5 )
 
         self.btnChooseDiagramPath = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnChooseDiagramPath.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/folder.png" ), wx.BITMAP_TYPE_ANY ) )
         self.btnChooseDiagramPath.SetToolTip( u"Choose a file" )
 
-        formSizer.Add( self.btnChooseDiagramPath, 0, wx.ALL, 5 )
+        formSizer.Add( self.btnChooseDiagramPath, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
 
         self.m_staticText2 = wx.StaticText( self, wx.ID_ANY, u"Output path:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText2.Wrap( -1 )
 
-        formSizer.Add( self.m_staticText2, 0, wx.ALL, 5 )
+        formSizer.Add( self.m_staticText2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtOutputPath = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        formSizer.Add( self.txtOutputPath, 1, wx.ALL|wx.EXPAND, 5 )
+        formSizer.Add( self.txtOutputPath, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.LEFT|wx.TOP, 5 )
 
         self.btnChooseOutputPath = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnChooseOutputPath.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/disk.png" ), wx.BITMAP_TYPE_ANY ) )
         self.btnChooseOutputPath.SetToolTip( u"Choose a folder" )
 
-        formSizer.Add( self.btnChooseOutputPath, 0, wx.ALL, 5 )
+        formSizer.Add( self.btnChooseOutputPath, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
 
         self.m_staticText3 = wx.StaticText( self, wx.ID_ANY, u"Output languages:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText3.Wrap( -1 )
 
-        formSizer.Add( self.m_staticText3, 0, wx.ALL, 5 )
+        formSizer.Add( self.m_staticText3, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         languageSizer = wx.BoxSizer( wx.HORIZONTAL )
 
@@ -89,14 +89,14 @@ class MainFrameBase ( wx.Frame ):
         languageSizer.Add( self.chkLangSQL, 0, wx.ALL, 5 )
 
 
-        formSizer.Add( languageSizer, 1, wx.EXPAND, 5 )
+        formSizer.Add( languageSizer, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.LEFT|wx.TOP, 5 )
 
         self.btnLangOptions = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnLangOptions.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/setting_tools.png" ), wx.BITMAP_TYPE_ANY ) )
         self.btnLangOptions.SetToolTip( u"Configure code generation" )
 
-        formSizer.Add( self.btnLangOptions, 0, wx.ALL, 5 )
+        formSizer.Add( self.btnLangOptions, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
 
 
         mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
@@ -105,10 +105,10 @@ class MainFrameBase ( wx.Frame ):
 
         self.nbTrees = wx.Notebook( treesSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
 
-        treesSizer.Add( self.nbTrees, 1, wx.EXPAND |wx.ALL, 5 )
+        treesSizer.Add( self.nbTrees, 1, wx.EXPAND |wx.ALL, 3 )
 
 
-        mainSizer.Add( treesSizer, 1, wx.EXPAND, 5 )
+        mainSizer.Add( treesSizer, 1, wx.ALL|wx.EXPAND, 3 )
 
         buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
 
@@ -165,6 +165,210 @@ class MainFrameBase ( wx.Frame ):
         event.Skip()
 
     def btnExitOnButtonClick( self, event ):
+        event.Skip()
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class OptionDialogBase
+###########################################################################
+
+class OptionDialogBase ( wx.Dialog ):
+
+    def __init__( self, parent ):
+        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,600 ), style = wx.DEFAULT_DIALOG_STYLE )
+
+        self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.m_staticText4 = wx.StaticText( self, wx.ID_ANY, u"Root package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText4.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtRootPackage = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        formSizer.Add( self.txtRootPackage, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.m_staticText7 = wx.StaticText( self, wx.ID_ANY, u"Generate methods:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText7.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText7, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        generationSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.chkGenerateDefaultCtor = wx.CheckBox( self, wx.ID_ANY, u"Default constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        generationSizer.Add( self.chkGenerateDefaultCtor, 0, wx.ALL, 5 )
+
+        self.chkGenerateFullArgCtor = wx.CheckBox( self, wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        generationSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
+
+        self.chkGenerateEqHc = wx.CheckBox( self, wx.ID_ANY, u"Equals and Hashcode", wx.DefaultPosition, wx.DefaultSize, 0 )
+        generationSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
+
+        self.chkGenerateToString = wx.CheckBox( self, wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
+        generationSizer.Add( self.chkGenerateToString, 0, wx.ALL, 5 )
+
+
+        formSizer.Add( generationSizer, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.TOP, 5 )
+
+        self.m_staticText6 = wx.StaticText( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText6.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText6, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.chkEncapsulateAllProps = wx.CheckBox( self, wx.ID_ANY, u"Make all properties private and generate public accessors", wx.DefaultPosition, wx.DefaultSize, 0 )
+        formSizer.Add( self.chkEncapsulateAllProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        languageOptionsSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Language specific options" ), wx.VERTICAL )
+
+        self.nbLanguageOptions = wx.Notebook( languageOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        languageOptionsSizer.Add( self.nbLanguageOptions, 1, wx.EXPAND |wx.ALL, 3 )
+
+
+        mainSizer.Add( languageOptionsSizer, 1, wx.ALL|wx.EXPAND, 3 )
+
+        dialogButtonSizer = wx.StdDialogButtonSizer()
+        self.dialogButtonSizerOK = wx.Button( self, wx.ID_OK )
+        dialogButtonSizer.AddButton( self.dialogButtonSizerOK )
+        self.dialogButtonSizerApply = wx.Button( self, wx.ID_APPLY )
+        dialogButtonSizer.AddButton( self.dialogButtonSizerApply )
+        self.dialogButtonSizerCancel = wx.Button( self, wx.ID_CANCEL )
+        dialogButtonSizer.AddButton( self.dialogButtonSizerCancel )
+        dialogButtonSizer.Realize();
+
+        mainSizer.Add( dialogButtonSizer, 0, wx.ALL|wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        self.Centre( wx.BOTH )
+
+        # Connect Events
+        self.dialogButtonSizerApply.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnApplyButtonClick )
+        self.dialogButtonSizerCancel.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnCancelButtonClick )
+        self.dialogButtonSizerOK.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnOKButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def dialogButtonSizerOnApplyButtonClick( self, event ):
+        event.Skip()
+
+    def dialogButtonSizerOnCancelButtonClick( self, event ):
+        event.Skip()
+
+    def dialogButtonSizerOnOKButtonClick( self, event ):
+        event.Skip()
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class LanguageOptionPageBase
+###########################################################################
+
+class LanguageOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.m_staticText12 = wx.StaticText( self, wx.ID_ANY, u"Module name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText12.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText12, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.m_staticText11 = wx.StaticText( self, wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText11.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText11, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddModule = wx.Button( self, wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnAddModule.SetToolTip( u"Add this module to the list of imported modules" )
+
+        buttonSizer.Add( self.btnAddModule, 0, wx.ALL, 5 )
+
+        self.btnRemoveModule = wx.Button( self, wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnRemoveModule.SetToolTip( u"Remove the selected module from the list of imported modules" )
+
+        buttonSizer.Add( self.btnRemoveModule, 0, wx.ALL, 5 )
+
+
+        mainSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+        dividerSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.m_staticText141 = wx.StaticText( self, wx.ID_ANY, u"List of imported modules", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText141.Wrap( -1 )
+
+        dividerSizer.Add( self.m_staticText141, 0, wx.ALL, 5 )
+
+        self.m_staticline11 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        dividerSizer.Add( self.m_staticline11, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( dividerSizer, 0, wx.EXPAND, 5 )
+
+        self.lstModules = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        mainSizer.Add( self.lstModules, 1, wx.ALL|wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        # Connect Events
+        self.btnAddModule.Bind( wx.EVT_BUTTON, self.btnAddModuleOnButtonClick )
+        self.btnRemoveModule.Bind( wx.EVT_BUTTON, self.btnRemoveModuleOnButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def btnAddModuleOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveModuleOnButtonClick( self, event ):
         event.Skip()
 
     # Virtual image path resolution method. Override this in your derived class.

@@ -31,7 +31,8 @@ Supported languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 python -m venv ./venv
 
 # activate the virtual environment
-./venv/Scripts/activate # or activate.bat or activate.ps1 according to your shell
+source ./venv/Scripts/activate
+# On Windows: .\venv\Scripts\activate.bat or .\venv\Scripts\activate.ps1
 
 # Install dependencies
 pip install -r requirements.txt

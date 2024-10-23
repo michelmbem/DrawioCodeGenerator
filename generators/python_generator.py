@@ -1,46 +1,7 @@
-import re
-import traceback
-
-from os import path
-from generators.code_generator import CodeGeneratorInterface
+from generators.code_generator import CodeGenerator
 
 
-def accessor_name(property_name):
-    if property_name.startswith("_"):
-        return property_name[1:]
-    return property_name + "Prop"
-
-
-def parameter_name(property_name):
-    return "arg" + property_name.capitalize()
-
-
-def default(typename):
-    typename = typename.lower()
-    if typename == "boolean":
-        return "False"
-    if typename in ("int8", "uint8", "int16", "uint16", "int32", "uint32",
-                    "int64", "uint64", "single", "double", "bigint", "decimal"):
-        return "0"
-    if typename == "string":
-        return '""'
-    return "None"
-
-
-def get_parameter_list(param_types):
-    param_list = "("
-
-    for _ndx in range(len(param_types)):
-        if _ndx > 0:
-            param_list += ", "
-        param_list += f"arg{_ndx}"
-
-    param_list += ")"
-
-    return param_list
-
-
-class PythonCodeGenerator(CodeGeneratorInterface):
+class PythonCodeGenerator(CodeGenerator):
     """
     Generate Python code
 
@@ -51,89 +12,94 @@ class PythonCodeGenerator(CodeGeneratorInterface):
     """
 
     def __init__(self, syntax_tree, file_path, options):
-        self.syntax_tree = syntax_tree
-        self.file_path = path.abspath(file_path)
-        self.options = options
-        self.files = []
+        CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
-    def generate_code(self):
+    @staticmethod
+    def accessor_name(property_name):
+        if property_name.startswith("_"):
+            return property_name[1:]
+        return property_name + "Prop"
+
+    @staticmethod
+    def parameter_name(property_name):
+        return "arg" + property_name.capitalize()
+
+    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
-        Use the syntax tree to generate code files for the UML class diagrams 
-        """
-
-        print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
-
-        CodeGeneratorInterface.ensure_dir_exists(self.file_path)
-
-        try:
-            for class_def in self.syntax_tree.values():
-                inheritance = ""
-                if len(class_def['relationships']['extends']) > 0:
-                    inheritance = ", ".join([self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]).strip(", ")
-
-                implementation = ""
-                if len(class_def['relationships']['implements']) > 0:
-                    implementation = ", ".join([self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]).strip(", ")
-
-                interface_methods = []
-                self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
-
-                file = self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
-                if len(class_def['properties']) <= 0 and len(class_def['methods']) <= 0 and len(interface_methods) <= 0:
-                    file += "\tpass\n"
-                else:
-                    file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
-                    file += "\n"
-                    if class_def['type'].endswith("class"):
-                        file += self.generate_property_accessors(class_def['properties'])
-                    if class_def['type'] != "enum":
-                        file += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
-
-                self.files.append((class_def['name'], file))
-
-            self.generate_files()
-
-        except Exception as e:
-            print(f"PythonCodeGenerator.generate_code ERROR: {e}")
-            traceback.print_exception(e)
-
-    def generate_class_header(self, class_type, class_name, extends, implements):
-        """
-        Generate the class header 
+        Generate the class header
 
         Parameters:
-            class_type: type of class; 'class', 'abstract', 'interface'
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
             class_name: name of class
-            extends: the classes extended by this class
-            implements: the interfaces implemented by this class
+            baseclasses: the classes extended by this class
+            interfaces: the interfaces implemented by this class
+            references: other classes referenced by this class
 
         Returns:
             class_header: class header string
         """
 
         class_header = ""
+        add_linebreaks = False
 
         if class_type == "enum":
             class_header += "from enum import Enum, auto\n"
             class_ancestors = "(Enum)"
+            add_linebreaks = True
         else:
-            for _import in self.options['imports']:
-                class_header += f"import {_import}\n"
+            if class_type == "interface":
+                class_header += "from abc import ABC, abstractmethod\n"
+                add_linebreaks = True
 
-            class_header += "from abc import ABC, abstractmethod\n"
+            for module, symbols in self.options['imports'].items():
+                class_header += f"from {module} import {', '.join(symbols)}\n"
+                add_linebreaks = True
 
-            class_ancestors = "(ABC"
-            if extends:
-                class_ancestors += f", {extends}"
-            if implements:
-                class_ancestors += f", {implements}"
+            for baseclass in baseclasses:
+                class_header += f"from {baseclass} import {baseclass}\n"
+                add_linebreaks = True
+
+            for interface in interfaces:
+                class_header += f"from {interface} import {interface}\n"
+                add_linebreaks = True
+
+            for reference in references:
+                class_header += f"from {reference} import {reference}\n"
+                add_linebreaks = True
+
+            class_ancestors = "("
+            if class_type == "interface":
+                class_ancestors += "ABC"
+            if len(baseclasses) > 0:
+                if class_type == "interface":
+                    class_ancestors += ", "
+                class_ancestors += ', '.join(baseclasses)
+            if len(interfaces) > 0:
+                if class_type == "interface" or len(baseclasses) > 0:
+                    class_ancestors += ", "
+                class_ancestors += ', '.join(interfaces)
             class_ancestors += ")"
 
-        class_header += "\n\n"
+        if add_linebreaks:
+            class_header += "\n\n"
+
         class_header += f"class {class_name}{class_ancestors}:\n"
-        class_header = re.sub(' +', ' ', class_header)
 
         return class_header
+
+    def generate_class_footer(self, class_type, class_name):
+        """
+        Generate the class footer
+
+        Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
+
+        Returns:
+            properties_string: the closing brace of a class definition
+        """
+
+        return ""
 
     def generate_properties(self, properties, is_enum):
         """
@@ -165,7 +131,7 @@ class PythonCodeGenerator(CodeGeneratorInterface):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 else:
-                    p += f" = {default(property_def['type'])}"
+                    p += f" = {self.default_value(property_def['type'])}"
 
             p += "\n"
 
@@ -191,13 +157,13 @@ class PythonCodeGenerator(CodeGeneratorInterface):
         accessors_string = ""
         for property_def in properties.values():
             if property_def['access'] == "private":
-                getter = (f"\t@property\n\tdef {accessor_name(property_def['name'])}(self):\n"
+                getter = (f"\t@property\n\tdef {self.accessor_name(property_def['name'])}(self):\n"
                           f"\t\treturn self.{property_def['name']}\n\n")
                 accessors_string += getter
 
-                setter = (f"\t@{accessor_name(property_def['name'])}.setter\n\tdef {accessor_name(property_def['name'])}"
-                          f"(self, {parameter_name(property_def['name'])}):\n\t\tself.{property_def['name']} ="
-                          f" {parameter_name(property_def['name'])}\n\n")
+                setter = (f"\t@{self.accessor_name(property_def['name'])}.setter\n\tdef {self.accessor_name(property_def['name'])}"
+                          f"(self, {self.parameter_name(property_def['name'])}):\n\t\tself.{property_def['name']} ="
+                          f" {self.parameter_name(property_def['name'])}\n\n")
                 accessors_string += setter
 
         return accessors_string
@@ -233,34 +199,31 @@ class PythonCodeGenerator(CodeGeneratorInterface):
 
         return methods_string
 
-    def get_interface_methods(self, implements, interface_list):
-        """
-        Get the interface methods that require implementation
-        
-        Parameters:
-            implements: list of interfaces
-            interface_list: list of interface methods
-        """
+    def map_type(self, typename):
+        return None
 
-        for i in implements:
-            interface_obj = self.syntax_tree[i]
-            interface_list += interface_obj['methods'].values()
-            self.get_interface_methods(interface_obj['relationships']['implements'], interface_list)
+    def default_value(self, typename):
+        typename = typename.lower()
+        if typename == "boolean":
+            return "False"
+        if typename in ("int8", "uint8", "int16", "uint16", "int32", "uint32",
+                        "int64", "uint64", "single", "double", "bigint", "decimal"):
+            return "0"
+        if typename == "string":
+            return '""'
+        return "None"
 
-    def generate_files(self):
-        """
-        Write generated code to file 
+    def get_parameter_list(self, param_types):
+        param_list = "("
 
-        Returns:
-            boolean: True if successful, False if unsuccessful
-        """
+        for _ndx in range(len(param_types)):
+            if _ndx > 0:
+                param_list += ", "
+            param_list += f"arg{_ndx}"
 
-        print(f"<<< WRITING FILES TO {self.file_path} >>>")
+        param_list += ")"
 
-        try:
-            for file in self.files:
-                with open(path.join(self.file_path, f"{file[0]}.py"), "w") as f:
-                    f.write(file[1])
-        except Exception as e:
-            print(f"PythonCodeGenerator.generate_files ERROR: {e}")
-            traceback.print_exception(e)
+        return param_list
+
+    def get_file_extension(self):
+        return "py"

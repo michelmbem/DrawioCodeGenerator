@@ -1,24 +1,7 @@
-import re
-import traceback
-
-from os import path
-from generators.code_generator import CodeGeneratorInterface
+from generators.code_generator import CodeGenerator
 
 
-def get_parameter_list(param_types):
-    param_list = "("
-
-    for _ndx in range(len(param_types)):
-        if _ndx > 0:
-            param_list += ", "
-        param_list += f"$arg{_ndx}"
-
-    param_list += ")"
-
-    return param_list
-
-
-class PhpCodeGenerator(CodeGeneratorInterface):
+class PhpCodeGenerator(CodeGenerator):
     """
     Generate PHP code
 
@@ -29,82 +12,72 @@ class PhpCodeGenerator(CodeGeneratorInterface):
     """
 
     def __init__(self, syntax_tree, file_path, options):
-        self.syntax_tree = syntax_tree
-        self.file_path = path.abspath(file_path)
-        self.options = options
-        self.files = []
+        CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
-    def generate_code(self):
+    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
-        Use the syntax tree to generate code files for the UML class diagrams 
-        """
-
-        print("<<< GENERATING CODE FILES FROM SYNTAX TREE >>>")
-
-        CodeGeneratorInterface.ensure_dir_exists(self.file_path)
-
-        try:
-            for class_def in self.syntax_tree.values():
-                file = "<?php\n"
-
-                inheritance = ""
-                if len(class_def['relationships']['extends']) > 0:
-                    inheritance += "extends "
-                    inheritance += ",".join([self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]).strip(", ")
-
-                implementation = ""
-                if len(class_def['relationships']['implements']) > 0:
-                    implementation += "implements "
-                    implementation += ", ".join([self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]).strip(", ")
-
-                interface_methods = []
-                self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
-
-                file += self.generate_class_header(class_def['type'], class_def['name'], inheritance, implementation)
-                file += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
-                file += "\n"
-                if class_def['type'].endswith("class"):
-                    file += self.generate_property_accessors(class_def['properties'])
-                if class_def['type'] != "enum":
-                    file += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
-                file += "}"
-
-                self.files.append((class_def['name'], file))
-
-            self.generate_files()
-
-        except Exception as e:
-            print(f"PhpCodeGenerator.generate_code ERROR: {e}")
-            traceback.print_exception(e)
-
-    def generate_class_header(self, class_type, class_name, extends, implements):
-        """
-        Generate the class header 
+        Generate the class header
 
         Parameters:
-            class_type: type of class; 'class', 'abstract', 'interface, enum'
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
             class_name: name of class
-            extends: the classes extended by this class
-            implements: the interfaces implemented by this class
+            baseclasses: the classes extended by this class
+            interfaces: the interfaces implemented by this class
+            references: other classes referenced by this class
 
         Returns:
             class_header: class header string
         """
 
-        class_header = ""
-
-        if class_type != "enum" and len(self.options['imports']) > 0:
-            for _import in self.options['imports']:
-                class_header += f"require_once '{_import}';\n"
-            class_header += "\n"
+        class_header = "<?php\n"
 
         if self.options['package']:
             class_header += f"namespace {self.options['package']};\n\n"
 
-        class_header += f"{class_type} {class_name} {extends} {implements} {{\n"
-        class_header = re.sub(' +', ' ', class_header)
+        if class_type != "enum":
+            add_linebreak = False
+
+            for module, symbols in self.options['imports'].items():
+                class_header += f"require_once '{module}';\n"
+                add_linebreak = True
+
+            for baseclass in baseclasses:
+                class_header += f"require_once './{baseclass}.php';\n"
+                add_linebreak = True
+
+            for interface in interfaces:
+                class_header += f"require_once './{interface}.php';\n"
+                add_linebreak = True
+
+            for reference in references:
+                class_header += f"require_once './{reference}.php';\n"
+                add_linebreak = True
+
+            if add_linebreak:
+                class_header += "\n"
+
+        class_header += f"{class_type} {class_name}"
+        if len(baseclasses) > 0:
+            class_header += f" extends {baseclasses[0]}"
+        if len(interfaces) > 0:
+            class_header += f" implements {', '.join(interfaces)}"
+        class_header += " {\n"
 
         return class_header
+
+    def generate_class_footer(self, class_type, class_name):
+        """
+        Generate the class footer
+
+        Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
+
+        Returns:
+            properties_string: the closing brace of a class definition
+        """
+
+        return "}\n"
 
     def generate_properties(self, properties, is_enum):
         """
@@ -174,7 +147,7 @@ class PhpCodeGenerator(CodeGeneratorInterface):
         methods_string = ""
 
         for method_def in methods.values():
-            params = get_parameter_list(method_def['parameters'])
+            params = self.get_parameter_list(method_def['parameters'])
             if class_type == "interface":
                 m = f"\t{method_def['access']} function {method_def['name']}{params};"
             else:
@@ -183,40 +156,29 @@ class PhpCodeGenerator(CodeGeneratorInterface):
 
         if class_type.endswith("class"):
             for interface_method in interface_methods:
-                params = get_parameter_list(interface_method['parameters'])
+                params = self.get_parameter_list(interface_method['parameters'])
                 m = f"\t{interface_method['access']} function {interface_method['name']}{params}\n\t{{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def get_interface_methods(self, implements, interface_list):
-        """
-        Get the interface methods that require implementation
-        
-        Parameters:
-            implements: list of interfaces
-            interface_list: list of interface methods
-        """
+    def map_type(self, typename):
+        return None
 
-        for i in implements:
-            interface_obj = self.syntax_tree[i]
-            interface_list += interface_obj['methods'].values()
-            self.get_interface_methods(interface_obj['relationships']['implements'], interface_list)
+    def default_value(self, typename):
+        return None
 
-    def generate_files(self):
-        """
-        Write generated code to file 
+    def get_parameter_list(self, param_types):
+        param_list = "("
 
-        Returns:
-            boolean: True if successful, False if unsuccessful
-        """
+        for _ndx in range(len(param_types)):
+            if _ndx > 0:
+                param_list += ", "
+            param_list += f"$arg{_ndx}"
 
-        print(f"<<< WRITING FILES TO {self.file_path} >>>")
+        param_list += ")"
 
-        try:
-            for file in self.files:
-                with open(path.join(self.file_path, f"{file[0]}.php"), "w") as f:
-                    f.write(file[1])
-        except Exception as e:
-            print(f"PhpCodeGenerator.generate_files ERROR: {e}")
-            traceback.print_exception(e)
+        return param_list
+
+    def get_file_extension(self):
+        return "php"

@@ -6,8 +6,9 @@ from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
 from generators.code_generators import CodeGenerators
 from ui.forms import MainFrameBase
-from ui.xmlstyledtextctrl import XMLStyledTextCtrl
-from ui.symboltreectrl import SymbolTreeCtrl
+from ui.xml_styled_text_ctrl import XMLStyledTextCtrl
+from ui.symbol_tree_ctrl import SymbolTreeCtrl
+from ui.options_dialog import OptionDialog
 from bs4 import BeautifulSoup as bs
 
 
@@ -32,11 +33,7 @@ class MainFrame (MainFrameBase):
         self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
         self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree")
 
-        self.options = {
-            'package': "example",
-            'imports': [],
-            'encapsulate_all_props': False,
-        }
+        self.options = self._default_options()
 
     def btnChooseDiagramPathOnButtonClick(self, event):
         open_file_dialog = wx.FileDialog(self, message="Open a diagram",
@@ -59,6 +56,11 @@ class MainFrame (MainFrameBase):
             self.txtOutputPath.SetValue(dir_dialog.GetPath())
 
         dir_dialog.Destroy()
+
+    def btnLangOptionsOnButtonClick(self, event):
+        option_dialog = OptionDialog(self, self.options)
+        if option_dialog.ShowModal() == wx.ID_OK:
+            self.options = option_dialog.options
 
     def btnGenerateOnButtonClick(self, event):
         decoded_xml = DecodeAndDecompress.convert(self.txtDiagramPath.GetValue())
@@ -100,3 +102,33 @@ class MainFrame (MainFrameBase):
 
     def asset_path(self, bitmap_path):
         return path.join(path.dirname(__file__), bitmap_path)
+
+    @staticmethod
+    def _default_options():
+        return {
+            'package': "example",
+            'generate': {'default_ctor': False, 'full_arg_ctor': False, 'equal_hashcode': False, 'to_string': False},
+            'encapsulate_all_props': False,
+            'imports': {
+                'Java': {
+                    'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
+                },
+                'C#': {
+                    'System': [],
+                    'System.Collections.Generic': [],
+                    'System.Numerics': [],
+                },
+                'C++': {
+                    '<ctime>': [],
+                    '<string>': [],
+                },
+                'Python': {
+                },
+                'TypeScript': {
+                },
+                'PHP': {
+                },
+                'SQL': {
+                },
+            },
+        }
