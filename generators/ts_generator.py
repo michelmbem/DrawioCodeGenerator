@@ -13,22 +13,37 @@ class TsCodeGenerator(CodeGenerator):
 
     TYPE_MAPPINGS = {
         "boolean": "boolean",
+        "bool": "boolean",
+        "char": "string",
+        "wchar": "string",
+        "sbyte": "number",
         "int8": "number",
+        "byte": "number",
         "uint8": "number",
+        "short": "number",
         "int16": "number",
+        "ushort": "number",
         "uint16": "number",
+        "integer": "number",
+        "int": "number",
         "int32": "number",
+        "uint": "number",
         "uint32": "number",
+        "long": "number",
         "int64": "number",
+        "ulong": "number",
         "uint64": "number",
+        "float": "number",
         "single": "number",
         "double": "number",
         "bigint": "bigint",
         "decimal": "number",
         "string": "string",
+        "wstring": "wstring",
         "date": "Date",
         "time": "Date",
         "datetime": "Date",
+        "timestamp": "Date",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -137,7 +152,7 @@ class TsCodeGenerator(CodeGenerator):
                     p += f" = {property_def['default_value']}"
             else:
                 p = (f"\t{self._get_property_access(property_def)} {property_prefix}{property_def['name']}"
-                     f" : {self._map_type(property_def['type'])}")
+                     f": {self._map_type(property_def['type'])}")
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -169,10 +184,10 @@ class TsCodeGenerator(CodeGenerator):
                 accessor_type = self._map_type(property_def['type'])
                 parameter_name = self._parameter_name(property_name)
 
-                accessors_string += (f"\tpublic get {accessor_name}() : {accessor_type} {{\n"
+                accessors_string += (f"\tpublic get {accessor_name}(): {accessor_type} {{\n"
                                      f"\t\treturn this.{property_name};\n\t}}\n\n")
 
-                accessors_string += (f"\tpublic set {accessor_name}({parameter_name} : {accessor_type}) {{\n"
+                accessors_string += (f"\tpublic set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
                                      f"\t\tthis.{property_name} = {parameter_name};\n\t}}\n\n")
 
         return accessors_string
@@ -195,15 +210,15 @@ class TsCodeGenerator(CodeGenerator):
         for method_def in methods.values():
             params = self._get_parameter_list(method_def['parameters'])
             if class_type == "interface":
-                m = f"\t{method_def['name']}{params} : {self._map_type(method_def['return_type'])};"
+                m = f"\t{method_def['name']}{params}: {self._map_type(method_def['return_type'])};"
             else:
-                m = f"\t{method_def['access']} {method_def['name']}{params} : {self._map_type(method_def['return_type'])} {{\n\t}}"
+                m = f"\t{method_def['access']} {method_def['name']}{params}: {self._map_type(method_def['return_type'])} {{\n\t}}"
             methods_string += m + "\n\n"
 
         if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
-                m = f"\tpublic {interface_method['name']}{params} : {self._map_type(interface_method['return_type'])} {{\n\t}}"
+                m = f"\tpublic {interface_method['name']}{params}: {self._map_type(interface_method['return_type'])} {{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
@@ -216,8 +231,10 @@ class TsCodeGenerator(CodeGenerator):
         if self._options['encapsulate_all_props']:
             prefix = "_"
 
+        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic constructor("
-        ctor_string += ', '.join([f"{p['name']} : {self._map_type(p['type'])}" for p in properties.values()])
+        ctor_string += separator.join([f"{p['name']}: {self._map_type(p['type'])} = {self._default_value(p['type'])}"
+                                       for p in properties.values()])
         ctor_string += ") {\n"
         ctor_string += '\n'.join([f"\t\tthis.{prefix}{p['name']} = {p['name']};" for p in properties.values()])
         ctor_string += "\n\t}\n\n"
@@ -228,7 +245,12 @@ class TsCodeGenerator(CodeGenerator):
         return ""
 
     def _generate_to_string(self, class_name, properties):
-        return ""
+        method_string = "\tpublic toString(): string {\n"
+        method_string += f"\t\treturn `{class_name} \\{{"
+        method_string += ', '.join([f"{p['name']}=${{this.{p['name']}}}" for p in properties.values()])
+        method_string += "\\}`;\n\t}\n\n"
+
+        return method_string
 
     def _package_directive(self, package_name):
         return None
@@ -237,15 +259,14 @@ class TsCodeGenerator(CodeGenerator):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def _default_value(self, typename):
-        typename = typename.lower()
+        typename = self._map_type(typename)
         if typename == "boolean":
-            return "False"
-        if typename in ("int8", "uint8", "int16", "uint16", "int32", "uint32",
-                        "int64", "uint64", "single", "double", "bigint", "decimal"):
+            return "false"
+        if typename in ("number", "bigint"):
             return "0"
         if typename == "string":
             return '""'
-        return "None"
+        return "null"
 
     def _get_parameter_list(self, param_types):
         _ndx = 0
@@ -254,7 +275,7 @@ class TsCodeGenerator(CodeGenerator):
         for param_type in param_types:
             if _ndx > 0:
                 param_list += ", "
-            param_list += f"arg{_ndx} : {param_type}"
+            param_list += f"arg{_ndx}: {param_type}"
             _ndx += 1
 
         param_list += ")"

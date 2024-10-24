@@ -1,6 +1,8 @@
+import sys
 import wx
 
 from os import path, startfile
+from io import StringIO
 from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
@@ -35,6 +37,13 @@ class MainFrame (MainFrameBase):
 
         self.options = self._default_options()
 
+        self._original_stdout = sys.stdout
+        sys.stdout = self._captured_output = StringIO()
+
+    def __del__(self):
+        MainFrameBase.__del__(self)
+        sys.stdout = self._original_stdout
+
     def btnChooseDiagramPathOnButtonClick(self, event):
         open_file_dialog = wx.FileDialog(self, message="Open a diagram",
                                          wildcard="Draw.io diagram files (*.drawio)|*.drawio",
@@ -63,38 +72,49 @@ class MainFrame (MainFrameBase):
             self.options = option_dialog.options
 
     def btnGenerateOnButtonClick(self, event):
-        decoded_xml = DecodeAndDecompress.convert(self.txtDiagramPath.GetValue())
-        if not decoded_xml:
-            wx.MessageBox("Failed to decode diagram XML", "Code generation")
-            return
+        message = None
 
-        self.stcDecodedXml.SetReadOnly(False)
-        self.stcDecodedXml.SetValue(bs(decoded_xml, "lxml").prettify())
-        self.stcDecodedXml.SetReadOnly(True)
+        try:
+            decoded_xml = DecodeAndDecompress.convert(self.txtDiagramPath.GetValue())
+            if not decoded_xml:
+                message = "Failed to decode diagram XML"
+                return
 
-        style_parser = StyleParser(decoded_xml)
-        style_tree = style_parser.convert_to_style_tree()
-        self.tlcStyle.load_dict(style_tree)
+            self.stcDecodedXml.SetReadOnly(False)
+            self.stcDecodedXml.SetValue(bs(decoded_xml, "lxml").prettify())
+            self.stcDecodedXml.SetReadOnly(True)
 
-        syntax_parser = SyntaxParser(style_tree)
-        syntax_tree = syntax_parser.convert_to_syntax_tree()
-        self.tlcSyntax.load_dict(syntax_tree)
+            style_parser = StyleParser(decoded_xml)
+            style_tree = style_parser.convert_to_style_tree()
+            self.tlcStyle.load_dict(style_tree)
 
-        language_selected = False
+            syntax_parser = SyntaxParser(style_tree)
+            syntax_tree = syntax_parser.convert_to_syntax_tree()
+            self.tlcSyntax.load_dict(syntax_tree)
 
-        for item in self.chkLangTS.GetContainingSizer().GetChildren():
-            checkbox = item.GetWindow()
-            if checkbox.IsChecked():
-                language = checkbox.GetLabel()
-                output_dir = path.join(self.txtOutputPath.GetValue(), language)
-                code_gen = CodeGenerators.get(language, syntax_tree, output_dir, self.options)
-                code_gen.generate_code()
-                language_selected = True
+            language_selected = False
 
-        if language_selected:
-            startfile(path.abspath(self.txtOutputPath.GetValue()))
-        else:
-            wx.MessageBox("No language was selected!", "Code generation")
+            for item in self.chkLangTS.GetContainingSizer().GetChildren():
+                checkbox = item.GetWindow()
+                if checkbox.IsChecked():
+                    language = checkbox.GetLabel()
+                    output_dir = path.join(self.txtOutputPath.GetValue(), language)
+                    code_gen = CodeGenerators.get(language, syntax_tree, output_dir, self.options)
+                    code_gen.generate_code()
+                    language_selected = True
+
+            if language_selected:
+                startfile(path.abspath(self.txtOutputPath.GetValue()))
+            else:
+                message = "No language was selected!"
+        except Exception as e:
+            message = f"Something went wrong: {e}"
+        finally:
+            self.rtcStdout.SetValue(self._captured_output.getvalue())
+            self.rtcStdout.ShowPosition(self.rtcStdout.GetLastPosition())
+
+            if message:
+                wx.MessageBox(message, "Code generation")
 
     def btnExitOnButtonClick(self, event):
         self.Close()

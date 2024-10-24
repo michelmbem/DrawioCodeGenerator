@@ -13,22 +13,37 @@ class JavaCodeGenerator(CodeGenerator):
 
     TYPE_MAPPINGS = {
         "boolean": "boolean",
+        "bool": "boolean",
+        "char": "char",
+        "wchar": "char",
+        "sbyte": "byte",
         "int8": "byte",
+        "byte": "byte",
         "uint8": "byte",
+        "short": "short",
         "int16": "short",
+        "ushort": "short",
         "uint16": "short",
+        "integer": "int",
+        "int": "int",
         "int32": "int",
+        "uint": "int",
         "uint32": "int",
+        "long": "long",
         "int64": "long",
+        "ulong": "long",
         "uint64": "long",
+        "float": "float",
         "single": "float",
         "double": "double",
         "bigint": "BigInteger",
         "decimal": "BigDecimal",
         "string": "String",
+        "wstring": "String",
         "date": "LocalDate",
         "time": "LocalTime",
         "datetime": "LocalDateTime",
+        "timestamp": "LocalDateTime",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -112,7 +127,7 @@ class JavaCodeGenerator(CodeGenerator):
 
                 p = f"\t{property_def['name']}"
                 if property_def['default_value']:
-                    p += f" = {property_def['default_value']}"
+                    p += f"({property_def['default_value']})"
             else:
                 p = f"\t{self._get_property_access(property_def)} {self._map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
@@ -191,8 +206,9 @@ class JavaCodeGenerator(CodeGenerator):
         return f"\tpublic {class_name}() {{\n\t}}\n\n"
 
     def _generate_full_arg_ctor(self, class_name, properties):
+        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += separator.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
         ctor_string += ") {\n"
         ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
         ctor_string += "\n\t}\n\n"

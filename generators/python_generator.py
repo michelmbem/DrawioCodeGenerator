@@ -117,34 +117,39 @@ class PythonCodeGenerator(CodeGenerator):
 
         properties_string = ""
         property_prefix = ""
-        met_property = False
+        counter = 0
 
         if not is_enum:
-            properties_string = "\tdef __init__(self):\n"
+            properties_string = "\tdef __init__(self, *args, **kwargs):\n"
+            properties_string += "\t\targc = len(args)\n"
+
             if self._options['encapsulate_all_props']:
                 property_prefix = "_"
 
         for property_def in properties.values():
             if is_enum:
-                p = f"\t{property_def['name']}"
+                p = f"\t{property_def['name']} = "
                 if property_def['default_value']:
-                    p += f" = {property_def['default_value']}"
+                    p += property_def['default_value']
                 else:
-                    p += " = auto()"
+                    p += "auto()"
+                p += "\n"
             else:
-                p = f"\t\tself.{property_prefix}{property_def['name']}"
+                p = f"\n\t\tif argc > {counter}:\n"
+                p += f"\t\t\tself.{property_prefix}{property_def['name']} = args[{counter}]\n"
+                p += "\t\telse:\n"
+                p += f"\t\t\tself.{property_prefix}{property_def['name']} = kwargs.get('{property_def['name']}', "
                 if property_def['default_value']:
-                    p += f" = {property_def['default_value']}"
+                    p += property_def['default_value']
                 else:
-                    p += f" = {self._default_value(property_def['type'])}"
-
-            p += "\n"
+                    p += self._default_value(property_def['type'])
+                p += ")\n"
 
             properties_string += p
-            met_property = True
+            counter += 1
 
-        if not met_property:
-            properties_string += "\t\tpass\n"
+        if not counter:
+            properties_string = "\tdef __init__(self, *args, **kwargs):\n\t\tpass\n"
 
         return properties_string
 
@@ -193,17 +198,17 @@ class PythonCodeGenerator(CodeGenerator):
         """
 
         methods_string = ""
+        comment = "# Todo: implement this method!"
 
         for method_def in methods.values():
-            m = ""
             if class_type in ("interface", "abstract class"):
-                m += "\t@abstractmethod\n"
-            m += f"\tdef {method_def['name']}(self):\n\t\tpass\n\n"
+                m = f"\t@abstractmethod\n\tdef {method_def['name']}(self):\n\t\tpass\n\n"
+            else:
+                m = f"\tdef {method_def['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
             methods_string += m
 
         # inherited abstract methods
         if class_type in ("class", "abstract class"):
-            comment = "# Todo: implementation this method!"
             for interface_method in interface_methods:
                 m = f"\tdef {interface_method['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
                 methods_string += m
@@ -242,9 +247,9 @@ class PythonCodeGenerator(CodeGenerator):
             prefix = "_"
 
         method_string = "\tdef __str__(self):\n"
-        method_string += f"\t\treturn f\"{class_name} [{{"
-        method_string += ', '.join([f"'{p['name']}': self.{prefix}{p['name']}" for p in properties.values()])
-        method_string += "}]\"\n\n"
+        method_string += f"\t\treturn f\"{class_name} {{{{"
+        method_string += ', '.join([f"{p['name']}={{self.{prefix}{p['name']}}}" for p in properties.values()])
+        method_string += "}}\"\n\n"
 
         return method_string
 
@@ -256,12 +261,13 @@ class PythonCodeGenerator(CodeGenerator):
 
     def _default_value(self, typename):
         typename = typename.lower()
-        if typename == "boolean":
+        if typename in ("boolean", "bool"):
             return "False"
-        if typename in ("int8", "uint8", "int16", "uint16", "int32", "uint32",
-                        "int64", "uint64", "single", "double", "bigint", "decimal"):
+        if typename in ("sbyte", "int8", "byte", "uint8", "short", "int16", "ushort", "uint16",
+                        "integer", "int", "int32", "uint", "uint32", "long", "int64", "ulong",
+                        "uint64", "float", "single", "double", "bigint", "decimal"):
             return "0"
-        if typename == "string":
+        if typename in ("char", "wchar", "string", "wstring"):
             return '""'
         return "None"
 

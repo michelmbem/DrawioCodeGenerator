@@ -36,6 +36,13 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
         self.MarkerDefine(stc.STC_MARKNUM_FOLDEROPENMID, stc.STC_MARK_BOXMINUSCONNECTED, "white", "#808080")
         self.MarkerDefine(stc.STC_MARKNUM_FOLDERMIDTAIL, stc.STC_MARK_TCORNER, "white", "#808080")
 
+        # Listen for clics on margins
+        self.Bind(stc.EVT_STC_MARGINCLICK, self.onMarginClick)
+
+    def onMarginClick(self, event):
+        # Fold or unfold the corresponding line
+        self.ToggleFold(self.LineFromPosition(event.GetPosition()))
+
 
 # ========================= Initialization ========================
 

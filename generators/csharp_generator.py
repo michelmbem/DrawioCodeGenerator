@@ -13,22 +13,37 @@ class CSharpCodeGenerator(CodeGenerator):
 
     TYPE_MAPPINGS = {
         "boolean": "bool",
+        "bool": "bool",
+        "char": "char",
+        "wchar": "char",
+        "sbyte": "sbyte",
         "int8": "sbyte",
+        "byte": "byte",
         "uint8": "byte",
+        "short": "short",
         "int16": "short",
+        "ushort": "ushort",
         "uint16": "ushort",
+        "integer": "int",
+        "int": "int",
         "int32": "int",
+        "uint": "uint",
         "uint32": "uint",
+        "long": "long",
         "int64": "long",
+        "ulong": "ulong",
         "uint64": "ulong",
+        "float": "float",
         "single": "float",
         "double": "double",
-        "bigint": "BigInt",
+        "bigint": "BigInteger",
         "decimal": "decimal",
         "string": "string",
+        "wstring": "string",
         "date": "DateTime",
         "time": "DateTime",
         "datetime": "DateTime",
+        "timestamp": "DateTime",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -201,8 +216,9 @@ class CSharpCodeGenerator(CodeGenerator):
         return f"\tpublic {class_name}()\n\t{{\n\t}}\n\n"
 
     def _generate_full_arg_ctor(self, class_name, properties):
+        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += separator.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
         ctor_string += ")\n\t{\n"
         ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
         ctor_string += "\n\t}\n\n"
@@ -225,9 +241,9 @@ class CSharpCodeGenerator(CodeGenerator):
 
     def _generate_to_string(self, class_name, properties):
         method_string = "\tpublic override string ToString() {\n"
-        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
-        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + {p['name']}" for p in properties.values()])
-        method_string += " + \"}\";\n\t}\n\n"
+        method_string += f"\t\treturn $\"{class_name} {{{{"
+        method_string += ', '.join([f"{p['name']}={{{p['name']}}}" for p in properties.values()])
+        method_string += "}}\";\n\t}\n\n"
 
         return method_string
 

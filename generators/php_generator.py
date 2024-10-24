@@ -167,8 +167,9 @@ class PhpCodeGenerator(CodeGenerator):
         return ""
 
     def _generate_full_arg_ctor(self, class_name, properties):
+        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
-        ctor_string += ', '.join([f"${p['name']}" for p in properties.values()])
+        ctor_string += separator.join([f"${p['name']} = {self._default_value(p['type'])}" for p in properties.values()])
         ctor_string += ") {\n"
         ctor_string += '\n'.join([f"\t\t$this->{p['name']} = ${p['name']};" for p in properties.values()])
         ctor_string += "\n\t}\n\n"
@@ -191,9 +192,9 @@ class PhpCodeGenerator(CodeGenerator):
 
     def _generate_to_string(self, class_name, properties):
         method_string = "\tpublic function toString() {\n"
-        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
-        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + $this->{p['name']}" for p in properties.values()])
-        method_string += " + \"}\";\n\t}\n\n"
+        method_string += f"\t\treturn \"{class_name} \\{{"
+        method_string += ', '.join([f"{p['name']}={{$this->{p['name']}}}" for p in properties.values()])
+        method_string += "\\}\";\n\t}\n\n"
 
         return method_string
 
@@ -204,7 +205,16 @@ class PhpCodeGenerator(CodeGenerator):
         return None
 
     def _default_value(self, typename):
-        return None
+        typename = typename.lower()
+        if typename in ("boolean", "bool"):
+            return "false"
+        if typename in ("sbyte", "int8", "byte", "uint8", "short", "int16", "ushort", "uint16",
+                        "integer", "int", "int32", "uint", "uint32", "long", "int64", "ulong",
+                        "uint64", "float", "single", "double", "bigint", "decimal"):
+            return "0"
+        if typename in ("char", "wchar", "string", "wstring"):
+            return '""'
+        return "null"
 
     def _get_parameter_list(self, param_types):
         param_list = "("

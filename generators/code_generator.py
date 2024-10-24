@@ -47,20 +47,21 @@ class CodeGenerator(ABC):
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
-                    generate_opt = self._options['generate']
+                    class_has_props = len(class_def['properties']) > 0
+                    should_generate = self._options['generate']
 
-                    if generate_opt['default_ctor']:
+                    if should_generate['default_ctor']:
                         file_contents += self._generate_default_ctor(class_def['name'])
 
-                    if generate_opt['full_arg_ctor'] and len(class_def['properties']) > 0:
+                    if class_has_props and should_generate['full_arg_ctor']:
                         file_contents += self._generate_full_arg_ctor(class_def['name'], class_def['properties'])
 
                     file_contents += self._generate_property_accessors(class_def['properties'])
 
-                    if generate_opt['equal_hashcode']:
+                    if class_has_props and should_generate['equal_hashcode']:
                         file_contents += self._generate_equal_hashcode(class_def['name'], class_def['properties'])
 
-                    if generate_opt['to_string']:
+                    if class_has_props and should_generate['to_string']:
                         file_contents += self._generate_to_string(class_def['name'], class_def['properties'])
 
                 if class_def['type'] != "enum":

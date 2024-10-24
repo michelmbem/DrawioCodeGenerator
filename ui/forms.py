@@ -9,6 +9,7 @@
 
 import wx
 import wx.xrc
+import wx.richtext
 
 ###########################################################################
 ## Class MainFrameBase
@@ -41,9 +42,9 @@ class MainFrameBase ( wx.Frame ):
         self.btnChooseDiagramPath = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnChooseDiagramPath.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/folder.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnChooseDiagramPath.SetToolTip( u"Choose a file" )
+        self.btnChooseDiagramPath.SetToolTip( u"Open a file dialog to choose the draw.io file that contains your class diagram" )
 
-        formSizer.Add( self.btnChooseDiagramPath, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
+        formSizer.Add( self.btnChooseDiagramPath, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.RIGHT|wx.TOP, 5 )
 
         self.m_staticText2 = wx.StaticText( self, wx.ID_ANY, u"Output directory:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText2.Wrap( -1 )
@@ -56,9 +57,9 @@ class MainFrameBase ( wx.Frame ):
         self.btnChooseOutputPath = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnChooseOutputPath.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/disk.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnChooseOutputPath.SetToolTip( u"Choose a folder" )
+        self.btnChooseOutputPath.SetToolTip( u"Select the folder where to store the generated files" )
 
-        formSizer.Add( self.btnChooseOutputPath, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
+        formSizer.Add( self.btnChooseOutputPath, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.RIGHT|wx.TOP, 5 )
 
         self.m_staticText3 = wx.StaticText( self, wx.ID_ANY, u"Output languages:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText3.Wrap( -1 )
@@ -89,14 +90,14 @@ class MainFrameBase ( wx.Frame ):
         languageSizer.Add( self.chkLangSQL, 0, wx.ALL, 5 )
 
 
-        formSizer.Add( languageSizer, 1, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.LEFT|wx.TOP, 5 )
+        formSizer.Add( languageSizer, 1, wx.ALIGN_CENTER_VERTICAL|wx.EXPAND, 5 )
 
         self.btnLangOptions = wx.Button( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.BU_EXACTFIT )
 
         self.btnLangOptions.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/setting_tools.png" ), wx.BITMAP_TYPE_ANY ) )
         self.btnLangOptions.SetToolTip( u"Configure code generation" )
 
-        formSizer.Add( self.btnLangOptions, 0, wx.BOTTOM|wx.RIGHT|wx.TOP, 5 )
+        formSizer.Add( self.btnLangOptions, 0, wx.ALIGN_CENTER_VERTICAL|wx.BOTTOM|wx.EXPAND|wx.RIGHT|wx.TOP, 5 )
 
 
         mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
@@ -109,6 +110,18 @@ class MainFrameBase ( wx.Frame ):
 
 
         mainSizer.Add( treesSizer, 1, wx.ALL|wx.EXPAND, 3 )
+
+        logSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Log" ), wx.VERTICAL )
+
+        logSizer.SetMinSize( wx.Size( -1,120 ) )
+        self.rtcStdout = wx.richtext.RichTextCtrl( logSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_READONLY|wx.HSCROLL|wx.VSCROLL|wx.WANTS_CHARS )
+        self.rtcStdout.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_SCRIPT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
+        self.rtcStdout.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOW ) )
+
+        logSizer.Add( self.rtcStdout, 1, wx.EXPAND |wx.ALL, 3 )
+
+
+        mainSizer.Add( logSizer, 0, wx.ALL|wx.EXPAND, 3 )
 
         buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
 

@@ -13,20 +13,35 @@ class CppCodeGenerator(CodeGenerator):
 
     TYPE_MAPPINGS = {
         "boolean": "bool",
+        "bool": "bool",
+        "char": "char",
+        "wchar": "wchar_t",
+        "sbyte": "signed char",
         "int8": "signed char",
+        "byte": "unsigned char",
         "uint8": "unsigned char",
+        "short": "short",
         "int16": "short",
+        "ushort": "unsigned short",
         "uint16": "unsigned short",
+        "integer": "int",
+        "int": "int",
         "int32": "int",
+        "uint": "unsigned int",
         "uint32": "unsigned int",
+        "long": "long long",
         "int64": "long long",
+        "ulong": "unsigned long long",
         "uint64": "unsigned long long",
+        "float": "float",
         "single": "float",
         "double": "double",
         "string": "std::string",
+        "wstring": "std::wstring",
         "date": "time_t",
         "time": "time_t",
         "datetime": "time_t",
+        "timestamp": "time_t",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -215,8 +230,9 @@ class CppCodeGenerator(CodeGenerator):
         return f"\t\tpublic: {class_name}()\n\t\t{{\n\t\t}}\n\n"
 
     def _generate_full_arg_ctor(self, class_name, properties):
+        separator = ",\n\t\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\t\tpublic: {class_name}("
-        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += separator.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
         ctor_string += ")\n\t\t{\n"
         ctor_string += '\n'.join([f"\t\t\tthis->{p['name']} = {p['name']};" for p in properties.values()])
         ctor_string += "\n\t\t}\n\n"
@@ -241,11 +257,15 @@ class CppCodeGenerator(CodeGenerator):
             return "false"
         if typename == "char":
             return "'\\0'"
+        if typename == "wchar_t":
+            return "L'\\0'"
         if typename in ("signed char", "unsigned char", "short", "unsigned short", "int",
                         "unsigned int", "long long", "unsigned long long", "float", "double"):
             return "0"
         if typename == "std::string":
             return '""'
+        if typename == "std::wstring":
+            return 'L""'
         if typename.endswith("*"):
             return "nullptr"
         return f"{typename}()"
