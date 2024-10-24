@@ -13,7 +13,7 @@ class SqlCodeGenerator(CodeGenerator):
         options: set of additional options
     """
 
-    TYPE_MAPPINGS = {
+    _TYPE_MAPPINGS = {
         "boolean": "bit",
         "bool": "bit",
         "char": "char(1)",
@@ -162,7 +162,7 @@ class SqlCodeGenerator(CodeGenerator):
         return f"use {'_'.join(self._split_package_name(package_name))};\n\n"
 
     def _map_type(self, typename):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        return self._TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def _default_value(self, typename):
         typename = typename.lower()

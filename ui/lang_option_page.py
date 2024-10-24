@@ -19,7 +19,7 @@ class LanguageOptionPage(LanguageOptionPageBase):
         for module, symbols in options.get('imports', {}).items():
             self._add_import(module, symbols)
 
-        if language in ("C#", "C++", "PHP"):
+        if language in ("cs", "cpp", "php"):
             self.txtSymbolNames.Enable(False)
 
     @property

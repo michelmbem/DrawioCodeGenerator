@@ -135,28 +135,28 @@ class MainFrame (MainFrameBase):
             },
             'encapsulate_all_props': False,
             'language_specific': {
-                'Java': {
+                'java': {
                     'imports': {
                         'java.math': ["BigInteger", "BigDecimal"],
                         'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
                         'java.util': ["Objects"],
                     }
                 },
-                'C#': {
+                'cs': {
                     'imports': {
                         'System': None,
                         'System.Numerics': None,
                     }
                 },
-                'C++': {
+                'cpp': {
                     'imports': {
                         '<ctime>': None,
                         '<string>': None,
                     }
                 },
-                'Python': {},
-                'TypeScript': {},
-                'PHP': {},
-                'SQL': {},
+                'python': {},
+                'ts': {},
+                'php': {},
+                'sql': {},
             },
         }

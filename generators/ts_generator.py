@@ -11,7 +11,7 @@ class TsCodeGenerator(CodeGenerator):
         options: set of additional options
     """
 
-    TYPE_MAPPINGS = {
+    _TYPE_MAPPINGS = {
         "boolean": "boolean",
         "bool": "boolean",
         "char": "string",
@@ -256,7 +256,7 @@ class TsCodeGenerator(CodeGenerator):
         return None
 
     def _map_type(self, typename):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        return self._TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def _default_value(self, typename):
         typename = self._map_type(typename)

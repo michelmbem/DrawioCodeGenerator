@@ -11,7 +11,7 @@ class CSharpCodeGenerator(CodeGenerator):
         options: set of additional options
     """
 
-    TYPE_MAPPINGS = {
+    _TYPE_MAPPINGS = {
         "boolean": "bool",
         "bool": "bool",
         "char": "char",
@@ -251,7 +251,7 @@ class CSharpCodeGenerator(CodeGenerator):
         return f"namespace {'.'.join(self._split_package_name(package_name))};\n\n"
 
     def _map_type(self, typename):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        return self._TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def _default_value(self, typename):
         return f"default({self._map_type(typename)})"

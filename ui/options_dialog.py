@@ -1,5 +1,6 @@
 import wx
 
+from generators.code_generators import CodeGenerators
 from ui.forms import OptionDialogBase
 from ui.lang_option_page import LanguageOptionPage
 
@@ -18,12 +19,12 @@ class OptionDialog(OptionDialogBase):
         self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
 
         language_specific = options['language_specific']
-        languages = ["Java", "C#", "C++", "Python", "TypeScript", "PHP"]
+        languages = ["java", "cs", "cpp", "python", "ts", "php"]
 
         for language in languages:
             language_options = language_specific.get(language, {})
             option_page = LanguageOptionPage(self.nbLanguageOptions, language, language_options)
-            self.nbLanguageOptions.AddPage(option_page, language)
+            self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 
     @property
     def options(self):
@@ -31,7 +32,7 @@ class OptionDialog(OptionDialogBase):
 
     def dialogButtonSizerOnApplyButtonClick(self, event):
         language_options = {
-            'SQL': {}
+            'sql': {}
         }
 
         for page_index in range(self.nbLanguageOptions.PageCount):
