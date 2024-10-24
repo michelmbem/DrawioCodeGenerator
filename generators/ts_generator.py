@@ -37,12 +37,12 @@ class TsCodeGenerator(CodeGenerator):
     @staticmethod
     def _accessor_name(property_name):
         if property_name.startswith("_"):
-            return property_name[1:]
-        return property_name + "Prop"
+            return property_name.lstrip('_')
+        return property_name + "Property"
 
     @staticmethod
     def _parameter_name(property_name):
-        return "arg" + property_name.capitalize()
+        return "arg" + property_name.strip('_').capitalize()
 
     def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
@@ -119,7 +119,11 @@ class TsCodeGenerator(CodeGenerator):
         """
 
         properties_string = ""
+        property_prefix = ""
         first_prop = True
+
+        if not is_enum and self._options['encapsulate_all_props']:
+            property_prefix = "_"
 
         for property_def in properties.values():
             if is_enum:
@@ -132,7 +136,8 @@ class TsCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {property_def['name']} : {self._map_type(property_def['type'])}"
+                p = (f"\t{self._get_property_access(property_def)} {property_prefix}{property_def['name']}"
+                     f" : {self._map_type(property_def['type'])}")
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -153,16 +158,22 @@ class TsCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
-        for property_def in properties.values():
-            if property_def['access'] == "private":
-                getter = (f"\tpublic get {self._accessor_name(property_def['name'])}() : {self._map_type(property_def['type'])}"
-                          f" {{\n\t\treturn this.{property_def['name']};\n\t}}\n\n")
-                accessors_string += getter
 
-                setter = (f"\tpublic set {self._accessor_name(property_def['name'])}({self._parameter_name(property_def['name'])} :"
-                          f" {self._map_type(property_def['type'])}) {{\n\t\tthis.{property_def['name']} ="
-                          f" {self._parameter_name(property_def['name'])};\n\t}}\n\n")
-                accessors_string += setter
+        for property_def in properties.values():
+            if self._get_property_access(property_def) == "private":
+                property_name = property_def['name']
+                if self._options['encapsulate_all_props']:
+                    property_name = f"_{property_name}"
+
+                accessor_name = self._accessor_name(property_name)
+                accessor_type = self._map_type(property_def['type'])
+                parameter_name = self._parameter_name(property_name)
+
+                accessors_string += (f"\tpublic get {accessor_name}() : {accessor_type} {{\n"
+                                     f"\t\treturn this.{property_name};\n\t}}\n\n")
+
+                accessors_string += (f"\tpublic set {accessor_name}({parameter_name} : {accessor_type}) {{\n"
+                                     f"\t\tthis.{property_name} = {parameter_name};\n\t}}\n\n")
 
         return accessors_string
 
@@ -189,13 +200,35 @@ class TsCodeGenerator(CodeGenerator):
                 m = f"\t{method_def['access']} {method_def['name']}{params} : {self._map_type(method_def['return_type'])} {{\n\t}}"
             methods_string += m + "\n\n"
 
-        if class_type.endswith("class"):
+        if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\tpublic {interface_method['name']}{params} : {self._map_type(interface_method['return_type'])} {{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return ""
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        prefix = ""
+        if self._options['encapsulate_all_props']:
+            prefix = "_"
+
+        ctor_string = "\tpublic constructor("
+        ctor_string += ', '.join([f"{p['name']} : {self._map_type(p['type'])}" for p in properties.values()])
+        ctor_string += ") {\n"
+        ctor_string += '\n'.join([f"\t\tthis.{prefix}{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += "\n\t}\n\n"
+
+        return ctor_string
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        return ""
+
+    def _generate_to_string(self, class_name, properties):
+        return ""
 
     def _package_directive(self, package_name):
         return None

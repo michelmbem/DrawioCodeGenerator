@@ -47,7 +47,21 @@ class CodeGenerator(ABC):
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
+                    generate_opt = self._options['generate']
+
+                    if generate_opt['default_ctor']:
+                        file_contents += self._generate_default_ctor(class_def['name'])
+
+                    if generate_opt['full_arg_ctor'] and len(class_def['properties']) > 0:
+                        file_contents += self._generate_full_arg_ctor(class_def['name'], class_def['properties'])
+
                     file_contents += self._generate_property_accessors(class_def['properties'])
+
+                    if generate_opt['equal_hashcode']:
+                        file_contents += self._generate_equal_hashcode(class_def['name'], class_def['properties'])
+
+                    if generate_opt['to_string']:
+                        file_contents += self._generate_to_string(class_def['name'], class_def['properties'])
 
                 if class_def['type'] != "enum":
                     interface_methods = []
@@ -122,6 +136,9 @@ class CodeGenerator(ABC):
             interface_methods += interface['methods'].values()
             self._get_interface_methods(interface['relationships']['implements'], interface_methods)
 
+    def _get_property_access(self, property_def):
+        return "private" if self._options['encapsulate_all_props'] else property_def['access']
+
     @abstractmethod
     def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         pass
@@ -140,6 +157,22 @@ class CodeGenerator(ABC):
 
     @abstractmethod
     def _generate_methods(self, methods, class_type, interface_methods):
+        pass
+
+    @abstractmethod
+    def _generate_default_ctor(self, class_name):
+        pass
+
+    @abstractmethod
+    def _generate_full_arg_ctor(self, class_name, properties):
+        pass
+
+    @abstractmethod
+    def _generate_equal_hashcode(self, class_name, properties):
+        pass
+
+    @abstractmethod
+    def _generate_to_string(self, class_name, properties):
         pass
 
     @abstractmethod

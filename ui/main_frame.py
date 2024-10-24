@@ -119,6 +119,7 @@ class MainFrame (MainFrameBase):
                     'imports': {
                         'java.math': ["BigInteger", "BigDecimal"],
                         'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
+                        'java.util': ["Objects"],
                     }
                 },
                 'C#': {

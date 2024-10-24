@@ -139,7 +139,7 @@ class CppCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t\t{property_def['access']}: {self._map_type(property_def['type'])} {property_def['name']}"
+                p = f"\t\t{self._get_property_access(property_def)}: {self._map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -162,7 +162,7 @@ class CppCodeGenerator(CodeGenerator):
         accessors_string = ""
 
         for property_def in properties.values():
-            if property_def['access'] == "private":
+            if self._get_property_access(property_def) == "private":
                 getter = (f"\t\tpublic: {self._map_type(property_def['type'])} Get{property_def['name'].capitalize()}()"
                           f"\n\t\t{{\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
                 accessors_string += getter
@@ -200,7 +200,7 @@ class CppCodeGenerator(CodeGenerator):
 
             methods_string += m + "\n\n"
 
-        if class_type.endswith("class"):
+        if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\t\tpublic: {self._map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
@@ -210,6 +210,24 @@ class CppCodeGenerator(CodeGenerator):
                 methods_string += m + "\n\n"
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return f"\t\tpublic: {class_name}()\n\t\t{{\n\t\t}}\n\n"
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        ctor_string = f"\t\tpublic: {class_name}("
+        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += ")\n\t\t{\n"
+        ctor_string += '\n'.join([f"\t\t\tthis->{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += "\n\t\t}\n\n"
+
+        return ctor_string
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        return ""
+
+    def _generate_to_string(self, class_name, properties):
+        return ""
 
     def _package_directive(self, package_name):
         return " { ".join([f"namespace {ns}" for ns in self._split_package_name(package_name)]) + "\n{\n"

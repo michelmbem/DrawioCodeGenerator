@@ -34,6 +34,12 @@ class CSharpCodeGenerator(CodeGenerator):
     def __init__(self, syntax_tree, file_path, options):
         CodeGenerator.__init__(self, syntax_tree, file_path, options)
 
+    @staticmethod
+    def _accessor_name(property_name):
+        if property_name[0].islower():
+            return property_name.capitalize()
+        return property_name + "Property"
+
     def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
@@ -103,6 +109,9 @@ class CSharpCodeGenerator(CodeGenerator):
             properties_string: string of the properties
         """
 
+        if not is_enum and self._options['encapsulate_all_props']:
+            return ""
+
         properties_string = ""
         first_prop = True
 
@@ -138,13 +147,15 @@ class CSharpCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
+
         for property_def in properties.values():
-            if property_def['access'] == "private":
-                accessor_pair = (f"\tpublic {self._map_type(property_def['type'])} {property_def['name'][0].upper()}"
-                                 f"{property_def['name'][1:]}\n\t{{")
+            if self._options['encapsulate_all_props']:
+                accessors_string += f"\tpublic {self._map_type(property_def['type'])} {property_def['name']} {{ get; set; }}\n\n"
+            elif property_def['access'] == "private":
+                accessor_pair = f"\tpublic {self._map_type(property_def['type'])} {self._accessor_name(property_def['name'])}\n\t{{"
                 accessor_pair += f"\n\t\tget => {property_def['name']};"
-                accessor_pair += f"\n\t\tset => {property_def['name']} = value;"
-                accessors_string += f"{accessor_pair}\n\t}}\n\n"
+                accessor_pair += f"\n\t\tset => {property_def['name']} = value;\n\t}}\n\n"
+                accessors_string += accessor_pair
 
         return accessors_string
 
@@ -175,7 +186,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
             methods_string += m + "\n\n"
 
-        if class_type.endswith("class"):
+        if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\tpublic {self._map_type(interface_method['return_type'])} {interface_method['name']}{params}\n\t{{\n"
@@ -185,6 +196,40 @@ class CSharpCodeGenerator(CodeGenerator):
                 methods_string += m + "\n\n"
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return f"\tpublic {class_name}()\n\t{{\n\t}}\n\n"
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        ctor_string = f"\tpublic {class_name}("
+        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += ")\n\t{\n"
+        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += "\n\t}\n\n"
+
+        return ctor_string
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
+        method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
+        method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
+        method_string += " &&\n\t\t\t\t".join([f"Equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
+
+        method_string += "\tpublic override int GetHashCode()\n\t{\n"
+        method_string += "\t\treturn HashCode.Combine("
+        method_string += ', '.join([p['name'] for p in properties.values()])
+        method_string += ");\n\t}\n\n"
+
+        return method_string
+
+    def _generate_to_string(self, class_name, properties):
+        method_string = "\tpublic override string ToString() {\n"
+        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
+        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + {p['name']}" for p in properties.values()])
+        method_string += " + \"}\";\n\t}\n\n"
+
+        return method_string
 
     def _package_directive(self, package_name):
         return f"namespace {'.'.join(self._split_package_name(package_name))};\n\n"

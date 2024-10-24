@@ -97,7 +97,7 @@ class PhpCodeGenerator(CodeGenerator):
             if is_enum:
                 p = f"\tcase {property_def['name']}"
             else:
-                p = f"\t{property_def['access']} ${property_def['name']}"
+                p = f"\t{self._get_property_access(property_def)} ${property_def['name']}"
 
             if property_def['default_value']:
                 p += f" = {property_def['default_value']}"
@@ -119,8 +119,9 @@ class PhpCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
+
         for property_def in properties.values():
-            if property_def['access'] == "private":
+            if self._get_property_access(property_def) == "private":
                 getter = (f"\tpublic function get_{property_def['name']}() {{\n"
                           f"\t\treturn $this->{property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
@@ -154,13 +155,47 @@ class PhpCodeGenerator(CodeGenerator):
                 m = f"\t{method_def['access']} function {method_def['name']}{params}\n\t{{\n\t}}"
             methods_string += m + "\n\n"
 
-        if class_type.endswith("class"):
+        if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\t{interface_method['access']} function {interface_method['name']}{params}\n\t{{\n\t}}"
                 methods_string += m + "\n\n"
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return ""
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        ctor_string = "\tpublic function __construct("
+        ctor_string += ', '.join([f"${p['name']}" for p in properties.values()])
+        ctor_string += ") {\n"
+        ctor_string += '\n'.join([f"\t\t$this->{p['name']} = ${p['name']};" for p in properties.values()])
+        ctor_string += "\n\t}\n\n"
+
+        return ctor_string
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        method_string = "\tpublic function equals($obj) {\n"
+        method_string += "\t\tif ($this === $obj) return true;\n"
+        method_string += "\t\tif (get_class($this) === get_class($obj)) {\n\t\t\treturn "
+        method_string += " &&\n\t\t\t\t".join([f"$this->{p['name']} === $obj->{p['name']}" for p in properties.values()])
+        method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
+
+        method_string += "\tpublic function hashCode() {\n"
+        method_string += "\t\treturn crc32(\"{"
+        method_string += "}-{".join([f"$this->{p['name']}" for p in properties.values()])
+        method_string += "}\");\n\t}\n\n"
+
+        return method_string
+
+    def _generate_to_string(self, class_name, properties):
+        method_string = "\tpublic function toString() {\n"
+        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
+        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + $this->{p['name']}" for p in properties.values()])
+        method_string += " + \"}\";\n\t}\n\n"
+
+        return method_string
 
     def _package_directive(self, package_name):
         return f"namespace {'\\'.join(self._split_package_name(package_name))};\n\n"

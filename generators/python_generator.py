@@ -17,12 +17,12 @@ class PythonCodeGenerator(CodeGenerator):
     @staticmethod
     def _accessor_name(property_name):
         if property_name.startswith("_"):
-            return property_name[1:]
-        return property_name + "Prop"
+            return property_name.lstrip('_')
+        return property_name + "_property"
 
     @staticmethod
     def _parameter_name(property_name):
-        return "arg" + property_name.capitalize()
+        return "arg_" + property_name.lstrip('_')
 
     def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
@@ -79,6 +79,8 @@ class PythonCodeGenerator(CodeGenerator):
                     class_ancestors += ", "
                 class_ancestors += ', '.join(interfaces)
             class_ancestors += ")"
+            if class_ancestors == "()":
+                class_ancestors = ""
 
         if add_linebreaks:
             class_header += "\n\n"
@@ -114,10 +116,13 @@ class PythonCodeGenerator(CodeGenerator):
         """
 
         properties_string = ""
+        property_prefix = ""
         met_property = False
 
         if not is_enum:
             properties_string = "\tdef __init__(self):\n"
+            if self._options['encapsulate_all_props']:
+                property_prefix = "_"
 
         for property_def in properties.values():
             if is_enum:
@@ -127,7 +132,7 @@ class PythonCodeGenerator(CodeGenerator):
                 else:
                     p += " = auto()"
             else:
-                p = f"\t\tself.{property_def['name']}"
+                p = f"\t\tself.{property_prefix}{property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 else:
@@ -155,16 +160,22 @@ class PythonCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
-        for property_def in properties.values():
-            if property_def['access'] == "private":
-                getter = (f"\t@property\n\tdef {self._accessor_name(property_def['name'])}(self):\n"
-                          f"\t\treturn self.{property_def['name']}\n\n")
-                accessors_string += getter
 
-                setter = (f"\t@{self._accessor_name(property_def['name'])}.setter\n\tdef {self._accessor_name(property_def['name'])}"
-                          f"(self, {self._parameter_name(property_def['name'])}):\n\t\tself.{property_def['name']} ="
-                          f" {self._parameter_name(property_def['name'])}\n\n")
-                accessors_string += setter
+        for property_def in properties.values():
+            if self._get_property_access(property_def) == "private":
+                property_name = property_def['name']
+                if self._options['encapsulate_all_props']:
+                    property_name = f"_{property_name}"
+
+                accessor_name = self._accessor_name(property_name)
+                parameter_name = self._parameter_name(property_name)
+
+                accessors_string += (f"\t@property\n\tdef {accessor_name}(self):\n"
+                                     f"\t\treturn self.{property_name}\n\n")
+
+                accessors_string += (f"\t@{accessor_name}.setter\n"
+                                     f"\tdef {accessor_name}(self, {parameter_name}):\n"
+                                     f"\t\tself.{property_name} = {parameter_name}\n\n")
 
         return accessors_string
 
@@ -191,13 +202,51 @@ class PythonCodeGenerator(CodeGenerator):
             methods_string += m
 
         # inherited abstract methods
-        if class_type.endswith("class"):
-            comment = "# ***requires implementation***"
+        if class_type in ("class", "abstract class"):
+            comment = "# Todo: implementation this method!"
             for interface_method in interface_methods:
                 m = f"\tdef {interface_method['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
                 methods_string += m
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return ""
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        return ""
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        prefix = ""
+        if self._options['encapsulate_all_props']:
+            prefix = "_"
+
+        method_string = "\tdef __members(self):\n"
+        method_string += "\t\treturn ("
+        method_string += ', '.join([f"self.{prefix}{p['name']}" for p in properties.values()])
+        method_string += ")\n\n"
+
+        method_string += "\tdef __eq__(self, other):\n"
+        method_string += "\t\tif type(other) is type(self):\n"
+        method_string += "\t\t\treturn self.__members() == other.__members()\n"
+        method_string += "\t\treturn False\n\n"
+
+        method_string += "\tdef __hash__(self):\n"
+        method_string += "\t\treturn hash(self.__members())\n\n"
+
+        return method_string
+
+    def _generate_to_string(self, class_name, properties):
+        prefix = ""
+        if self._options['encapsulate_all_props']:
+            prefix = "_"
+
+        method_string = "\tdef __str__(self):\n"
+        method_string += f"\t\treturn f\"{class_name} [{{"
+        method_string += ', '.join([f"'{p['name']}': self.{prefix}{p['name']}" for p in properties.values()])
+        method_string += "}]\"\n\n"
+
+        return method_string
 
     def _package_directive(self, package_name):
         return None

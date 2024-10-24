@@ -13,11 +13,14 @@ class LanguageOptionPage(LanguageOptionPageBase):
         self._language = language
         self._count = 0
 
-        self.lstModules.InsertColumn(0, "Module name", width=300)
-        self.lstModules.InsertColumn(1, "Imported symbols", width=340)
+        self.lstModules.InsertColumn(0, "Module name", width=320)
+        self.lstModules.InsertColumn(1, "Imported symbols", width=320)
 
         for module, symbols in options.get('imports', {}).items():
             self._add_import(module, symbols)
+
+        if language in ("C#", "C++", "PHP"):
+            self.txtSymbolNames.Enable(False)
 
     @property
     def language(self):

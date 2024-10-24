@@ -114,7 +114,7 @@ class JavaCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {self._map_type(property_def['type'])} {property_def['name']}"
+                p = f"\t{self._get_property_access(property_def)} {self._map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -135,8 +135,9 @@ class JavaCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
+
         for property_def in properties.values():
-            if property_def['access'] == "private":
+            if self._get_property_access(property_def) == "private":
                 getter = (f"\tpublic {self._map_type(property_def['type'])} get{property_def['name'].capitalize()}() {{\n"
                           f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
@@ -175,7 +176,7 @@ class JavaCodeGenerator(CodeGenerator):
 
             methods_string += m + "\n\n"
 
-        if class_type.endswith("class"):
+        if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self._get_parameter_list(interface_method['parameters'])
                 m = f"\tpublic {self._map_type(interface_method['return_type'])} {interface_method['name']}{params} {{\n"
@@ -185,6 +186,40 @@ class JavaCodeGenerator(CodeGenerator):
                 methods_string += m + "\n\n"
 
         return methods_string
+
+    def _generate_default_ctor(self, class_name):
+        return f"\tpublic {class_name}() {{\n\t}}\n\n"
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        ctor_string = f"\tpublic {class_name}("
+        ctor_string += ', '.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += ") {\n"
+        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += "\n\t}\n\n"
+
+        return ctor_string
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        method_string = "\t@Override\n\tpublic boolean equals(Object obj) {\n"
+        method_string += "\t\tif (this == obj) return true;\n"
+        method_string += f"\t\tif (obj instanceof {class_name} other) {{\n\t\t\treturn "
+        method_string += " &&\n\t\t\t\t".join([f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
+
+        method_string += "\t@Override\n\tpublic int hashCode() {\n"
+        method_string += "\t\treturn Objects.hash("
+        method_string += ', '.join([p['name'] for p in properties.values()])
+        method_string += ");\n\t}\n\n"
+
+        return method_string
+
+    def _generate_to_string(self, class_name, properties):
+        method_string = "\t@Override\n\tpublic String toString() {\n"
+        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
+        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + {p['name']}" for p in properties.values()])
+        method_string += " + \"}\";\n\t}\n\n"
+
+        return method_string
 
     def _package_directive(self, package_name):
         return f"package {'.'.join(self._split_package_name(package_name))};\n\n"

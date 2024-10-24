@@ -123,32 +123,22 @@ class SqlCodeGenerator(CodeGenerator):
         return properties_string
 
     def _generate_property_accessors(self, properties):
-        """
-        Generate property accessors for the class
-
-        Parameters:
-            properties: dictionary of properties
-
-        Returns:
-            accessors_string: string of the property accessors
-        """
-
         return None
 
     def _generate_methods(self, methods, class_type, interface_methods):
-        """
-        Generate methods for the class
-
-        Parameters:
-            methods: dictionary of methods
-            class_type: one of class, abstract class, interface or enum
-            interface_methods: methods of implemented interfaces
-        
-        Returns:
-            methods_string: string of the methods 
-        """
-
         return None
+
+    def _generate_default_ctor(self, class_name):
+        return ""
+
+    def _generate_full_arg_ctor(self, class_name, properties):
+        return ""
+
+    def _generate_equal_hashcode(self, class_name, properties):
+        return ""
+
+    def _generate_to_string(self, class_name, properties):
+        return ""
 
     def _package_directive(self, package_name):
         return f"use {'_'.join(self._split_package_name(package_name))};\n\n"
