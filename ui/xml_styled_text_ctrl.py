@@ -10,7 +10,7 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
         super().__init__(parent)
 
         if wx.SystemSettings.GetAppearance().IsUsingDarkBackground():
-            colors = {'fg':  '#EEEEEE', 'bg': '#222222', 'tag': '#5599FF', 'att': '#FF5555', 'str': '#55FF99', 'fold': '#D5D5D5'}
+            colors = {'fg':  '#EEEEEE', 'bg': '#222222', 'tag': '#5599FF', 'att': '#FF5555', 'str': '#55FF99', 'fold': '#C3C3C3'}
         else:
             colors = {'fg':  'black', 'bg': 'white', 'tag': '#0000CC', 'att': '#990000', 'str': '#009900', 'fold': '#808080'}
 
