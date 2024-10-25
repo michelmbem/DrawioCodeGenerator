@@ -122,4 +122,18 @@ A continuous effort is made for the program to become compatible with the larges
 some may not be correctly parsed, especially those that feature special constructs like data tables.
 More improvements are still to come.
 
+## Screenshots
+
+#### Main window
+
+![main_frame](github_assets/main_frame.jpg)
+
+#### Options dialog
+
+![options_dialog](github_assets/options_dialog.jpg)
+
+#### Generated code
+
+![generated_code](github_assets/generated_code.jpg)
+
 #### Voilà, that's it!!

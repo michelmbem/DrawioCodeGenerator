@@ -10,9 +10,9 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
         super().__init__(parent)
 
         if wx.SystemSettings.GetAppearance().IsUsingDarkBackground():
-            colors = {'fg':  '#EEEEEE', 'bg': '#222222', 'tag': '#5599FF', 'att': '#FF5555', 'str': '#55FF99'}
+            colors = {'fg':  '#EEEEEE', 'bg': '#222222', 'tag': '#5599FF', 'att': '#FF5555', 'str': '#55FF99', 'fold': '#D5D5D5'}
         else:
-            colors = {'bg':  '#EEEEEE', 'fg': '#222222', 'tag': '#0000CC', 'att': '#990000', 'str': '#009900'}
+            colors = {'fg':  'black', 'bg': 'white', 'tag': '#0000CC', 'att': '#990000', 'str': '#009900', 'fold': '#808080'}
 
         # Set the lexer to XML
         self.SetLexer(stc.STC_LEX_XML)
@@ -36,13 +36,13 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
         self.SetMarginWidth(2, 12)
 
         # Define markers for folding
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDER, stc.STC_MARK_BOXPLUS, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDEROPEN, stc.STC_MARK_BOXMINUS, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDERSUB, stc.STC_MARK_VLINE, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDERTAIL, stc.STC_MARK_LCORNER, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDEREND, stc.STC_MARK_BOXPLUSCONNECTED, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDEROPENMID, stc.STC_MARK_BOXMINUSCONNECTED, "white", "#808080")
-        self.MarkerDefine(stc.STC_MARKNUM_FOLDERMIDTAIL, stc.STC_MARK_TCORNER, "white", "#808080")
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDER, stc.STC_MARK_BOXPLUS, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDEROPEN, stc.STC_MARK_BOXMINUS, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDERSUB, stc.STC_MARK_VLINE, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDERTAIL, stc.STC_MARK_LCORNER, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDEREND, stc.STC_MARK_BOXPLUSCONNECTED, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDEROPENMID, stc.STC_MARK_BOXMINUSCONNECTED, colors['bg'], colors['fold'])
+        self.MarkerDefine(stc.STC_MARKNUM_FOLDERMIDTAIL, stc.STC_MARK_TCORNER, colors['bg'], colors['fold'])
 
         # Listen for clics on margins
         self.Bind(stc.EVT_STC_MARGINCLICK, self.onMarginClick)
