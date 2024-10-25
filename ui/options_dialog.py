@@ -1,6 +1,7 @@
 import wx
 
 from generators.code_generators import CodeGenerators
+from ui.platform import OPTION_DLG_SIZE
 from ui.forms import OptionDialogBase
 from ui.lang_option_page import LanguageOptionPage
 
@@ -8,8 +9,10 @@ from ui.lang_option_page import LanguageOptionPage
 class OptionDialog(OptionDialogBase):
 
     def __init__(self, parent, options):
-        OptionDialogBase.__init__(self, parent)
-        self._options = options
+        super().__init__(parent)
+        self.options = options
+
+        self.SetSize(OPTION_DLG_SIZE)
 
         self.txtRootPackage.SetValue(options['package'])
         self.chkGenerateDefaultCtor.SetValue(options['generate']['default_ctor'])
@@ -26,20 +29,16 @@ class OptionDialog(OptionDialogBase):
             option_page = LanguageOptionPage(self.nbLanguageOptions, language, language_options)
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 
-    @property
-    def options(self):
-        return self._options
-
     def dialogButtonSizerOnApplyButtonClick(self, event):
-        language_options = {
+        language_specific = {
             'sql': {}
         }
 
         for page_index in range(self.nbLanguageOptions.PageCount):
-            page = self.nbLanguageOptions.GetPage(page_index)
-            language_options[page.language] = page.options
+            option_page = self.nbLanguageOptions.GetPage(page_index)
+            language_specific[option_page.language] = option_page.options
 
-        self._options = {
+        self.options = {
             'package': self.txtRootPackage.GetValue(),
             'generate': {
                 'default_ctor': self.chkGenerateDefaultCtor.IsChecked(),
@@ -48,7 +47,7 @@ class OptionDialog(OptionDialogBase):
                 'to_string': self.chkGenerateToString.IsChecked(),
             },
             'encapsulate_all_props': self.chkEncapsulateAllProps.IsChecked(),
-            'language_specific': language_options,
+            'language_specific': language_specific,
         }
 
     def dialogButtonSizerOnCancelButtonClick(self, event):

@@ -1,23 +1,31 @@
 import wx
 import wx.stc as stc
 
+from ui.platform import FACES
+
 
 class XMLStyledTextCtrl(stc.StyledTextCtrl):
+
     def __init__(self, parent):
         super().__init__(parent)
+
+        if wx.SystemSettings.GetAppearance().IsUsingDarkBackground():
+            colors = {'fg':  '#EEEEEE', 'bg': '#222222', 'tag': '#5599FF', 'att': '#FF5555', 'str': '#55FF99'}
+        else:
+            colors = {'bg':  '#EEEEEE', 'fg': '#222222', 'tag': '#0000CC', 'att': '#990000', 'str': '#009900'}
 
         # Set the lexer to XML
         self.SetLexer(stc.STC_LEX_XML)
 
         # Global default styles for all languages
         self.StyleResetDefault()
-        self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "face:%(mono)s,size:%(size)d" % faces)
+        self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "fore:%(fg)s,back:%(bg)s,face:%(mono)s,size:%(size)d" % {**FACES, **colors})
         self.StyleClearAll()
 
         # Set styles for XML elements
-        self.StyleSetSpec(stc.STC_H_TAG, "fore:#0000CC,bold")
-        self.StyleSetSpec(stc.STC_H_ATTRIBUTE, "fore:#990000")
-        self.StyleSetSpec(stc.STC_H_DOUBLESTRING, "fore:#009900")
+        self.StyleSetSpec(stc.STC_H_TAG, "fore:%(tag)s,bold" % colors)
+        self.StyleSetSpec(stc.STC_H_ATTRIBUTE, "fore:%(att)s" % colors)
+        self.StyleSetSpec(stc.STC_H_DOUBLESTRING, "fore:%(str)s" % colors)
 
         # Enable folding
         self.SetProperty("fold", "1")
@@ -42,35 +50,3 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
     def onMarginClick(self, event):
         # Fold or unfold the corresponding line
         self.ToggleFold(self.LineFromPosition(event.GetPosition()))
-
-
-# ========================= Initialization ========================
-
-
-if wx.Platform == '__WXMSW__':
-    faces = {
-        'times': 'Cambria',
-        'mono': 'Consolas',
-        'helv': 'Calibri',
-        'other': 'Segoe UI',
-        'size': 11,
-        'size2': 9,
-    }
-elif wx.Platform == '__WXMAC__':
-    faces = {
-        'times': 'Times New Roman',
-        'mono': 'Monaco',
-        'helv': 'Arial',
-        'other': 'Comic Sans MS',
-        'size': 12,
-        'size2': 10,
-    }
-else:   # Unix/Linux
-    faces = {
-        'times': 'Times',
-        'mono': 'Courier',
-        'helv': 'Helvetica',
-        'other': 'new century schoolbook',
-        'size': 12,
-        'size2': 10,
-    }

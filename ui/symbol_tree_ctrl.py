@@ -1,14 +1,14 @@
 import wx
 import wx.lib.gizmos as gizmos
 
+from ui.platform import MAIN_FRAME_SIZE
+
 
 class SymbolTreeCtrl(gizmos.TreeListCtrl):
+
     def __init__(self, parent):
-        super().__init__(parent, agwStyle=
-                         gizmos.TR_DEFAULT_STYLE
-                         | gizmos.TR_HIDE_ROOT
-                         | gizmos.TR_ROW_LINES
-                         | gizmos.TR_FULL_ROW_HIGHLIGHT)
+        super().__init__(parent, agwStyle=gizmos.TR_DEFAULT_STYLE | gizmos.TR_HIDE_ROOT |
+                                          gizmos.TR_ROW_LINES | gizmos.TR_FULL_ROW_HIGHLIGHT)
 
         image_size = (16, 16)
         image_list = wx.ImageList(*image_size)
@@ -17,24 +17,24 @@ class SymbolTreeCtrl(gizmos.TreeListCtrl):
         self.file_img_ndx = image_list.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, image_size))
         self.SetImageList(image_list)
 
-        self.AddColumn("Attribute name", width=300)
-        self.AddColumn("Attribue value", width=600)
+        win_width = MAIN_FRAME_SIZE[0] - 80
+        self.AddColumn("Attribute name", width=int(.33 * win_width))
+        self.AddColumn("Attribue value", width=int(.67 * win_width))
         self.SetMainColumn(0)
 
     def load_dict(self, dictionary):
         self.DeleteAllItems()
-        root = self.AddRoot("<root>")
-        self._create_nodes_from_dict(root, dictionary)
+        self.create_nodes_from_dict(self.AddRoot("#"), dictionary)
         self.ExpandAll()
 
-    def _create_nodes_from_dict(self, parent_node, dictionary):
+    def create_nodes_from_dict(self, parent_node, dictionary):
         for key, value in dictionary.items():
             child_node = self.AppendItem(parent_node, str(key))
 
             if isinstance(value, dict):
                 self.SetItemImage(child_node, self.folder_img_ndx, wx.TreeItemIcon_Normal)
                 self.SetItemImage(child_node, self.folder_open_img_ndx, wx.TreeItemIcon_Expanded)
-                self._create_nodes_from_dict(child_node, value)
+                self.create_nodes_from_dict(child_node, value)
             else:
                 self.SetItemText(child_node, str(value), 1)
                 self.SetItemImage(child_node, self.file_img_ndx, wx.TreeItemIcon_Normal)

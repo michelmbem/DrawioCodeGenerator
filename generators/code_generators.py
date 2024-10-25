@@ -12,7 +12,7 @@ class CodeGenerators:
     Collection of factory methods for code generators
     """
 
-    _LANGUAGE_MAPPINGS = {
+    LANGUAGE_MAPPINGS = {
         'java': "java",
         'c#': "cs",
         'cs': "cs",
@@ -28,7 +28,7 @@ class CodeGenerators:
         'sql': "sql",
     }
 
-    _LANGUAGE_NAMES = {
+    LANGUAGE_NAMES = {
         'java': "Java",
         'cs': "C#",
         'cpp': "C++",
@@ -73,11 +73,11 @@ class CodeGenerators:
 
     @staticmethod
     def language_code(language_name):
-        return CodeGenerators._LANGUAGE_MAPPINGS.get(language_name.lower())
+        return CodeGenerators.LANGUAGE_MAPPINGS.get(language_name.lower())
 
     @staticmethod
     def language_name(language_code):
-        return CodeGenerators._LANGUAGE_NAMES.get(language_code, language_code)
+        return CodeGenerators.LANGUAGE_NAMES.get(language_code, language_code)
 
     @staticmethod
     def extract_language_option(options, language_code):

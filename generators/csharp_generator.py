@@ -11,7 +11,7 @@ class CSharpCodeGenerator(CodeGenerator):
         options: set of additional options
     """
 
-    _TYPE_MAPPINGS = {
+    TYPE_MAPPINGS = {
         "boolean": "bool",
         "bool": "bool",
         "char": "char",
@@ -47,15 +47,19 @@ class CSharpCodeGenerator(CodeGenerator):
     }
 
     def __init__(self, syntax_tree, file_path, options):
-        CodeGenerator.__init__(self, syntax_tree, file_path, options)
+        super().__init__(syntax_tree, file_path, options)
 
     @staticmethod
-    def _accessor_name(property_name):
+    def accessor_name(property_name):
         if property_name[0].islower():
             return property_name.capitalize()
         return property_name + "Property"
 
-    def _generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
+    @staticmethod
+    def parameter_name(property_name):
+        return f"{property_name[0].lower()}{property_name[1:]}"
+
+    def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
 
@@ -75,15 +79,15 @@ class CSharpCodeGenerator(CodeGenerator):
         if class_type != "enum":
             add_linebreak = False
 
-            for module in self._options['imports'].keys():
+            for module in self.options['imports'].keys():
                 class_header += f"using {module};\n"
                 add_linebreak = True
 
             if add_linebreak:
                 class_header += "\n"
 
-        if self._options['package']:
-            class_header += self._package_directive(self._options['package'])
+        if self.options['package']:
+            class_header += self.package_directive(self.options['package'])
 
         class_header += f"public {class_type} {class_name}"
         if len(baseclasses) > 0:
@@ -98,7 +102,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def _generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
@@ -112,7 +116,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return "}\n"
  
-    def _generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum):
         """
         Generate properties for the class
 
@@ -124,7 +128,7 @@ class CSharpCodeGenerator(CodeGenerator):
             properties_string: string of the properties
         """
 
-        if not is_enum and self._options['encapsulate_all_props']:
+        if not is_enum and self.options['encapsulate_all_props']:
             return ""
 
         properties_string = ""
@@ -141,7 +145,7 @@ class CSharpCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {self._map_type(property_def['type'])} {property_def['name']}"
+                p = f"\t{property_def['access']} {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -150,7 +154,7 @@ class CSharpCodeGenerator(CodeGenerator):
  
         return properties_string
 
-    def _generate_property_accessors(self, properties):
+    def generate_property_accessors(self, properties):
         """
         Generate property accessors for the class
 
@@ -164,17 +168,17 @@ class CSharpCodeGenerator(CodeGenerator):
         accessors_string = ""
 
         for property_def in properties.values():
-            if self._options['encapsulate_all_props']:
-                accessors_string += f"\tpublic {self._map_type(property_def['type'])} {property_def['name']} {{ get; set; }}\n\n"
+            if self.options['encapsulate_all_props']:
+                accessors_string += f"\tpublic {self.map_type(property_def['type'])} {property_def['name']} {{ get; set; }}\n\n"
             elif property_def['access'] == "private":
-                accessor_pair = f"\tpublic {self._map_type(property_def['type'])} {self._accessor_name(property_def['name'])}\n\t{{"
+                accessor_pair = f"\tpublic {self.map_type(property_def['type'])} {self.accessor_name(property_def['name'])}\n\t{{"
                 accessor_pair += f"\n\t\tget => {property_def['name']};"
                 accessor_pair += f"\n\t\tset => {property_def['name']} = value;\n\t}}\n\n"
                 accessors_string += accessor_pair
 
         return accessors_string
 
-    def _generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, methods, class_type, interface_methods):
         """
         Generate methods for the class
 
@@ -190,42 +194,42 @@ class CSharpCodeGenerator(CodeGenerator):
         methods_string = ""
 
         for method_def in methods.values():
-            params = self._get_parameter_list(method_def['parameters'])
+            params = self.get_parameter_list(method_def['parameters'])
             if class_type == "interface":
-                m = f"\t{self._map_type(method_def['return_type'])} {method_def['name']}{params};"
+                m = f"\t{self.map_type(method_def['return_type'])} {method_def['name']}{params};"
             else:
-                m = f"\t{method_def['access']} {self._map_type(method_def['return_type'])} {method_def['name']}{params}\n\t{{\n"
+                m = f"\t{method_def['access']} {self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t{{\n"
                 if method_def['return_type'] != "void":
-                    m += f"\t\treturn {self._default_value(method_def['return_type'])};\n"
+                    m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
                 m += "\t}"
 
             methods_string += m + "\n\n"
 
         if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
-                params = self._get_parameter_list(interface_method['parameters'])
-                m = f"\tpublic {self._map_type(interface_method['return_type'])} {interface_method['name']}{params}\n\t{{\n"
+                params = self.get_parameter_list(interface_method['parameters'])
+                m = f"\tpublic {self.map_type(interface_method['return_type'])} {interface_method['name']}{params}\n\t{{\n"
                 if interface_method['return_type'] != "void":
-                    m += f"\t\treturn {self._default_value(interface_method['return_type'])};\n"
+                    m += f"\t\treturn {self.default_value(interface_method['return_type'])};\n"
                 m += "\t}"
                 methods_string += m + "\n\n"
 
         return methods_string
 
-    def _generate_default_ctor(self, class_name):
+    def generate_default_ctor(self, class_name):
         return f"\tpublic {class_name}()\n\t{{\n\t}}\n\n"
 
-    def _generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        ctor_string += separator.join([f"{self._map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += separator.join([f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values()])
         ctor_string += ")\n\t{\n"
-        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {self.parameter_name(p['name'])};" for p in properties.values()])
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
 
-    def _generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties):
         method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
         method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
         method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
@@ -239,7 +243,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def _generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties):
         method_string = "\tpublic override string ToString() {\n"
         method_string += f"\t\treturn $\"{class_name} {{{{"
         method_string += ', '.join([f"{p['name']}={{{p['name']}}}" for p in properties.values()])
@@ -247,16 +251,16 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def _package_directive(self, package_name):
-        return f"namespace {'.'.join(self._split_package_name(package_name))};\n\n"
+    def package_directive(self, package_name):
+        return f"namespace {'.'.join(self.split_package_name(package_name))};\n\n"
 
-    def _map_type(self, typename):
-        return self._TYPE_MAPPINGS.get(typename.lower(), typename)
+    def map_type(self, typename):
+        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-    def _default_value(self, typename):
-        return f"default({self._map_type(typename)})"
+    def default_value(self, typename):
+        return f"default({self.map_type(typename)})"
 
-    def _get_parameter_list(self, param_types):
+    def get_parameter_list(self, param_types):
         _ndx = 0
         param_list = "("
 
@@ -270,5 +274,5 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return param_list
 
-    def _get_file_extension(self):
+    def get_file_extension(self):
         return "cs"

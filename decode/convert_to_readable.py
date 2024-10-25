@@ -6,11 +6,7 @@ from bs4 import BeautifulSoup
 
 
 def is_base64(s):
-    if len(s) % 4 != 0:
-        return False
-    if re.match('^[A-Za-z0-9+/]*={0,2}$', s):
-        return True
-    return False
+    return len(s) % 4 == 0 and re.match('^[A-Za-z0-9+/]*={0,2}$', s)
 
 
 class DecodeAndDecompress:

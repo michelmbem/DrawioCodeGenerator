@@ -1,23 +1,27 @@
 import sys
 import wx
 
-from os import path, startfile
+from os import path
 from io import StringIO
+from startfile import startfile
+from bs4 import BeautifulSoup as bs
 from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
 from generators.code_generators import CodeGenerators
+from ui.platform import MAIN_FRAME_SIZE, FACES
 from ui.forms import MainFrameBase
 from ui.xml_styled_text_ctrl import XMLStyledTextCtrl
 from ui.symbol_tree_ctrl import SymbolTreeCtrl
 from ui.options_dialog import OptionDialog
-from bs4 import BeautifulSoup as bs
 
 
 class MainFrame (MainFrameBase):
 
     def __init__(self):
-        MainFrameBase.__init__(self, None)
+        super().__init__(None)
+
+        self.SetSize(MAIN_FRAME_SIZE)
 
         icon = wx.Icon()
         icon.CopyFromBitmap(wx.Bitmap(self.asset_path(u"assets/icons/drawio-icon.png"), wx.BITMAP_TYPE_ANY))
@@ -35,14 +39,57 @@ class MainFrame (MainFrameBase):
         self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
         self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree")
 
-        self.options = self._default_options()
+        self.rtcStdout.SetFont(wx.Font(wx.FontInfo(FACES['size2']).FaceName(FACES['mono'])))
 
-        self._original_stdout = sys.stdout
-        sys.stdout = self._captured_output = StringIO()
+        self.options = self.default_options()
+
+        self.original_stdout = sys.stdout
+        sys.stdout = self.captured_output = StringIO()
 
     def __del__(self):
-        MainFrameBase.__del__(self)
-        sys.stdout = self._original_stdout
+        super().__del__()
+        sys.stdout = self.original_stdout
+
+    @staticmethod
+    def default_options():
+        return {
+            'package': "com.example",
+            'generate': {
+                'default_ctor': False,
+                'full_arg_ctor': False,
+                'equal_hashcode': False,
+                'to_string': False
+            },
+            'encapsulate_all_props': False,
+            'language_specific': {
+                'java': {
+                    'imports': {
+                        'java.math': ["BigInteger", "BigDecimal"],
+                        'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
+                        'java.util': ["Objects"],
+                    }
+                },
+                'cs': {
+                    'imports': {
+                        'System': None,
+                        'System.Numerics': None,
+                    }
+                },
+                'cpp': {
+                    'imports': {
+                        '<ctime>': None,
+                        '<string>': None,
+                    }
+                },
+                'python': {},
+                'ts': {},
+                'php': {},
+                'sql': {},
+            },
+        }
+
+    def asset_path(self, bitmap_path):
+        return path.join(path.dirname(__file__), bitmap_path)
 
     def btnChooseDiagramPathOnButtonClick(self, event):
         open_file_dialog = wx.FileDialog(self, message="Open a diagram",
@@ -110,7 +157,7 @@ class MainFrame (MainFrameBase):
         except Exception as e:
             message = f"Something went wrong: {e}"
         finally:
-            self.rtcStdout.SetValue(self._captured_output.getvalue())
+            self.rtcStdout.SetValue(self.captured_output.getvalue())
             self.rtcStdout.ShowPosition(self.rtcStdout.GetLastPosition())
 
             if message:
@@ -119,44 +166,3 @@ class MainFrame (MainFrameBase):
     def btnExitOnButtonClick(self, event):
         self.Close()
         self.Destroy()
-
-    def asset_path(self, bitmap_path):
-        return path.join(path.dirname(__file__), bitmap_path)
-
-    @staticmethod
-    def _default_options():
-        return {
-            'package': "com.example",
-            'generate': {
-                'default_ctor': False,
-                'full_arg_ctor': False,
-                'equal_hashcode': False,
-                'to_string': False
-            },
-            'encapsulate_all_props': False,
-            'language_specific': {
-                'java': {
-                    'imports': {
-                        'java.math': ["BigInteger", "BigDecimal"],
-                        'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
-                        'java.util': ["Objects"],
-                    }
-                },
-                'cs': {
-                    'imports': {
-                        'System': None,
-                        'System.Numerics': None,
-                    }
-                },
-                'cpp': {
-                    'imports': {
-                        '<ctime>': None,
-                        '<string>': None,
-                    }
-                },
-                'python': {},
-                'ts': {},
-                'php': {},
-                'sql': {},
-            },
-        }

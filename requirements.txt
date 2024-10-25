@@ -2,3 +2,4 @@ pip3-autoremove
 lxml
 beautifulsoup4
 wxPython
+universal-startfile
