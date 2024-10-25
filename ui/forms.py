@@ -104,12 +104,12 @@ class MainFrameBase ( wx.Frame ):
 
         treesSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Parsing summary" ), wx.VERTICAL )
 
-        self.nbTrees = wx.Notebook( treesSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.nbTrees = wx.Notebook( treesSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0|wx.BORDER_NONE )
 
-        treesSizer.Add( self.nbTrees, 1, wx.EXPAND |wx.ALL, 3 )
+        treesSizer.Add( self.nbTrees, 1, wx.EXPAND |wx.ALL, 5 )
 
 
-        mainSizer.Add( treesSizer, 1, wx.ALL|wx.EXPAND, 3 )
+        mainSizer.Add( treesSizer, 1, wx.ALL|wx.EXPAND, 5 )
 
         logSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Log" ), wx.VERTICAL )
 
@@ -118,10 +118,10 @@ class MainFrameBase ( wx.Frame ):
         self.rtcStdout.SetFont( wx.Font( wx.NORMAL_FONT.GetPointSize(), wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL, False, wx.EmptyString ) )
         self.rtcStdout.SetBackgroundColour( wx.SystemSettings.GetColour( wx.SYS_COLOUR_WINDOW ) )
 
-        logSizer.Add( self.rtcStdout, 1, wx.EXPAND |wx.ALL, 3 )
+        logSizer.Add( self.rtcStdout, 1, wx.EXPAND |wx.ALL, 5 )
 
 
-        mainSizer.Add( logSizer, 0, wx.ALL|wx.EXPAND, 3 )
+        mainSizer.Add( logSizer, 0, wx.ALL|wx.EXPAND, 5 )
 
         buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
 
@@ -241,12 +241,12 @@ class OptionDialogBase ( wx.Dialog ):
 
         languageOptionsSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Language specific options" ), wx.VERTICAL )
 
-        self.nbLanguageOptions = wx.Notebook( languageOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.nbLanguageOptions = wx.Notebook( languageOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, 0|wx.BORDER_NONE )
 
-        languageOptionsSizer.Add( self.nbLanguageOptions, 1, wx.EXPAND |wx.ALL, 3 )
+        languageOptionsSizer.Add( self.nbLanguageOptions, 1, wx.EXPAND |wx.ALL, 5 )
 
 
-        mainSizer.Add( languageOptionsSizer, 1, wx.ALL|wx.EXPAND, 3 )
+        mainSizer.Add( languageOptionsSizer, 1, wx.ALL|wx.EXPAND, 5 )
 
         dialogButtonSizer = wx.StdDialogButtonSizer()
         self.dialogButtonSizerOK = wx.Button( self, wx.ID_OK )
