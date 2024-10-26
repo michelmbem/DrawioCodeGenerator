@@ -24,20 +24,25 @@ class MainFrame (MainFrameBase):
         self.SetSize(MAIN_FRAME_SIZE)
 
         icon = wx.Icon()
-        icon.CopyFromBitmap(wx.Bitmap(self.asset_path(u"assets/icons/drawio-icon.png"), wx.BITMAP_TYPE_ANY))
+        icon.CopyFromBitmap(wx.Bitmap(self.asset_path(u"assets/icons/app-icon.png"), wx.BITMAP_TYPE_ANY))
         self.SetIcon(icon)
 
         self.txtDiagramPath.SetValue("examples/simple_class_diagram.drawio")
         self.txtOutputPath.SetValue("examples/sources")
 
+        image_list = wx.ImageList(16, 16)
+        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/page_white_code.png"), wx.BITMAP_TYPE_ANY))
+        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/node-tree.png"), wx.BITMAP_TYPE_ANY))
+        self.nbTrees.AssignImageList(image_list)
+
         self.stcDecodedXml = XMLStyledTextCtrl(self.nbTrees)
-        self.nbTrees.AddPage(self.stcDecodedXml, "Decoded XML", True)
+        self.nbTrees.AddPage(self.stcDecodedXml, "Decoded XML", True, 0)
 
         self.tlcStyle = SymbolTreeCtrl(self.nbTrees)
-        self.nbTrees.AddPage(self.tlcStyle, "Style tree")
+        self.nbTrees.AddPage(self.tlcStyle, "Style tree", imageId=1)
 
         self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
-        self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree")
+        self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree", imageId=1)
 
         self.rtcStdout.SetFont(wx.Font(wx.FontInfo(FACES['size2']).FaceName(FACES['mono'])))
 
