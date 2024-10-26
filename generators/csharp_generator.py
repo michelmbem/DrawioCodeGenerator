@@ -184,7 +184,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         Parameters:
             methods: dictionary of methods
-            class_type: one of class, abstract class, interface or enum
+            class_type: type of class; 'class', 'abstract class' or 'interface'
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -230,15 +230,22 @@ class CSharpCodeGenerator(CodeGenerator):
         return ctor_string
 
     def generate_equal_hashcode(self, class_name, properties):
+        if len(properties) > 4:
+            sep1 = " &&\n\t\t\t\t\t"
+            sep2 = ",\n\t\t\t\t\t"
+        else:
+            sep1 = " && "
+            sep2 = ", "
+
         method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
         method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
         method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
-        method_string += " &&\n\t\t\t\t".join([f"Equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += sep1.join([f"Equals({p['name']}, other.{p['name']})" for p in properties.values()])
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\tpublic override int GetHashCode()\n\t{\n"
         method_string += "\t\treturn HashCode.Combine("
-        method_string += ', '.join([p['name'] for p in properties.values()])
+        method_string += sep2.join([p['name'] for p in properties.values()])
         method_string += ");\n\t}\n\n"
 
         return method_string

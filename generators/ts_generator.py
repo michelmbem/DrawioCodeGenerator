@@ -198,7 +198,7 @@ class TsCodeGenerator(CodeGenerator):
 
         Parameters:
             methods: dictionary of methods
-            class_type: one of class, abstract class, interface or enum
+            class_type: type of class; 'class', 'abstract class' or 'interface'
             interface_methods: methods of implemented interfaces
         
         Returns:

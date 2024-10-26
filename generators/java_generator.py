@@ -157,9 +157,8 @@ class JavaCodeGenerator(CodeGenerator):
                           f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\tpublic void set{property_def['name'].capitalize()}({self.map_type(property_def['type'])}"
-                          f" {property_def['name']}) {{\n\t\tthis.{property_def['name']} ="
-                          f" {property_def['name']};\n\t}}\n\n")
+                setter = (f"\tpublic void set{property_def['name'].capitalize()}({self.map_type(property_def['type'])} "
+                          f"{property_def['name']}) {{\n\t\tthis.{property_def['name']} = {property_def['name']};\n\t}}\n\n")
                 accessors_string += setter
 
         return accessors_string
@@ -170,7 +169,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         Parameters:
             methods: dictionary of methods
-            class_type: one of class, abstract class, interface or enum
+            class_type: type of class; 'class', 'abstract class' or 'interface'
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -178,6 +177,7 @@ class JavaCodeGenerator(CodeGenerator):
         """
 
         methods_string = ""
+        comment = "// Todo: implement this method!"
 
         for method_def in methods.values():
             params = self.get_parameter_list(method_def['parameters'])
@@ -185,6 +185,7 @@ class JavaCodeGenerator(CodeGenerator):
                 m = f"\t{self.map_type(method_def['return_type'])} {method_def['name']}{params};"
             else:
                 m = f"\t{method_def['access']} {self.map_type(method_def['return_type'])} {method_def['name']}{params} {{\n"
+                m += f"\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
                 m += "\t}"
@@ -195,6 +196,7 @@ class JavaCodeGenerator(CodeGenerator):
             for interface_method in interface_methods:
                 params = self.get_parameter_list(interface_method['parameters'])
                 m = f"\tpublic {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} {{\n"
+                m += f"\t\t{comment}\n"
                 if interface_method['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(interface_method['return_type'])};\n"
                 m += "\t}"
@@ -216,24 +218,33 @@ class JavaCodeGenerator(CodeGenerator):
         return ctor_string
 
     def generate_equal_hashcode(self, class_name, properties):
+        if len(properties) > 4:
+            sep1 = " &&\n\t\t\t\t\t"
+            sep2 = ",\n\t\t\t\t\t"
+        else:
+            sep1 = " && "
+            sep2 = ", "
+
         method_string = "\t@Override\n\tpublic boolean equals(Object obj) {\n"
         method_string += "\t\tif (this == obj) return true;\n"
         method_string += f"\t\tif (obj instanceof {class_name} other) {{\n\t\t\treturn "
-        method_string += " &&\n\t\t\t\t".join([f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += sep1.join([f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values()])
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\t@Override\n\tpublic int hashCode() {\n"
         method_string += "\t\treturn Objects.hash("
-        method_string += ', '.join([p['name'] for p in properties.values()])
+        method_string += sep2.join([p['name'] for p in properties.values()])
         method_string += ");\n\t}\n\n"
 
         return method_string
 
     def generate_to_string(self, class_name, properties):
+        sep1 = "\n\t\t\t" if len(properties) > 4 else ""
+        sep2 = f".append(\", \"){sep1}"
         method_string = "\t@Override\n\tpublic String toString() {\n"
-        method_string += f"\t\treturn \"{class_name} {{\" +\n\t\t\t"
-        method_string += ' +\n\t\t\t'.join([f"\"{p['name']}=\" + {p['name']}" for p in properties.values()])
-        method_string += " + \"}\";\n\t}\n\n"
+        method_string += f"\t\treturn new StringBuilder(\"{class_name} {{\"){sep1}"
+        method_string += sep2.join([f".append(\"{p['name']}=\").append({p['name']})" for p in properties.values()])
+        method_string += f"{sep1}.append(\"}}\").toString();\n\t}}\n\n"
 
         return method_string
 
