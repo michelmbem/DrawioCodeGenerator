@@ -10,7 +10,6 @@ class LanguageOptionPage(LanguageOptionPageBase):
     def __init__(self, parent, language, options):
         super().__init__(parent)
         self.language = language
-        self.line_count = 0
 
         if wx.SystemSettings.GetAppearance().IsUsingDarkBackground():
             self.line_colors = (wx.Colour(0x334433), wx.Colour(0x222222))
@@ -31,7 +30,7 @@ class LanguageOptionPage(LanguageOptionPageBase):
     def options(self):
         imports = {}
 
-        for i in range(self.line_count):
+        for i in range(self.lstModules.GetItemCount()):
             module = self.lstModules.GetItemText(i, 0)
             symbols = self.split_symbol_string(self.lstModules.GetItemText(i, 1))
             imports[module] = symbols
@@ -43,16 +42,15 @@ class LanguageOptionPage(LanguageOptionPageBase):
         return re.split(r"[\s,]+", string)
 
     def add_import(self, module, symbols):
-        self.lstModules.InsertItem(self.line_count, module)
-        self.lstModules.SetItem(self.line_count, 1, ', '.join(symbols or []))
-        self.lstModules.SetItemBackgroundColour(self.line_count, self.line_colors[self.line_count % 2])
-        self.line_count += 1
+        new_index = self.lstModules.GetItemCount()
+        self.lstModules.InsertItem(new_index, module)
+        self.lstModules.SetItem(new_index, 1, ', '.join(symbols or []))
+        self.lstModules.SetItemBackgroundColour(new_index, self.line_colors[new_index % 2])
 
     def remove_import(self, index):
         self.lstModules.DeleteItem(index)
-        self.line_count -= 1
 
-        for row_index in range(index, self.line_count):
+        for row_index in range(index, self.lstModules.GetItemCount()):
             self.lstModules.SetItemBackgroundColour(row_index, self.line_colors[row_index % 2])
 
     def btnAddModuleOnButtonClick(self, event):
@@ -66,11 +64,14 @@ class LanguageOptionPage(LanguageOptionPageBase):
 
     def btnRemoveModuleOnButtonClick(self, event):
         selected_index = self.lstModules.GetFirstSelected()
+
         if selected_index >= 0:
             self.remove_import(selected_index)
-            if self.line_count > selected_index:
+            line_count = self.lstModules.GetItemCount()
+
+            if line_count > selected_index:
                 self.lstModules.Select(selected_index)
-            else:
-                self.lstModules.Select(self.lstModules.GetItemCount() - 1)
+            elif line_count > 0:
+                self.lstModules.Select(line_count - 1)
         else:
             wx.MessageBox("There is no selection in the list")
