@@ -124,13 +124,21 @@ More improvements are still to come.
 
 ## Screenshots
 
-#### Main window
+#### Main window (Windows - Light mode)
 
 ![main_frame](github_assets/main_frame.jpg)
 
-#### Options dialog
+#### Main window (Ubuntu - Dark mode)
+
+![main_frame_ubuntu](github_assets/main_frame_ubuntu.png)
+
+#### Options dialog (Windows - Light mode)
 
 ![options_dialog](github_assets/options_dialog.jpg)
+
+#### Options dialog (Ubuntu - Dark mode)
+
+![options_dialog_ubuntu](github_assets/options_dialog_ubuntu.png)
 
 #### Generated code
 
