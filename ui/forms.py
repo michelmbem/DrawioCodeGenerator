@@ -136,7 +136,7 @@ class MainFrameBase ( wx.Frame ):
 
         self.btnParse = wx.Button( self, wx.ID_ANY, u"Parse", wx.DefaultPosition, wx.DefaultSize, 0 )
 
-        self.btnParse.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/compile.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnParse.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/page_white_magnify.png" ), wx.BITMAP_TYPE_ANY ) )
         self.btnParse.SetToolTip( u"Parse the diagram in preparation for code generation" )
 
         buttonSizer.Add( self.btnParse, 0, wx.ALL, 5 )

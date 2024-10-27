@@ -1137,7 +1137,7 @@
                 <property name="auth_needed">0</property>
                 <property name="best_size"></property>
                 <property name="bg"></property>
-                <property name="bitmap">Load From File; assets/icons/compile.png</property>
+                <property name="bitmap">Load From File; assets/icons/page_white_magnify.png</property>
                 <property name="caption"></property>
                 <property name="caption_visible">1</property>
                 <property name="center_pane">0</property>
