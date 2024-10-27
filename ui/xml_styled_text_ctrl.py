@@ -1,6 +1,7 @@
 import wx
 import wx.stc as stc
 
+from bs4 import BeautifulSoup as bs
 from ui.platform import FACES
 
 
@@ -46,6 +47,22 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
 
         # Listen for clics on margins
         self.Bind(stc.EVT_STC_MARGINCLICK, self.onMarginClick)
+
+    @property
+    def xml_content(self):
+        return self.GetValue()
+
+    @xml_content.setter
+    def xml_content(self, content):
+        read_only = self.GetReadOnly()
+        self.SetReadOnly(False)
+
+        if content:
+            self.SetValue(bs(content, "lxml").prettify())
+        else:
+            self.ClearAll()
+
+        self.SetReadOnly(read_only)
 
     def onMarginClick(self, event):
         # Fold or unfold the corresponding line

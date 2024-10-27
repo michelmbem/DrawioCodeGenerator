@@ -24,8 +24,9 @@ class SymbolTreeCtrl(gizmos.TreeListCtrl):
 
     def load_dict(self, dictionary):
         self.DeleteAllItems()
-        self.create_nodes_from_dict(self.AddRoot("#"), dictionary)
-        self.ExpandAll()
+        if dictionary:
+            self.create_nodes_from_dict(self.AddRoot("#"), dictionary)
+            self.ExpandAll()
 
     def create_nodes_from_dict(self, parent_node, dictionary):
         for key, value in dictionary.items():
