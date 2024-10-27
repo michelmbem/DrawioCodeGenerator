@@ -201,7 +201,7 @@
                 <property name="validator_type">wxDefaultValidator</property>
                 <property name="validator_variable"></property>
                 <property name="value"></property>
-                <property name="wildcard">Draw.io diagram files (*.drawio)|*.drawio&quot;</property>
+                <property name="wildcard">Draw.io diagram files (*.drawio)|*.drawio|All files (*.*)|*.*</property>
                 <property name="window_extra_style"></property>
                 <property name="window_name"></property>
                 <property name="window_style"></property>

@@ -35,7 +35,7 @@ class MainFrameBase ( wx.Frame ):
 
         formSizer.Add( self.m_staticText1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.fpcDiagramPath = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Open a diagram", u"Draw.io diagram files (*.drawio)|*.drawio\"", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE )
+        self.fpcDiagramPath = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Open a diagram", u"Draw.io diagram files (*.drawio)|*.drawio|All files (*.*)|*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE )
         self.fpcDiagramPath.SetToolTip( u"Open a file dialog and browse to choose a draw.io class diagram file" )
 
         formSizer.Add( self.fpcDiagramPath, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -401,5 +401,3 @@ class LanguageOptionPageBase ( wx.Panel ):
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):
         return bitmap_path
-
-
