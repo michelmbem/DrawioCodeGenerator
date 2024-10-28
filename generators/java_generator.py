@@ -267,14 +267,14 @@ class JavaCodeGenerator(CodeGenerator):
         return "null"
 
     def get_parameter_list(self, param_types):
-        _ndx = 0
+        index = 0
         param_list = "("
 
         for param_type in param_types:
-            if _ndx > 0:
+            if index > 0:
                 param_list += ", "
-            param_list += f"{param_type} arg{_ndx}"
-            _ndx += 1
+            param_list += f"{self.map_type(param_type)} arg{index}"
+            index += 1
 
         param_list += ")"
 

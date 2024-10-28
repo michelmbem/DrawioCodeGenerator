@@ -201,17 +201,27 @@ class PythonCodeGenerator(CodeGenerator):
         comment = "# Todo: implement this method!"
 
         for method_def in methods.values():
+            params = self.get_parameter_list(method_def['parameters'])
             if class_type in ("interface", "abstract class"):
-                m = f"\t@abstractmethod\n\tdef {method_def['name']}(self):\n\t\tpass\n\n"
+                m = f"\t@abstractmethod\n\tdef {method_def['name']}{params}:\n\t\tpass"
             else:
-                m = f"\tdef {method_def['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
-            methods_string += m
+                m = f"\tdef {method_def['name']}{params}:\n\t\t{comment}\n"
+                if method_def['return_type'] == "void":
+                    m += "\t\tpass"
+                else:
+                    m += f"\t\treturn {self.default_value(method_def['return_type'])}"
+            methods_string += m + "\n\n"
 
         # inherited abstract methods
         if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
-                m = f"\tdef {interface_method['name']}(self):\n\t\t{comment}\n\t\tpass\n\n"
-                methods_string += m
+                params = self.get_parameter_list(interface_method['parameters'])
+                m = f"\tdef {interface_method['name']}{params}:\n\t\t{comment}\n"
+                if interface_method['return_type'] == "void":
+                    m += "\t\tpass"
+                else:
+                    m += f"\t\treturn {self.default_value(interface_method['return_type'])}"
+                methods_string += m + "\n\n"
 
         return methods_string
 
@@ -229,7 +239,7 @@ class PythonCodeGenerator(CodeGenerator):
         method_string = "\tdef __members(self):\n"
         method_string += "\t\treturn ("
         method_string += ', '.join([f"self.{prefix}{p['name']}" for p in properties.values()])
-        method_string += ")\n\n"
+        method_string += ",)\n\n"
 
         method_string += "\tdef __eq__(self, other):\n"
         method_string += "\t\tif type(other) is type(self):\n"
@@ -272,12 +282,10 @@ class PythonCodeGenerator(CodeGenerator):
         return "None"
 
     def get_parameter_list(self, param_types):
-        param_list = "("
+        param_list = "(self"
 
-        for _ndx in range(len(param_types)):
-            if _ndx > 0:
-                param_list += ", "
-            param_list += f"arg{_ndx}"
+        for index in range(len(param_types)):
+            param_list += f", arg{index}"
 
         param_list += ")"
 

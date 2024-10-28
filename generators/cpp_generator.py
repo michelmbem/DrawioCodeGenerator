@@ -202,6 +202,7 @@ class CppCodeGenerator(CodeGenerator):
         """
 
         methods_string = ""
+        comment = "// Todo: implement this method!"
 
         for method_def in methods.values():
             params = self.get_parameter_list(method_def['parameters'])
@@ -209,6 +210,7 @@ class CppCodeGenerator(CodeGenerator):
                 m = f"\t\tpublic: virtual {self.map_type(method_def['return_type'])} {method_def['name']}{params} = 0;"
             else:
                 m = f"\t\t{method_def['access']}: {self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t\t{{\n"
+                m += f"\t\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\t\treturn {self.default_value(method_def['return_type'])};\n"
                 m += "\t\t}"
@@ -219,6 +221,7 @@ class CppCodeGenerator(CodeGenerator):
             for interface_method in interface_methods:
                 params = self.get_parameter_list(interface_method['parameters'])
                 m = f"\t\tpublic: {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} override\n\t\t{{\n"
+                m += f"\t\t\t{comment}\n"
                 if interface_method['return_type'] != "void":
                     m += f"\t\t\treturn {self.default_value(interface_method['return_type'])};\n"
                 m += "\t\t}"
@@ -271,14 +274,14 @@ class CppCodeGenerator(CodeGenerator):
         return f"{typename}()"
 
     def get_parameter_list(self, param_types):
-        _ndx = 0
+        index = 0
         param_list = "("
 
         for param_type in param_types:
-            if _ndx > 0:
+            if index > 0:
                 param_list += ", "
-            param_list += f"{param_type} arg{_ndx}"
-            _ndx += 1
+            param_list += f"{self.map_type(param_type)} arg{index}"
+            index += 1
 
         param_list += ")"
 

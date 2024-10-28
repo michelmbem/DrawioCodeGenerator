@@ -21,6 +21,7 @@ class CodeGenerators:
         'c++': "cpp",
         'cpp': "cpp",
         'cplusplus': "cpp",
+        'c-plus-plus': "cpp",
         'python': "python",
         'ts': "ts",
         'typescript': "ts",
@@ -41,12 +42,14 @@ class CodeGenerators:
     @staticmethod
     def get(language, syntax_tree, output_dir, options):
         """
-        Creates an instance of a class that implements the CodeGeneratorInterface for the given language.
-        :param language: The name of the language for which to generate a code generator
-        :param syntax_tree: The abstract syntax tree
+        Creates an instance of a class that extends CodeGenerator for the given language.
+
+        :param language: The language for which to generate a code generator
+        :param syntax_tree: An abstract syntax tree
         :param output_dir: The target output directory
-        :param options: code generation options
-        :return: An instance of a class that implements the CodeGeneratorInterface
+        :param options: Set of code generation options
+
+        :return: An instance of a subclass of CodeGenerator
         """
 
         language_code = CodeGenerators.language_code(language)

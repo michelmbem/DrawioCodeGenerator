@@ -176,14 +176,14 @@ class SqlCodeGenerator(CodeGenerator):
         return "None"
 
     def get_parameter_list(self, param_types):
-        _ndx = 0
+        index = 0
         param_list = "("
 
         for param_type in param_types:
-            if _ndx > 0:
+            if index > 0:
                 param_list += ", "
-            param_list += f"arg{_ndx} : {param_type}"
-            _ndx += 1
+            param_list += f"arg{index} : {param_type}"
+            index += 1
 
         param_list += ")"
 
