@@ -20,3 +20,6 @@ class SqlOptionPage(SqlOptionPageBase, OptionPage):
     @property
     def options(self):
         return {'dialect': self.DIALECTS[self.rbxDialect.GetSelection()]}
+
+    def asset_path(self, bitmap_path):
+        return OptionPage.asset_path(self, bitmap_path)

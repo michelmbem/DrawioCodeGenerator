@@ -1,5 +1,7 @@
 import wx
 
+from os import path
+
 
 class OptionPage:
 
@@ -16,3 +18,6 @@ class OptionPage:
     @property
     def options(self):
         return {}
+
+    def asset_path(self, bitmap_path):
+        return path.join(path.dirname(__file__), bitmap_path)

@@ -22,6 +22,9 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
             **super().options
         }
 
+    def asset_path(self, bitmap_path):
+        return OptionPageWithImports.asset_path(self, bitmap_path)
+
     def chkUseLombokOnCheckBox(self, event):
         if self.chkUseLombok.IsChecked():
             self.chkAddBuilderAnno.Enable(True)
@@ -29,8 +32,14 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
             self.chkAddBuilderAnno.SetValue(False)
             self.chkAddBuilderAnno.Enable(False)
 
+    def lscImportOnListItemSelected(self, event):
+        OptionPageWithImports.lscImportOnListItemSelected(self, event)
+
     def btnAddModuleOnButtonClick(self, event):
         OptionPageWithImports.btnAddModuleOnButtonClick(self, event)
+
+    def btnUpdateImportOnButtonClick( self, event ):
+        OptionPageWithImports.btnUpdateImportOnButtonClick(self, event)
 
     def btnRemoveModuleOnButtonClick(self, event):
         OptionPageWithImports.btnRemoveModuleOnButtonClick(self, event)
