@@ -2,29 +2,38 @@ import re
 import wx
 
 from ui.platform import OPTION_DLG_SIZE
-from ui.forms import LanguageOptionPageBase
+from ui.option_page import OptionPage
 
 
-class LanguageOptionPage(LanguageOptionPageBase):
+class OptionPageWithImports(OptionPage):
 
-    def __init__(self, parent, language, options):
-        super().__init__(parent)
-        self.language = language
+    LABELS = {
+        'cpp': {'module_name': "Header file", 'symbol_names': "Elements to import"},
+    }
 
-        if wx.SystemSettings.GetAppearance().IsUsingDarkBackground():
-            self.line_colors = (wx.Colour(0x334433), wx.Colour(0x222222))
-        else:
-            self.line_colors = (wx.Colour(0xDDEEDD), wx.Colour(0xFFFFFF))
+    def __init__(self, language, options):
+        super().__init__()
+        self._language = language
+
+        labels = self.LABELS.get(language)
+        if labels:
+            self.lblModuleName.SetLabel(labels['module_name'] + ':')
+            self.lblSymbolNames.SetLabel(labels['symbol_names'] + ':')
+
+        if language in ("cs", "cpp", "php"):
+            self.txtSymbolNames.SetValue("[All]")
+            self.txtSymbolNames.Enable(False)
 
         dlg_width = OPTION_DLG_SIZE[0] - 80
-        self.lstModules.InsertColumn(0, "Module name", width=int(.4 * dlg_width))
-        self.lstModules.InsertColumn(1, "Imported symbols", width=int(.6 * dlg_width))
+        self.lstModules.InsertColumn(0, self.lblModuleName.GetLabel()[:-1], width=int(.4 * dlg_width))
+        self.lstModules.InsertColumn(1, self.lblSymbolNames.GetLabel()[:-1], width=int(.6 * dlg_width))
 
         for module, symbols in options.get('imports', {}).items():
             self.add_import(module, symbols)
 
-        if language in ("cs", "cpp", "php"):
-            self.txtSymbolNames.Enable(False)
+    @property
+    def language(self):
+        return self._language
 
     @property
     def options(self):
@@ -60,7 +69,8 @@ class LanguageOptionPage(LanguageOptionPageBase):
         if module:
             self.add_import(module, symbols)
         else:
-            wx.MessageBox("Please supply a module name")
+            module_name = self.lstModules.GetColumn(0).GetText().lower()
+            wx.MessageBox(f"Please supply a {module_name}", "Invalid input", wx.OK | wx.ICON_WARNING)
 
     def btnRemoveModuleOnButtonClick(self, event):
         selected_index = self.lstModules.GetFirstSelected()
@@ -74,4 +84,4 @@ class LanguageOptionPage(LanguageOptionPageBase):
             elif line_count > 0:
                 self.lstModules.Select(line_count - 1)
         else:
-            wx.MessageBox("There is no selection in the list")
+            wx.MessageBox("There is no selection in the list", "Invalid input", wx.OK | wx.ICON_WARNING)

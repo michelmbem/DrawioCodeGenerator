@@ -132,7 +132,7 @@ class MainFrame (MainFrameBase):
             self.update_log()
 
             if message:
-                wx.MessageBox(message, "Diagram parsing")
+                wx.MessageBox(message, "Diagram parsing", wx.OK | wx.ICON_ERROR)
 
     def btnGenerateOnButtonClick(self, event):
         message = None
@@ -164,7 +164,7 @@ class MainFrame (MainFrameBase):
             self.update_log()
 
             if message:
-                wx.MessageBox(message, "Code generation")
+                wx.MessageBox(message, "Code generation", wx.OK | wx.ICON_ERROR)
 
     def btnExitOnButtonClick(self, event):
         self.Close()

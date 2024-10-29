@@ -3,7 +3,10 @@ import wx
 from generators.code_generators import CodeGenerators
 from ui.platform import OPTION_DLG_SIZE
 from ui.forms import OptionDialogBase
-from ui.lang_option_page import LanguageOptionPage
+from ui.common_option_page import CommonOptionPage
+from ui.java_option_page import JavaOptionPage
+from ui.csharp_option_page import CSharpOptionPage
+from ui.sql_option_page import SqlOptionPage
 
 
 class OptionDialog(OptionDialogBase):
@@ -22,17 +25,24 @@ class OptionDialog(OptionDialogBase):
         self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
 
         language_specific = options['language_specific']
-        languages = ["java", "cs", "cpp", "python", "ts", "php"]
+        languages = ["java", "cs", "cpp", "python", "ts", "php", "sql"]
 
         for language in languages:
             language_options = language_specific.get(language, {})
-            option_page = LanguageOptionPage(self.nbLanguageOptions, language, language_options)
+
+            if language == 'java':
+                option_page = JavaOptionPage(self.nbLanguageOptions, language_options)
+            elif language == 'cs':
+                option_page = CSharpOptionPage(self.nbLanguageOptions, language_options)
+            elif language == "sql":
+                option_page = SqlOptionPage(self.nbLanguageOptions, language_options)
+            else:
+                option_page = CommonOptionPage(self.nbLanguageOptions, language, language_options)
+
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 
     def dialogButtonSizerOnApplyButtonClick(self, event):
-        language_specific = {
-            'sql': {}
-        }
+        language_specific = {}
 
         for page_index in range(self.nbLanguageOptions.PageCount):
             option_page = self.nbLanguageOptions.GetPage(page_index)

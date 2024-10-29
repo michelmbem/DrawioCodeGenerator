@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ###########################################################################
-## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf0)
+## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf)
 ## http://www.wxformbuilder.org/
 ##
 ## PLEASE DO *NOT* EDIT THIS FILE!
@@ -240,7 +240,7 @@ class OptionDialogBase ( wx.Dialog ):
         self.chkGenerateFullArgCtor = wx.CheckBox( self, wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
 
-        self.chkGenerateEqHc = wx.CheckBox( self, wx.ID_ANY, u"Equals and Hashcode", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateEqHc = wx.CheckBox( self, wx.ID_ANY, u"Equals and HashCode", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
 
         self.chkGenerateToString = wx.CheckBox( self, wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
@@ -306,10 +306,10 @@ class OptionDialogBase ( wx.Dialog ):
 
 
 ###########################################################################
-## Class LanguageOptionPageBase
+## Class CommonOptionPageBase
 ###########################################################################
 
-class LanguageOptionPageBase ( wx.Panel ):
+class CommonOptionPageBase ( wx.Panel ):
 
     def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
@@ -321,20 +321,20 @@ class LanguageOptionPageBase ( wx.Panel ):
         formSizer.SetFlexibleDirection( wx.BOTH )
         formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.m_staticText12 = wx.StaticText( self, wx.ID_ANY, u"Module name:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText12.Wrap( -1 )
+        self.lblModuleName = wx.StaticText( self, wx.ID_ANY, u"Module name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
 
-        formSizer.Add( self.m_staticText12, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
 
         formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
-        self.m_staticText11 = wx.StaticText( self, wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText11.Wrap( -1 )
+        self.lblSymbolNames = wx.StaticText( self, wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
 
-        formSizer.Add( self.m_staticText11, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
         self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
@@ -401,3 +401,283 @@ class LanguageOptionPageBase ( wx.Panel ):
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):
         return bitmap_path
+
+
+###########################################################################
+## Class JavaOptionPageBase
+###########################################################################
+
+class JavaOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        flagSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.chkUseLombok = wx.CheckBox( self, wx.ID_ANY, u"Use lombok annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
+        flagSizer.Add( self.chkUseLombok, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.chkAddBuilderAnno = wx.CheckBox( self, wx.ID_ANY, u"Add @Builder annotation", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkAddBuilderAnno.Enable( False )
+
+        flagSizer.Add( self.chkAddBuilderAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.chkAddJpaAnno = wx.CheckBox( self, wx.ID_ANY, u"Add JPA mapping annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
+        flagSizer.Add( self.chkAddJpaAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( flagSizer, 1, wx.EXPAND, 5 )
+
+        dividerSizer1 = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.m_staticText1411 = wx.StaticText( self, wx.ID_ANY, u"Define an import", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText1411.Wrap( -1 )
+
+        dividerSizer1.Add( self.m_staticText1411, 0, wx.ALL, 5 )
+
+        self.m_staticline111 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        dividerSizer1.Add( self.m_staticline111, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( dividerSizer1, 0, wx.EXPAND, 5 )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.lblModuleName = wx.StaticText( self, wx.ID_ANY, u"Package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
+
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
+
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.lblSymbolNames = wx.StaticText( self, wx.ID_ANY, u"Classes to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
+
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddModule = wx.Button( self, wx.ID_ANY, u"Add import", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnAddModule.SetToolTip( u"Add the above module and symbol names to the list of imports" )
+
+        buttonSizer.Add( self.btnAddModule, 0, wx.ALL, 5 )
+
+        self.btnRemoveModule = wx.Button( self, wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnRemoveModule.SetToolTip( u"Remove the selected module and symbol names from the list of imports" )
+
+        buttonSizer.Add( self.btnRemoveModule, 0, wx.ALL, 5 )
+
+
+        mainSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+        dividerSizer2 = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.m_staticText141 = wx.StaticText( self, wx.ID_ANY, u"List of imports", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText141.Wrap( -1 )
+
+        dividerSizer2.Add( self.m_staticText141, 0, wx.ALL, 5 )
+
+        self.m_staticline11 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        dividerSizer2.Add( self.m_staticline11, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( dividerSizer2, 0, wx.EXPAND, 5 )
+
+        self.lstModules = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        mainSizer.Add( self.lstModules, 1, wx.ALL|wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        # Connect Events
+        self.chkUseLombok.Bind( wx.EVT_CHECKBOX, self.chkUseLombokOnCheckBox )
+        self.btnAddModule.Bind( wx.EVT_BUTTON, self.btnAddModuleOnButtonClick )
+        self.btnRemoveModule.Bind( wx.EVT_BUTTON, self.btnRemoveModuleOnButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def chkUseLombokOnCheckBox( self, event ):
+        event.Skip()
+
+    def btnAddModuleOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveModuleOnButtonClick( self, event ):
+        event.Skip()
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class SqlOptionPageBase
+###########################################################################
+
+class SqlOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        rbxDialectChoices = [ u"Generic", u"MySQL", u"PostgreSQL", u"SQL Server", u"Oracle" ]
+        self.rbxDialect = wx.RadioBox( self, wx.ID_ANY, u"SQL Dialect", wx.DefaultPosition, wx.DefaultSize, rbxDialectChoices, 7, wx.RA_SPECIFY_COLS )
+        self.rbxDialect.SetSelection( 0 )
+        mainSizer.Add( self.rbxDialect, 0, wx.ALL|wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+    def __del__( self ):
+        pass
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class CSharpOptionPageBase
+###########################################################################
+
+class CSharpOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        flagSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.chkAddEFCoreAttrib = wx.CheckBox( self, wx.ID_ANY, u"Add EFCore mapping attributes", wx.DefaultPosition, wx.DefaultSize, 0 )
+        flagSizer.Add( self.chkAddEFCoreAttrib, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( flagSizer, 1, wx.EXPAND, 5 )
+
+        dividerSizer1 = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.m_staticText1411 = wx.StaticText( self, wx.ID_ANY, u"Define an import", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText1411.Wrap( -1 )
+
+        dividerSizer1.Add( self.m_staticText1411, 0, wx.ALL, 5 )
+
+        self.m_staticline111 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        dividerSizer1.Add( self.m_staticline111, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( dividerSizer1, 0, wx.EXPAND, 5 )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.lblModuleName = wx.StaticText( self, wx.ID_ANY, u"Namespace:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
+
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
+
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.lblSymbolNames = wx.StaticText( self, wx.ID_ANY, u"Types to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
+
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddModule = wx.Button( self, wx.ID_ANY, u"Add import", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnAddModule.SetToolTip( u"Add the above module and symbol names to the list of imports" )
+
+        buttonSizer.Add( self.btnAddModule, 0, wx.ALL, 5 )
+
+        self.btnRemoveModule = wx.Button( self, wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.btnRemoveModule.SetToolTip( u"Remove the selected module and symbol names from the list of imports" )
+
+        buttonSizer.Add( self.btnRemoveModule, 0, wx.ALL, 5 )
+
+
+        mainSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+        dividerSizer2 = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.m_staticText141 = wx.StaticText( self, wx.ID_ANY, u"List of imports", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText141.Wrap( -1 )
+
+        dividerSizer2.Add( self.m_staticText141, 0, wx.ALL, 5 )
+
+        self.m_staticline11 = wx.StaticLine( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LI_HORIZONTAL )
+        dividerSizer2.Add( self.m_staticline11, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( dividerSizer2, 0, wx.EXPAND, 5 )
+
+        self.lstModules = wx.ListCtrl( self, wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        mainSizer.Add( self.lstModules, 1, wx.ALL|wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        # Connect Events
+        self.btnAddModule.Bind( wx.EVT_BUTTON, self.btnAddModuleOnButtonClick )
+        self.btnRemoveModule.Bind( wx.EVT_BUTTON, self.btnRemoveModuleOnButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def btnAddModuleOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveModuleOnButtonClick( self, event ):
+        event.Skip()
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
