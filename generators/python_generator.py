@@ -42,7 +42,7 @@ class PythonCodeGenerator(CodeGenerator):
         class_header = ""
         add_linebreaks = False
 
-        if class_type == "enum":
+        if class_type == "enumeration":
             class_header += "from enum import Enum, auto\n"
             class_ancestors = "(Enum)"
             add_linebreaks = True
@@ -55,16 +55,11 @@ class PythonCodeGenerator(CodeGenerator):
                 class_header += f"from {module} import {', '.join(symbols)}\n"
                 add_linebreaks = True
 
-            for baseclass in baseclasses:
-                class_header += f"from {baseclass} import {baseclass}\n"
-                add_linebreaks = True
+            dependencies = {*baseclasses, *interfaces, *references}
+            dependencies.discard(class_name)
 
-            for interface in interfaces:
-                class_header += f"from {interface} import {interface}\n"
-                add_linebreaks = True
-
-            for reference in references:
-                class_header += f"from {reference} import {reference}\n"
+            for dependency in dependencies:
+                class_header += f"from {dependency} import {dependency}\n"
                 add_linebreaks = True
 
             class_ancestors = "("
@@ -281,15 +276,8 @@ class PythonCodeGenerator(CodeGenerator):
             return '""'
         return "None"
 
-    def get_parameter_list(self, param_types):
-        param_list = "(self"
-
-        for index in range(len(param_types)):
-            param_list += f", arg{index}"
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(self' + ''.join([f", {p['name']}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "py"

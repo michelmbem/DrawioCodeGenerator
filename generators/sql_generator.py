@@ -46,6 +46,7 @@ class SqlCodeGenerator(CodeGenerator):
         "time": "time",
         "datetime": "datetime",
         "timestamp": "datetime",
+        "unspecified": "int",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -66,7 +67,7 @@ class SqlCodeGenerator(CodeGenerator):
                     continue
 
                 file_contents = self.generate_class_header(class_def['type'], class_def['name'], None, None, None)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enumeration")
                 file_contents += self.generate_class_footer(class_def['type'], class_def['name'])
 
                 self.files.append((class_def['name'], file_contents))

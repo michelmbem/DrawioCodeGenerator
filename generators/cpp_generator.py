@@ -42,6 +42,7 @@ class CppCodeGenerator(CodeGenerator):
         "time": "time_t",
         "datetime": "time_t",
         "timestamp": "time_t",
+        "unspecified": "int",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -64,23 +65,18 @@ class CppCodeGenerator(CodeGenerator):
 
         class_header = "#pragma once\n\n"
 
-        if class_type != "enum":
+        if class_type != "enumeration":
             add_linebreak = False
 
             for module in self.options['imports'].keys():
                 class_header += f"#include {module}\n"
                 add_linebreak = True
 
-            for baseclass in baseclasses:
-                class_header += f"#include \"{baseclass}.hpp\"\n"
-                add_linebreak = True
+            dependencies = {*baseclasses, *interfaces, *references}
+            dependencies.discard(class_name)
 
-            for interface in interfaces:
-                class_header += f"#include \"{interface}.hpp\"\n"
-                add_linebreak = True
-
-            for reference in references:
-                class_header += f"#include \"{reference}.hpp\"\n"
+            for dependency in dependencies:
+                class_header += f"#include \"{dependency}.hpp\"\n"
                 add_linebreak = True
 
             if add_linebreak:
@@ -91,7 +87,7 @@ class CppCodeGenerator(CodeGenerator):
         else:
             class_header += "namespace __default__\n{\n"
 
-        if class_type == "enum":
+        if class_type == "enumeration":
             type_of_class = "enum class"
         else:
             type_of_class = "class"
@@ -273,19 +269,8 @@ class CppCodeGenerator(CodeGenerator):
             return "nullptr"
         return f"{typename}()"
 
-    def get_parameter_list(self, param_types):
-        index = 0
-        param_list = "("
-
-        for param_type in param_types:
-            if index > 0:
-                param_list += ", "
-            param_list += f"{self.map_type(param_type)} arg{index}"
-            index += 1
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(' + ', '.join([f"{self.map_type(p['type'])} {p['name']}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "hpp"

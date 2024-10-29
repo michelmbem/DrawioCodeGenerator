@@ -43,7 +43,7 @@ class CodeGenerator(ABC):
                 baseclasses, interfaces, references = self.get_class_dependencies(class_def)
 
                 file_contents = self.generate_class_header(class_def['type'], class_def['name'], baseclasses, interfaces, references)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enumeration")
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
@@ -64,7 +64,7 @@ class CodeGenerator(ABC):
                     if class_has_props and should_generate['to_string']:
                         file_contents += self.generate_to_string(class_def['name'], class_def['properties'])
 
-                if class_def['type'] != "enum":
+                if class_def['type'] != "enumeration":
                     interface_methods = []
                     self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
                     file_contents += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
@@ -120,6 +120,23 @@ class CodeGenerator(ABC):
             references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
         if len(class_def['relationships']['composition']) > 0:
             references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
+
+        class_methods = [*class_def['methods'].values()]
+        if class_def['type'] in ("class", "abstract class"):
+            self.get_interface_methods(class_def['relationships']['implements'], class_methods)
+
+        for other_class in self.syntax_tree.values():
+            for property_def in class_def['properties'].values():
+                if property_def['type'] == other_class['name']:
+                    references += [other_class['name']]
+
+            for method_def in class_methods:
+                if method_def['return_type'] == other_class['name']:
+                    references += [other_class['name']]
+
+                for parameter in method_def['parameters']:
+                    if parameter['type'] == other_class['name']:
+                        references += [other_class['name']]
 
         return baseclasses, interfaces, references
 

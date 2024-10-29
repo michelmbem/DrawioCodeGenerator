@@ -44,6 +44,7 @@ class TsCodeGenerator(CodeGenerator):
         "time": "Date",
         "datetime": "Date",
         "timestamp": "Date",
+        "unspecified": "any",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -76,23 +77,18 @@ class TsCodeGenerator(CodeGenerator):
 
         class_header = ""
 
-        if class_type != "enum":
+        if class_type != "enumeration":
             add_linebreak = False
 
             for module, symbols in self.options['imports'].items():
                 class_header += f"import {{ {', '.join(symbols)} }} from '{module}';\n"
                 add_linebreak = True
 
-            for baseclass in baseclasses:
-                class_header += f"import {{ {baseclass} }} from './{baseclass}.ts';\n"
-                add_linebreak = True
+            dependencies = {*baseclasses, *interfaces, *references}
+            dependencies.discard(class_name)
 
-            for interface in interfaces:
-                class_header += f"import {{ {interface} }} from './{interface}.ts';\n"
-                add_linebreak = True
-
-            for reference in references:
-                class_header += f"import {{ {reference} }} from './{reference}.ts';\n"
+            for dependency in dependencies:
+                class_header += f"import {{ {dependency} }} from './{dependency}.ts';\n"
                 add_linebreak = True
 
             if add_linebreak:
@@ -277,19 +273,8 @@ class TsCodeGenerator(CodeGenerator):
             return '""'
         return "null"
 
-    def get_parameter_list(self, param_types):
-        index = 0
-        param_list = "("
-
-        for param_type in param_types:
-            if index > 0:
-                param_list += ", "
-            param_list += f"arg{index}: {self.map_type(param_type)}"
-            index += 1
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(' + ', '.join([f"{p['name']}: {self.map_type(p['type'])}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "ts"

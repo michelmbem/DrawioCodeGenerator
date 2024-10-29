@@ -44,6 +44,7 @@ class CSharpCodeGenerator(CodeGenerator):
         "time": "DateTime",
         "datetime": "DateTime",
         "timestamp": "DateTime",
+        "unspecified": "object",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -76,7 +77,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         class_header = ""
 
-        if class_type != "enum":
+        if class_type != "enumeration":
             add_linebreak = False
 
             for module in self.options['imports'].keys():
@@ -270,19 +271,8 @@ class CSharpCodeGenerator(CodeGenerator):
     def default_value(self, typename):
         return f"default({self.map_type(typename)})"
 
-    def get_parameter_list(self, param_types):
-        index = 0
-        param_list = "("
-
-        for param_type in param_types:
-            if index > 0:
-                param_list += ", "
-            param_list += f"{self.map_type(param_type)} arg{index}"
-            index += 1
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(' + ', '.join([f"{self.map_type(p['type'])} {p['name']}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "cs"

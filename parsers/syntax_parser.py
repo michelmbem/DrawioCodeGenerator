@@ -1,59 +1,6 @@
 import traceback
 
 
-def parse_class_name(class_name):
-    if class_name.startswith("<<"):
-        pos = class_name.find(">>")
-        if pos >= 0:
-            stereotype = class_name[2:pos].strip().lower()
-            class_name = class_name[pos + 2:].strip()
-        else:
-            raise ValueError(f"Invalid type name: {class_name}")
-    else:
-        stereotype = None
-
-    return class_name, stereotype
-
-
-def parse_property_signature(property_sig):
-    property_sig = property_sig.strip()
-    access_modifier_symbol = property_sig[0]
-    parts = property_sig[1:].split(":")
-
-    if len(parts) > 1:
-        name = parts[0].strip()
-        parts = parts[1].split("=")
-        data_type = parts[0].strip()
-    else:
-        data_type = None
-        parts = parts[0].split("=")
-        name = parts[0].strip()
-
-    default_value = parts[1].strip() if len(parts) > 1 else None
-
-    return access_modifier_symbol, name, data_type, default_value
-
-
-def parse_method_signature(method_sig):
-    method_sig = method_sig.strip()
-    access_modifier_symbol = method_sig[0]
-    parts = method_sig[1:].split(":")
-    name = parts[0].strip()
-    return_type = parts[1].strip() if len(parts) > 1 else "void"
-
-    if name.endswith(")"):
-        lpar = name.find("(")
-        if lpar < 0:
-            raise ValueError(f"Malformed method signature: {method_sig}. Missing opening parenthesis")
-        else:
-            parameters = [s.strip() for s in name[lpar + 1:-1].split(",")]
-            name = name[:lpar].strip()
-    else:
-        parameters = []
-
-    return access_modifier_symbol, name, parameters, return_type
-
-
 class SyntaxParser:
     """
     Parse the style tree into the syntax tree
@@ -62,8 +9,102 @@ class SyntaxParser:
       style_tree: style tree of the drawio file
     """
 
+    ACCESS_MODIFIER_MAPPINGS = {
+        '+': "public",
+        '#': "protected",
+        '-': "private"
+    }
+
     def __init__(self, style_tree):
         self.style_tree = style_tree
+
+    @staticmethod
+    def parse_class_name(class_name):
+        if class_name.startswith("<<"):
+            pos = class_name.find(">>")
+            if pos >= 0:
+                stereotype = class_name[2:pos].strip().lower()
+                class_name = class_name[pos + 2:].strip()
+            else:
+                raise ValueError(f"Invalid type name: {class_name}")
+        else:
+            stereotype = None
+
+        return class_name, stereotype
+
+    @staticmethod
+    def parse_member_signature(member_sig):
+        member_sig = member_sig.strip()
+
+        if member_sig.endswith('}'):
+            lbrace = member_sig.find('{')
+            if lbrace < 0:
+                raise ValueError(f"Member signature: {member_sig}. Missing opening brace")
+            else:
+                constraints = [s.strip() for s in member_sig[lbrace + 1:-1].split(", ") if s.strip()]
+                member_sig = member_sig[:lbrace].strip()
+        else:
+            constraints = []
+
+        access = member_sig[0]
+        if access in SyntaxParser.ACCESS_MODIFIER_MAPPINGS.keys():
+            member_sig = member_sig[1:]
+        else:
+            access = '-'
+
+        return access, member_sig.split(':'), constraints
+
+    @staticmethod
+    def parse_property_signature(property_sig):
+        access, parts, constraints = SyntaxParser.parse_member_signature(property_sig)
+
+        if len(parts) > 1:
+            name = parts[0].strip()
+            parts = parts[1].split("=")
+            data_type = parts[0].strip()
+        else:
+            data_type = 'unspecified'
+            parts = parts[0].split("=")
+            name = parts[0].strip()
+
+        default_value = parts[1].strip() if len(parts) > 1 else None
+
+        return access, name, data_type, default_value, constraints
+
+    @staticmethod
+    def parse_parameter_signature(parameter_sig):
+        parts = parameter_sig.split(':')
+
+        if len(parts) > 1:
+            param_name = parts[0].strip()
+            param_type = parts[1].strip()
+        else:
+            param_name = None
+            param_type = parts[0].strip()
+
+        return {'name': param_name, 'type': param_type}
+
+    @staticmethod
+    def parse_method_signature(method_sig):
+        access, parts, _ = SyntaxParser.parse_member_signature(method_sig)
+        name = parts[0].strip()
+        return_type = parts[1].strip() if len(parts) > 1 else "void"
+
+        if name.endswith(")"):
+            lparen = name.find("(")
+            if lparen < 0:
+                raise ValueError(f"Malformed method signature: {method_sig}. Missing opening parenthesis")
+            else:
+                parameters = [SyntaxParser.parse_parameter_signature(s) for s in name[lparen + 1:-1].split(',')]
+                name = name[:lparen].strip()
+
+                for i in range(len(parameters)):
+                    if not parameters[i]['name']:
+                        parameters[i]['name'] = f"arg{i}"
+        else:
+            parameters = []
+
+        return access, name, parameters, return_type
 
     def convert_to_syntax_tree(self):
         """
@@ -92,7 +133,7 @@ class SyntaxParser:
 
                 if value['parent_id'] == parent and value['style']['type'].lower() in ('swimlane', 'html', 'text'):
                     # start of a new cell
-                    syntax_tree[key] = self._tree_template(value)
+                    syntax_tree[key] = self.tree_template(value)
                     properties_done = False
                     _id = 0
                 else:
@@ -105,25 +146,25 @@ class SyntaxParser:
                         if properties_done:  # methods
                             syntax_tree[value['parent_id']]['methods'] = {
                                 **syntax_tree[value['parent_id']]['methods'],
-                                **self._methods_template(value, _id)
+                                **self.methods_template(value, _id)
                             }
                         else:  # properties
                             syntax_tree[value['parent_id']]['properties'] = {
                                 **syntax_tree[value['parent_id']]['properties'],
-                                **self._properties_template(value, _id)
+                                **self.properties_template(value, _id)
                             }
 
                         _id += len(value['values'])
 
             for relationship in relationships.keys():
-                self._add_relationships(syntax_tree, relationships[relationship])
+                self.add_relationships(syntax_tree, relationships[relationship])
         except Exception as e:
             print(f"SyntaxParser.convert_to_syntax_tree ERROR: {e}")
             traceback.print_exception(e)
 
         return syntax_tree
 
-    def _tree_template(self, main_cell):
+    def tree_template(self, main_cell):
         """
         Create the template that will house each cell
 
@@ -156,22 +197,22 @@ class SyntaxParser:
             methods = {'values': main_cell['values'][2] if values_length > 2 else None}
 
             template['name'] = name[0]
-            template['properties'] = self._properties_template(properties, 0) or {}
-            template['methods'] = self._methods_template(methods, 0) or {}
+            template['properties'] = self.properties_template(properties, 0) or {}
+            template['methods'] = self.methods_template(methods, 0) or {}
 
-        name, stereotype = parse_class_name(template['name'])
+        name, stereotype = self.parse_class_name(template['name'])
         template['name'] = name
 
         if stereotype == "abstract":
             template['type'] = "abstract class"
-        elif stereotype in ("interface", "enum"):
+        elif stereotype in ("interface", "enumeration"):
             template['type'] = stereotype
         else:
             template['stereotype'] = stereotype
 
         return template
 
-    def _properties_template(self, property_dict, _id):
+    def properties_template(self, property_dict, _id):
         """
         Create the template for properties
 
@@ -192,17 +233,18 @@ class SyntaxParser:
                     continue
 
                 _id += 1
-                access_modifier_symbol, name, data_type, default_value = parse_property_signature(val)
+                access, name, data_type, default_value, constraints = self.parse_property_signature(val)
                 template[_id] = {
-                    'access': self._get_access_modifier(access_modifier_symbol),
+                    'access': self.get_access_modifier(access),
                     'name': name,
                     'type': data_type,
                     'default_value': default_value,
+                    'constraints': constraints,
                 }
 
         return template
 
-    def _methods_template(self, method_dict, _id):
+    def methods_template(self, method_dict, _id):
         """
         Create the template for methods
 
@@ -223,9 +265,9 @@ class SyntaxParser:
                     continue
 
                 _id += 1
-                access_modifier_symbol, name, parameters, return_type = parse_method_signature(val)
+                access, name, parameters, return_type = self.parse_method_signature(val)
                 template[_id] = {
-                    'access': self._get_access_modifier(access_modifier_symbol),
+                    'access': self.get_access_modifier(access),
                     'name': name,
                     'parameters': parameters,
                     'return_type': return_type,
@@ -233,7 +275,7 @@ class SyntaxParser:
 
         return template
 
-    def _get_access_modifier(self, symbol):
+    def get_access_modifier(self, symbol):
         """
         Return the access modifier
 
@@ -244,15 +286,9 @@ class SyntaxParser:
           text: the text of the access modifier symbol
         """
 
-        access_modifier_dict = {
-            '+': "public",
-            '#': "protected",
-            '-': "private"
-        }
+        return self.ACCESS_MODIFIER_MAPPINGS.get(symbol, 'private')
 
-        return access_modifier_dict[symbol]
-
-    def _add_relationships(self, syntax_tree, relationship):
+    def add_relationships(self, syntax_tree, relationship):
         """
         Add the relationship for the cells in the syntax tree
 

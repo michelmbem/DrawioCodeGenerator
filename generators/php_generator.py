@@ -34,23 +34,18 @@ class PhpCodeGenerator(CodeGenerator):
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
 
-        if class_type != "enum":
+        if class_type != "enumeration":
             add_linebreak = False
 
             for module, symbols in self.options['imports'].items():
                 class_header += f"require_once '{module}';\n"
                 add_linebreak = True
 
-            for baseclass in baseclasses:
-                class_header += f"require_once './{baseclass}.php';\n"
-                add_linebreak = True
+            dependencies = {*baseclasses, *interfaces, *references}
+            dependencies.discard(class_name)
 
-            for interface in interfaces:
-                class_header += f"require_once './{interface}.php';\n"
-                add_linebreak = True
-
-            for reference in references:
-                class_header += f"require_once './{reference}.php';\n"
+            for dependency in dependencies:
+                class_header += f"require_once './{dependency}.php';\n"
                 add_linebreak = True
 
             if add_linebreak:
@@ -225,17 +220,8 @@ class PhpCodeGenerator(CodeGenerator):
             return '""'
         return "null"
 
-    def get_parameter_list(self, param_types):
-        param_list = "("
-
-        for index in range(len(param_types)):
-            if index > 0:
-                param_list += ", "
-            param_list += f"$arg{index}"
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(' + ', '.join([f"${p['name']}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "php"

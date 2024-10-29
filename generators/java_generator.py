@@ -44,6 +44,7 @@ class JavaCodeGenerator(CodeGenerator):
         "time": "LocalTime",
         "datetime": "LocalDateTime",
         "timestamp": "LocalDateTime",
+        "unspecified": "Object",
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -69,7 +70,7 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
 
-        if class_type != "enum":
+        if class_type != "enumeration":
             add_linebreak = False
 
             for module, symbols in self.options['imports'].items():
@@ -266,19 +267,8 @@ class JavaCodeGenerator(CodeGenerator):
             return '""'
         return "null"
 
-    def get_parameter_list(self, param_types):
-        index = 0
-        param_list = "("
-
-        for param_type in param_types:
-            if index > 0:
-                param_list += ", "
-            param_list += f"{self.map_type(param_type)} arg{index}"
-            index += 1
-
-        param_list += ")"
-
-        return param_list
+    def get_parameter_list(self, parameters):
+        return '(' + ', '.join([f"{self.map_type(p['type'])} {p['name']}" for p in parameters]) + ')'
 
     def get_file_extension(self):
         return "java"
