@@ -1,6 +1,7 @@
 import traceback
 
 from generators.code_generator import CodeGenerator
+from generators.sql_dialect.sql_dialects import SQLDialects
 
 
 class SqlCodeGenerator(CodeGenerator):
@@ -13,44 +14,9 @@ class SqlCodeGenerator(CodeGenerator):
         options: set of additional options
     """
 
-    TYPE_MAPPINGS = {
-        "boolean": "bit",
-        "bool": "bit",
-        "char": "char(1)",
-        "wchar": "nchar(1)",
-        "sbyte": "tinyint",
-        "int8": "tinyint",
-        "byte": "tinyint",
-        "uint8": "tinyint",
-        "short": "smallint",
-        "int16": "smallint",
-        "ushort": "smallint",
-        "uint16": "smallint",
-        "integer": "int",
-        "int": "int",
-        "int32": "int",
-        "uint": "int",
-        "uint32": "int",
-        "long": "bigint",
-        "int64": "bigint",
-        "ulong": "bigint",
-        "uint64": "bigint",
-        "float": "float(24)",
-        "single": "float(24)",
-        "double": "float(53)",
-        "bigint": "decimal(30, 0)",
-        "decimal": "decimal(30, 10)",
-        "string": "varchar(2000)",
-        "wstring": "nvarchar(2000)",
-        "date": "date",
-        "time": "time",
-        "datetime": "datetime",
-        "timestamp": "datetime",
-        "unspecified": "int",
-    }
-
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.dialect = SQLDialects.get(options.get('dialect', "ansi"))
 
     def generate_code(self):
         """
@@ -63,7 +29,7 @@ class SqlCodeGenerator(CodeGenerator):
             self.ensure_dir_exists(self.file_path)
 
             for class_def in self.syntax_tree.values():
-                if class_def['type'] != "class":
+                if not (class_def['type'] in ("class", "abstract class") and len(class_def['properties']) > 0):
                     continue
 
                 file_contents = self.generate_class_header(class_def['type'], class_def['name'], None, None, None)
@@ -126,6 +92,8 @@ class SqlCodeGenerator(CodeGenerator):
 
         properties_string = ""
         first_prop = True
+        primary_key = []
+        foreign_keys = {}
 
         for property_def in properties.values():
             if first_prop:
@@ -133,11 +101,34 @@ class SqlCodeGenerator(CodeGenerator):
             else:
                 properties_string += ",\n"
 
-            p = f"\t{property_def['name']} {self.map_type(property_def['type'])}"
+            p = f"\t{property_def['name']} {self.dialect.map_type(property_def['type'], property_def['constraints'])}"
+
+            for constraint in property_def['constraints']:
+                if constraint == "notnull":
+                    p += " not null"
+                elif constraint == "unique":
+                    p += " unique"
+                elif constraint == "identity":
+                    p += f" {self.dialect.identity_spec()}".rstrip()
+                elif constraint == 'pk':
+                    primary_key += [property_def['name']]
+                elif constraint.startswith('fk:'):
+                    foreign_table = constraint[3:]
+                    if foreign_table in foreign_keys:
+                        foreign_keys[foreign_table] += [property_def['name']]
+                    else:
+                        foreign_keys[foreign_table] = [property_def['name']]
+
             if property_def['default_value']:
                 p += f" default {property_def['default_value']}"
 
             properties_string += p
+
+        if len(primary_key) > 0:
+            properties_string += f",\n\tprimary key({', '.join(primary_key)})"
+
+        for foreign_table, foreign_columns in foreign_keys.items():
+            properties_string += f",\n\tforeign key({', '.join(foreign_columns)}) references {foreign_table}"
 
         return properties_string
 
@@ -163,7 +154,7 @@ class SqlCodeGenerator(CodeGenerator):
         return f"use {'_'.join(self.split_package_name(package_name))};\n\n"
 
     def map_type(self, typename):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        return ""
 
     def default_value(self, typename):
         typename = typename.lower()
@@ -177,18 +168,7 @@ class SqlCodeGenerator(CodeGenerator):
         return "None"
 
     def get_parameter_list(self, param_types):
-        index = 0
-        param_list = "("
-
-        for param_type in param_types:
-            if index > 0:
-                param_list += ", "
-            param_list += f"arg{index} : {param_type}"
-            index += 1
-
-        param_list += ")"
-
-        return param_list
+        return ""
 
     def get_file_extension(self):
         return "sql"

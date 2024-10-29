@@ -53,7 +53,7 @@ class CodeGenerators:
         """
 
         language_code = CodeGenerators.language_code(language)
-        language_options = CodeGenerators.extract_language_option(options, language_code)
+        language_options = CodeGenerators.extract_language_options(options, language_code)
 
         if language_code == "java":
             code_gen = JavaCodeGenerator(syntax_tree, output_dir, language_options)
@@ -83,5 +83,7 @@ class CodeGenerators:
         return CodeGenerators.LANGUAGE_NAMES.get(language_code, language_code)
 
     @staticmethod
-    def extract_language_option(options, language_code):
-        return {**options, 'imports': options['language_specific'][language_code].get('imports', {})}
+    def extract_language_options(options, language_code):
+        language_options = {**options, **options['language_specific'][language_code]}
+        del language_options['language_specific']
+        return language_options

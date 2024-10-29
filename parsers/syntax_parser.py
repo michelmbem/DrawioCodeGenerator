@@ -1,3 +1,4 @@
+import re
 import traceback
 
 
@@ -41,7 +42,7 @@ class SyntaxParser:
             if lbrace < 0:
                 raise ValueError(f"Member signature: {member_sig}. Missing opening brace")
             else:
-                constraints = [s.strip() for s in member_sig[lbrace + 1:-1].split(", ") if s.strip()]
+                constraints = [s for s in re.split(r"[\s,]+", member_sig[lbrace + 1:-1]) if s]
                 member_sig = member_sig[:lbrace].strip()
         else:
             constraints = []
@@ -203,12 +204,16 @@ class SyntaxParser:
         name, stereotype = self.parse_class_name(template['name'])
         template['name'] = name
 
-        if stereotype == "abstract":
-            template['type'] = "abstract class"
-        elif stereotype in ("interface", "enumeration"):
+        if stereotype in ("interface", "enumeration"):
             template['type'] = stereotype
+        elif stereotype == "enum":
+            template['type'] = "enumeration"
+        elif stereotype == "abstract":
+            template['type'] = "abstract class"
         else:
             template['stereotype'] = stereotype
+            if main_cell['style'].get('fontStyle') == "2":  # itallic
+                template['type'] = "abstract class"
 
         return template
 
