@@ -1,4 +1,3 @@
-import re
 import traceback
 
 
@@ -42,7 +41,7 @@ class SyntaxParser:
             if lbrace < 0:
                 raise ValueError(f"Member signature: {member_sig}. Missing opening brace")
             else:
-                constraints = [s for s in re.split(r"[\s,]+", member_sig[lbrace + 1:-1]) if s]
+                constraints = [s.strip() for s in member_sig[lbrace + 1:-1].split(',') if s.strip()]
                 member_sig = member_sig[:lbrace].strip()
         else:
             constraints = []
@@ -56,8 +55,34 @@ class SyntaxParser:
         return access, member_sig.split(':'), constraints
 
     @staticmethod
+    def to_constraint_dict(constraints):
+        constraint_dict = {}
+        other_constraints = set()
+
+        for constraint in constraints:
+            if constraint in ("static", "virtual", "final", "required", "unique", "pk", "identity"):
+                constraint_dict[constraint] = True
+            elif constraint.startswith("fk:"):
+                constraint_dict['fk'] = True
+                constraint_dict['fk_target'] = constraint[3:]
+            elif constraint.startswith("length:"):
+                constraint_dict['length'] = int(constraint[7:])
+            elif constraint.startswith("size:"):
+                parts = constraint[5:].split(':')
+                constraint_dict['size'] = (int(parts[0].strip()), int(parts[1].strip()))
+            elif constraint.startswith("format:"):
+                constraint_dict['format'] = constraint[7:]
+            else:
+                other_constraints.add(constraint)
+
+        constraint_dict['other'] = other_constraints
+
+        return constraint_dict
+
+    @staticmethod
     def parse_property_signature(property_sig):
         access, parts, constraints = SyntaxParser.parse_member_signature(property_sig)
+        constraint_dict = SyntaxParser.to_constraint_dict(constraints)
 
         if len(parts) > 1:
             name = parts[0].strip()
@@ -70,7 +95,7 @@ class SyntaxParser:
 
         default_value = parts[1].strip() if len(parts) > 1 else None
 
-        return access, name, data_type, default_value, constraints
+        return access, name, data_type, default_value, constraint_dict
 
     @staticmethod
     def parse_parameter_signature(parameter_sig):
@@ -87,9 +112,10 @@ class SyntaxParser:
 
     @staticmethod
     def parse_method_signature(method_sig):
-        access, parts, _ = SyntaxParser.parse_member_signature(method_sig)
+        access, parts, constraints = SyntaxParser.parse_member_signature(method_sig)
         name = parts[0].strip()
         return_type = parts[1].strip() if len(parts) > 1 else "void"
+        constraint_dict = SyntaxParser.to_constraint_dict(constraints)
 
         if name.endswith(")"):
             lparen = name.find("(")
@@ -105,7 +131,7 @@ class SyntaxParser:
         else:
             parameters = []
 
-        return access, name, parameters, return_type
+        return access, name, parameters, return_type, constraint_dict
 
     def convert_to_syntax_tree(self):
         """
@@ -270,12 +296,13 @@ class SyntaxParser:
                     continue
 
                 _id += 1
-                access, name, parameters, return_type = self.parse_method_signature(val)
+                access, name, parameters, return_type, constraints = self.parse_method_signature(val)
                 template[_id] = {
                     'access': self.get_access_modifier(access),
                     'name': name,
                     'parameters': parameters,
                     'return_type': return_type,
+                    'constraints': constraints,
                 }
 
         return template

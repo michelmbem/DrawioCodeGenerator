@@ -96,28 +96,29 @@ class SqlCodeGenerator(CodeGenerator):
         foreign_keys = {}
 
         for property_def in properties.values():
+            constraints = property_def['constraints']
+
             if first_prop:
                 first_prop = False
             else:
                 properties_string += ",\n"
 
-            p = f"\t{property_def['name']} {self.dialect.map_type(property_def['type'], property_def['constraints'])}"
+            p = f"\t{property_def['name']} {self.map_type(property_def['type'], constraints)}"
 
-            for constraint in property_def['constraints']:
-                if constraint == "required":
-                    p += " not null"
-                elif constraint == "unique":
-                    p += " unique"
-                elif constraint == "identity":
-                    p += f" {self.dialect.identity_spec()}".rstrip()
-                elif constraint == 'pk':
-                    primary_key += [property_def['name']]
-                elif constraint.startswith('fk:'):
-                    foreign_table = constraint[3:]
-                    if foreign_table in foreign_keys:
-                        foreign_keys[foreign_table] += [property_def['name']]
-                    else:
-                        foreign_keys[foreign_table] = [property_def['name']]
+            if constraints.get('required', False):
+                p += " not null"
+            if constraints.get('unique', False):
+                p += " unique"
+            if constraints.get('identity', False):
+                p += f" {self.dialect.identity_spec()}".rstrip()
+            if constraints.get('pk', False):
+                primary_key += [property_def['name']]
+            if constraints.get('fk', False):
+                fk_target = constraints['fk_target']
+                if fk_target in foreign_keys:
+                    foreign_keys[fk_target].append(property_def['name'])
+                else:
+                    foreign_keys[fk_target] = [property_def['name']]
 
             if property_def['default_value']:
                 p += f" default {property_def['default_value']}"
@@ -127,12 +128,12 @@ class SqlCodeGenerator(CodeGenerator):
         if len(primary_key) > 0:
             properties_string += f",\n\tprimary key({', '.join(primary_key)})"
 
-        for foreign_table, foreign_columns in foreign_keys.items():
-            properties_string += f",\n\tforeign key({', '.join(foreign_columns)}) references {foreign_table}"
+        for foreign_table, columns in foreign_keys.items():
+            properties_string += f",\n\tforeign key({', '.join(columns)}) references {foreign_table}"
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         return None
 
     def generate_methods(self, methods, class_type, interface_methods):
@@ -153,8 +154,8 @@ class SqlCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return f"use {'_'.join(self.split_package_name(package_name))};\n\n"
 
-    def map_type(self, typename):
-        return ""
+    def map_type(self, typename, constraints = None):
+        return self.dialect.map_type(typename, constraints)
 
     def default_value(self, typename):
         typename = typename.lower()

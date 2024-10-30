@@ -90,7 +90,15 @@ class PhpCodeGenerator(CodeGenerator):
             if is_enum:
                 p = f"\tcase {property_def['name']}"
             else:
-                p = f"\t{self.get_property_access(property_def)} ${property_def['name']}"
+                modifier = f"{self.get_property_access(property_def)}"
+                constraints = property_def['constraints']
+
+                if constraints.get('static', False):
+                    modifier += " static"
+                if constraints.get('final', False):
+                    modifier += " final"
+
+                p = f"\t{modifier} ${property_def['name']}"
 
             if property_def['default_value']:
                 p += f" = {property_def['default_value']}"
@@ -100,11 +108,12 @@ class PhpCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         """
         Generate property accessors for the class
 
         Parameters:
+            class_name: name of class
             properties: dictionary of properties
 
         Returns:
@@ -115,13 +124,22 @@ class PhpCodeGenerator(CodeGenerator):
 
         for property_def in properties.values():
             if self.get_property_access(property_def) == "private":
-                getter = (f"\tpublic function get_{property_def['name']}() {{\n"
-                          f"\t\treturn $this->{property_def['name']};\n\t}}\n\n")
+                constraints = property_def['constraints']
+
+                target, modifier = "$this->", ""
+                if constraints.get('static', False):
+                    target = f"{class_name}::"
+                    modifier += " static"
+                modifier += " "
+
+                getter = (f"\tpublic{modifier}function get_{property_def['name']}() {{\n"
+                          f"\t\treturn {target}{property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\tpublic function set_{property_def['name']}(${property_def['name']}) {{\n"
-                          f"\t\t$this->{property_def['name']} = ${property_def['name']};\n\t}}\n\n")
-                accessors_string += setter
+                if not constraints.get('final', False):
+                    setter = (f"\tpublic{modifier}function set_{property_def['name']}(${property_def['name']}) {{\n"
+                              f"\t\t{target}{property_def['name']} = ${property_def['name']};\n\t}}\n\n")
+                    accessors_string += setter
 
         return accessors_string
 
@@ -146,7 +164,16 @@ class PhpCodeGenerator(CodeGenerator):
             if class_type == "interface":
                 m = f"\t{method_def['access']} function {method_def['name']}{params};"
             else:
-                m = f"\t{method_def['access']} function {method_def['name']}{params}\n\t{{\n"
+                constraints = method_def['constraints']
+
+                modifier = ""
+                if constraints.get('static', False):
+                    modifier += " static"
+                elif constraints.get('final', False):
+                    modifier += " final"
+                modifier += " "
+
+                m = f"\t{method_def['access']}{modifier}function {method_def['name']}{params}\n\t{{\n"
                 m += f"\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
@@ -171,9 +198,9 @@ class PhpCodeGenerator(CodeGenerator):
     def generate_full_arg_ctor(self, class_name, properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
-        ctor_string += separator.join([f"${p['name']} = {self.default_value(p['type'])}" for p in properties.values()])
+        ctor_string += separator.join(f"${p['name']} = {self.default_value(p['type'])}" for p in properties.values())
         ctor_string += ") {\n"
-        ctor_string += '\n'.join([f"\t\t$this->{p['name']} = ${p['name']};" for p in properties.values()])
+        ctor_string += '\n'.join(f"\t\t$this->{p['name']} = ${p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
@@ -182,12 +209,12 @@ class PhpCodeGenerator(CodeGenerator):
         method_string = "\tpublic function equals($obj) {\n"
         method_string += "\t\tif ($this === $obj) return true;\n"
         method_string += "\t\tif (get_class($this) === get_class($obj)) {\n\t\t\treturn "
-        method_string += " &&\n\t\t\t\t".join([f"$this->{p['name']} === $obj->{p['name']}" for p in properties.values()])
+        method_string += " &&\n\t\t\t\t".join(f"$this->{p['name']} === $obj->{p['name']}" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\tpublic function hashCode() {\n"
         method_string += "\t\treturn crc32(\""
-        method_string += ':'.join([f"$this->{p['name']}" for p in properties.values()])
+        method_string += ':'.join(f"$this->{p['name']}" for p in properties.values())
         method_string += "\");\n\t}\n\n"
 
         return method_string
@@ -195,7 +222,7 @@ class PhpCodeGenerator(CodeGenerator):
     def generate_to_string(self, class_name, properties):
         method_string = "\tpublic function toString() {\n"
         method_string += f"\t\treturn \"{class_name} {{"
-        method_string += ', '.join([f"{p['name']}=$this->{p['name']}" for p in properties.values()])
+        method_string += ', '.join(f"{p['name']}=$this->{p['name']}" for p in properties.values())
         method_string += "}\";\n\t}\n\n"
 
         return method_string
@@ -203,7 +230,7 @@ class PhpCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return f"namespace {'\\'.join(self.split_package_name(package_name))};\n\n"
 
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         return None
 
     def default_value(self, typename):
@@ -219,7 +246,7 @@ class PhpCodeGenerator(CodeGenerator):
         return "null"
 
     def get_parameter_list(self, parameters):
-        return '(' + ', '.join([f"${p['name']}" for p in parameters]) + ')'
+        return f"({', '.join(f"${p['name']}" for p in parameters)})"
 
     def get_file_extension(self):
         return "php"

@@ -57,7 +57,7 @@ class PostgreSQLDialect(SQLDialect):
     }
 
     def map_type(self, typename, constraints):
-        if "identity" in constraints:
+        if constraints.get("identity", False):
             return self.SERIAL_TYPE_MAPPINGS.get(typename.lower(), "serial")
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 

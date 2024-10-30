@@ -56,7 +56,7 @@ class CodeGenerator(ABC):
                     if class_has_props and should_generate['full_arg_ctor']:
                         file_contents += self.generate_full_arg_ctor(class_def['name'], class_def['properties'])
 
-                    file_contents += self.generate_property_accessors(class_def['properties'])
+                    file_contents += self.generate_property_accessors(class_def['name'], class_def['properties'])
 
                     if class_has_props and should_generate['equal_hashcode']:
                         file_contents += self.generate_equal_hashcode(class_def['name'], class_def['properties'])
@@ -170,7 +170,7 @@ class CodeGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         pass
 
     @abstractmethod
@@ -198,7 +198,7 @@ class CodeGenerator(ABC):
         pass
 
     @abstractmethod
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         pass
 
     @abstractmethod

@@ -47,6 +47,17 @@ class JavaCodeGenerator(CodeGenerator):
         "unspecified": "Object",
     }
 
+    OBJECT_TYPE_MAPPINGS = {
+        "boolean": "Boolean",
+        "char": "Character",
+        "byte": "Byte",
+        "short": "Short",
+        "int": "Integer",
+        "long": "Long",
+        "float": "Float",
+        "double": "Double",
+    }
+
     TEMPORAL_TYPE_IMPORTS = {
         "java8_local": {"package": "java.time", "classes": ["LocalDate", "LocalTime", "LocalDateTime"]},
         "java8_offset": {"package": "java.time", "classes": ["LocalDate", "OffsetTime", "OffsetDateTime"]},
@@ -57,6 +68,12 @@ class JavaCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+
+    @staticmethod
+    def accessor_name(property_name):
+        if property_name[0].islower():
+            return f"{property_name[0].upper()}{property_name[1:]}"
+        return property_name
 
     def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
@@ -165,21 +182,30 @@ class JavaCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f"({property_def['default_value']})"
             else:
+                constraints = property_def['constraints']
                 p = "\t"
 
-                if self.options['add_jpa']:
-                    for constraint in property_def['constraints']:
-                        if constraint == 'pk':
-                            p += "@Id\n\t"
-                        elif constraint == 'required':
+                if not (constraints.get('static', False) or constraints.get('final', False)):
+                    if self.options['add_jpa']:
+                        if constraints.get('required', False):
                             p += "@NotNull\n\t"
-                        elif constraint == 'identity':
+                        if constraints.get('pk', False):
+                            p += "@Id\n\t"
+                        if constraints.get('identity', False):
                             p += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
+                        size = constraints.get('size')
+                        if size:
+                            p += f"@Size(min={size[0]},max={size[1]})\n\t"
 
-                if self.options['add_builder'] and property_def['default_value']:
-                    p += "@Builder.Default\n\t"
+                    if self.options['add_builder'] and property_def['default_value']:
+                        p += "@Builder.Default\n\t"
 
-                p += f"{self.get_property_access(property_def)} {self.map_type(property_def['type'])} {property_def['name']}"
+                p += self.get_property_access(property_def)
+                if constraints.get('static', False):
+                    p += " static"
+                if constraints.get('final', False):
+                    p += " final"
+                p += f" {self.map_type(property_def['type'], constraints)} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -188,11 +214,12 @@ class JavaCodeGenerator(CodeGenerator):
  
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         """
         Generate property accessors for the class
 
         Parameters:
+            class_name: name of class
             properties: dictionary of properties
 
         Returns:
@@ -206,13 +233,22 @@ class JavaCodeGenerator(CodeGenerator):
 
         for property_def in properties.values():
             if self.get_property_access(property_def) == "private":
-                getter = (f"\tpublic {self.map_type(property_def['type'])} get{property_def['name'].capitalize()}() {{\n"
+                accessor_name = self.accessor_name(property_def['name'])
+                accessor_type = self.map_type(property_def['type'])
+                constraints = property_def['constraints']
+
+                target, modifier = "this",  " "
+                if constraints.get('static', False):
+                    target, modifier = class_name, " static "
+
+                getter = (f"\tpublic{modifier}{accessor_type} get{accessor_name}() {{\n"
                           f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                setter = (f"\tpublic void set{property_def['name'].capitalize()}({self.map_type(property_def['type'])} "
-                          f"{property_def['name']}) {{\n\t\tthis.{property_def['name']} = {property_def['name']};\n\t}}\n\n")
-                accessors_string += setter
+                if not constraints.get('final', False):
+                    setter = (f"\tpublic{modifier}void set{accessor_name}({accessor_type} {property_def['name']}) {{\n"
+                              f"\t\t{target}.{property_def['name']} = {property_def['name']};\n\t}}\n\n")
+                    accessors_string += setter
 
         return accessors_string
 
@@ -237,7 +273,16 @@ class JavaCodeGenerator(CodeGenerator):
             if class_type == "interface":
                 m = f"\t{self.map_type(method_def['return_type'])} {method_def['name']}{params};"
             else:
-                m = f"\t{method_def['access']} {self.map_type(method_def['return_type'])} {method_def['name']}{params} {{\n"
+                constraints = method_def['constraints']
+
+                modifier = ""
+                if constraints.get('static', False):
+                    modifier += " static"
+                elif constraints.get('final', False):
+                    modifier += " final"
+                modifier += " "
+
+                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params} {{\n"
                 m += f"\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
@@ -268,9 +313,9 @@ class JavaCodeGenerator(CodeGenerator):
 
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        ctor_string += separator.join([f"{self.map_type(p['type'])} {p['name']}" for p in properties.values()])
+        ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ") {\n"
-        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
@@ -289,12 +334,12 @@ class JavaCodeGenerator(CodeGenerator):
         method_string = "\t@Override\n\tpublic boolean equals(Object obj) {\n"
         method_string += "\t\tif (this == obj) return true;\n"
         method_string += f"\t\tif (obj instanceof {class_name} other) {{\n\t\t\treturn "
-        method_string += sep1.join([f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += sep1.join(f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\t@Override\n\tpublic int hashCode() {\n"
         method_string += "\t\treturn Objects.hash("
-        method_string += sep2.join([p['name'] for p in properties.values()])
+        method_string += sep2.join(p['name'] for p in properties.values())
         method_string += ");\n\t}\n\n"
 
         return method_string
@@ -307,7 +352,7 @@ class JavaCodeGenerator(CodeGenerator):
         sep2 = f".append(\", \"){sep1}"
         method_string = "\t@Override\n\tpublic String toString() {\n"
         method_string += f"\t\treturn new StringBuilder(\"{class_name} {{\"){sep1}"
-        method_string += sep2.join([f".append(\"{p['name']}=\").append({p['name']})" for p in properties.values()])
+        method_string += sep2.join(f".append(\"{p['name']}=\").append({p['name']})" for p in properties.values())
         method_string += f"{sep1}.append(\"}}\").toString();\n\t}}\n\n"
 
         return method_string
@@ -315,10 +360,12 @@ class JavaCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return f"package {'.'.join(self.split_package_name(package_name))};\n\n"
 
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         mapped_type = self.TYPE_MAPPINGS.get(typename.lower(), typename)
         if isinstance(mapped_type, dict):
             return mapped_type.get(self.get_temporal_types_option(), "Object")
+        if constraints and (constraints.get("pk", False) or not constraints.get("required", False)):
+            return self.OBJECT_TYPE_MAPPINGS.get(mapped_type, mapped_type)
         return mapped_type
 
     def default_value(self, typename):
@@ -334,7 +381,7 @@ class JavaCodeGenerator(CodeGenerator):
         return "null"
 
     def get_parameter_list(self, parameters):
-        return '(' + ', '.join([f"{self.map_type(p['type'])} {p['name']}" for p in parameters]) + ')'
+        return f"({', '.join(f"{self.map_type(p['type'])} {p['name']}" for p in parameters)})"
 
     def get_file_extension(self):
         return "java"
@@ -357,7 +404,7 @@ class JavaCodeGenerator(CodeGenerator):
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
-                "classes": ["NotNull"]
+                "classes": ["NotNull", "Size"]
             })
 
         return jpa_imports

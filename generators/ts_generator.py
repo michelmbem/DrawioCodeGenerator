@@ -145,7 +145,15 @@ class TsCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = (f"\t{self.get_property_access(property_def)} {property_prefix}{property_def['name']}"
+                modifier = f"{self.get_property_access(property_def)}"
+                constraints = property_def['constraints']
+
+                if constraints.get('static', False):
+                    modifier += " static"
+                if constraints.get('final', False):
+                    modifier += " readonly"
+
+                p = (f"\t{modifier} {property_prefix}{property_def['name']}"
                      f": {self.map_type(property_def['type'])}")
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
@@ -155,11 +163,12 @@ class TsCodeGenerator(CodeGenerator):
  
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         """
         Generate property accessors for the class
 
         Parameters:
+            class_name: name of class
             properties: dictionary of properties
 
         Returns:
@@ -177,12 +186,20 @@ class TsCodeGenerator(CodeGenerator):
                 accessor_name = self.accessor_name(property_name)
                 accessor_type = self.map_type(property_def['type'])
                 parameter_name = self.parameter_name(property_name)
+                constraints = property_def['constraints']
 
-                accessors_string += (f"\tpublic get {accessor_name}(): {accessor_type} {{\n"
-                                     f"\t\treturn this.{property_name};\n\t}}\n\n")
+                target, modifier = "this", ""
+                if constraints.get('static', False):
+                    target = class_name
+                    modifier += " static"
+                modifier += " "
 
-                accessors_string += (f"\tpublic set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
-                                     f"\t\tthis.{property_name} = {parameter_name};\n\t}}\n\n")
+                accessors_string += (f"\tpublic{modifier}get {accessor_name}(): {accessor_type} {{\n"
+                                     f"\t\treturn {target}.{property_name};\n\t}}\n\n")
+
+                if not constraints.get('final', False):
+                    accessors_string += (f"\tpublic{modifier}set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
+                                         f"\t\t{target}.{property_name} = {parameter_name};\n\t}}\n\n")
 
         return accessors_string
 
@@ -207,7 +224,13 @@ class TsCodeGenerator(CodeGenerator):
             if class_type == "interface":
                 m = f"\t{method_def['name']}{params}: {self.map_type(method_def['return_type'])};"
             else:
-                m = f"\t{method_def['access']} {method_def['name']}{params}: {self.map_type(method_def['return_type'])} {{\n"
+                constraints = method_def['constraints']
+
+                modifier = " "
+                if constraints.get('static', False):
+                    modifier += " static "
+
+                m = f"\t{method_def['access']}{modifier}{method_def['name']}{params}: {self.map_type(method_def['return_type'])} {{\n"
                 m += f"\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
@@ -236,10 +259,10 @@ class TsCodeGenerator(CodeGenerator):
 
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic constructor("
-        ctor_string += separator.join([f"{p['name']}: {self.map_type(p['type'])} = {self.default_value(p['type'])}"
-                                       for p in properties.values()])
+        ctor_string += separator.join(f"{p['name']}: {self.map_type(p['type'])} = {self.default_value(p['type'])}"
+                                      for p in properties.values())
         ctor_string += ") {\n"
-        ctor_string += '\n'.join([f"\t\tthis.{prefix}{p['name']} = {p['name']};" for p in properties.values()])
+        ctor_string += '\n'.join(f"\t\tthis.{prefix}{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
@@ -250,7 +273,7 @@ class TsCodeGenerator(CodeGenerator):
     def generate_to_string(self, class_name, properties):
         method_string = "\tpublic toString(): string {\n"
         method_string += f"\t\treturn `{class_name} \\{{"
-        method_string += ', '.join([f"{p['name']}=${{this.{p['name']}}}" for p in properties.values()])
+        method_string += ', '.join(f"{p['name']}=${{this.{p['name']}}}" for p in properties.values())
         method_string += "\\}`;\n\t}\n\n"
 
         return method_string
@@ -258,7 +281,7 @@ class TsCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return None
 
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def default_value(self, typename):
@@ -272,7 +295,7 @@ class TsCodeGenerator(CodeGenerator):
         return "null"
 
     def get_parameter_list(self, parameters):
-        return '(' + ', '.join([f"{p['name']}: {self.map_type(p['type'])}" for p in parameters]) + ')'
+        return f"({', '.join(f"{p['name']}: {self.map_type(p['type'])}" for p in parameters)})"
 
     def get_file_extension(self):
         return "ts"

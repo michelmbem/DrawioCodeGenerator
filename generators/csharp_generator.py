@@ -51,10 +51,10 @@ class CSharpCodeGenerator(CodeGenerator):
         super().__init__(syntax_tree, file_path, options)
 
     @staticmethod
-    def accessor_name(property_name):
+    def accessor_name(property_name, avoid_conflict):
         if property_name[0].islower():
             return f"{property_name[0].upper()}{property_name[1:]}"
-        return property_name + "Property"
+        return property_name + "Property" if avoid_conflict else property_name
 
     @staticmethod
     def parameter_name(property_name):
@@ -150,7 +150,18 @@ class CSharpCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
             else:
-                p = f"\t{property_def['access']} {self.map_type(property_def['type'])} {property_def['name']}"
+                modifier = self.get_property_access(property_def)
+                constraints = property_def['constraints']
+
+                if constraints.get('static', False):
+                    if constraints.get('final', False):
+                        modifier = f"{property_def['access']} const"
+                    else:
+                        modifier += " static"
+                elif constraints.get('final', False):
+                    modifier += " readonly"
+
+                p = f"\t{modifier} {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -159,11 +170,12 @@ class CSharpCodeGenerator(CodeGenerator):
  
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         """
         Generate property accessors for the class
 
         Parameters:
+            class_name: name of class
             properties: dictionary of properties
 
         Returns:
@@ -173,20 +185,35 @@ class CSharpCodeGenerator(CodeGenerator):
         accessors_string = ""
 
         for property_def in properties.values():
-            if self.options['add_efcore']:
-                for constraint in property_def['constraints']:
-                    if constraint == 'pk':
-                        accessors_string += "\t[Key]\n"
-                    elif constraint == 'required':
-                        accessors_string += "\t[Required]\n"
+            constraints = property_def['constraints']
+            modifier = " "
+
+            if constraints.get('static', False):
+                if constraints.get('final', False):
+                    continue    # No encapsulation for constants
+                modifier = " static "
+            elif self.options['add_efcore']:
+                if constraints.get('required', False):
+                    accessors_string += "\t[Required]\n"
+                if constraints.get('pk', False):
+                    accessors_string += "\t[Key]\n"
+                size = constraints.get('size')
+                if size:
+                    accessors_string += f"\t[MaxLength({size[1]})]\n"
 
             if self.options['encapsulate_all_props']:
-                accessors_string += f"\tpublic {self.map_type(property_def['type'])} {property_def['name']} {{ get; set; }}\n\n"
+                accessor_name = self.accessor_name(property_def['name'], False)
+                accessors_string += f"\tpublic{modifier}{self.map_type(property_def['type'])} {accessor_name} {{ get;"
+                if not constraints.get('final', False):
+                    accessors_string += " set;"
+                accessors_string += " }\n\n"
             elif property_def['access'] == "private":
-                accessor_pair = f"\tpublic {self.map_type(property_def['type'])} {self.accessor_name(property_def['name'])}\n\t{{"
-                accessor_pair += f"\n\t\tget => {property_def['name']};"
-                accessor_pair += f"\n\t\tset => {property_def['name']} = value;\n\t}}\n\n"
-                accessors_string += accessor_pair
+                accessor_name = self.accessor_name(property_def['name'], True)
+                accessors_string += f"\tpublic{modifier}{self.map_type(property_def['type'])} {accessor_name}\n\t{{"
+                accessors_string += f"\n\t\tget => {property_def['name']};"
+                if not constraints.get('final', False):
+                    accessors_string += f"\n\t\tset => {property_def['name']} = value;"
+                accessors_string += "\n\t}\n\n"
 
         return accessors_string
 
@@ -211,7 +238,16 @@ class CSharpCodeGenerator(CodeGenerator):
             if class_type == "interface":
                 m = f"\t{self.map_type(method_def['return_type'])} {method_def['name']}{params};"
             else:
-                m = f"\t{method_def['access']} {self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t{{\n"
+                constraints = method_def['constraints']
+
+                modifier = ""
+                if constraints.get('static', False):
+                    modifier += " static"
+                elif constraints.get('virtual', False):
+                    modifier += " virtual"
+                modifier += " "
+
+                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t{{\n"
                 m += f"\t\t{comment}\n"
                 if method_def['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
@@ -237,9 +273,9 @@ class CSharpCodeGenerator(CodeGenerator):
     def generate_full_arg_ctor(self, class_name, properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        ctor_string += separator.join([f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values()])
+        ctor_string += separator.join(f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values())
         ctor_string += ")\n\t{\n"
-        ctor_string += '\n'.join([f"\t\tthis.{p['name']} = {self.parameter_name(p['name'])};" for p in properties.values()])
+        ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {self.parameter_name(p['name'])};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
@@ -255,12 +291,12 @@ class CSharpCodeGenerator(CodeGenerator):
         method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
         method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
         method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
-        method_string += sep1.join([f"Equals({p['name']}, other.{p['name']})" for p in properties.values()])
+        method_string += sep1.join(f"Equals({p['name']}, other.{p['name']})" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\tpublic override int GetHashCode()\n\t{\n"
         method_string += "\t\treturn HashCode.Combine("
-        method_string += sep2.join([p['name'] for p in properties.values()])
+        method_string += sep2.join(p['name'] for p in properties.values())
         method_string += ");\n\t}\n\n"
 
         return method_string
@@ -268,7 +304,7 @@ class CSharpCodeGenerator(CodeGenerator):
     def generate_to_string(self, class_name, properties):
         method_string = "\tpublic override string ToString() {\n"
         method_string += f"\t\treturn $\"{class_name} {{{{"
-        method_string += ', '.join([f"{p['name']}={{{p['name']}}}" for p in properties.values()])
+        method_string += ', '.join(f"{p['name']}={{{p['name']}}}" for p in properties.values())
         method_string += "}}\";\n\t}\n\n"
 
         return method_string
@@ -276,14 +312,14 @@ class CSharpCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return f"namespace {'.'.join(self.split_package_name(package_name))};\n\n"
 
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def default_value(self, typename):
         return f"default({self.map_type(typename)})"
 
     def get_parameter_list(self, parameters):
-        return '(' + ', '.join([f"{self.map_type(p['type'])} {p['name']}" for p in parameters]) + ')'
+        return f"({', '.join(f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in parameters)})"
 
     def get_file_extension(self):
         return "cs"

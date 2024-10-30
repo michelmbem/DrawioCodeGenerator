@@ -111,8 +111,17 @@ class PythonCodeGenerator(CodeGenerator):
         counter = 0
 
         if not is_enum:
-            properties_string = "\tdef __init__(self, *args, **kwargs):\n"
-            properties_string += "\t\targc = len(args)\n"
+            for property_def in properties.values():
+                if property_def['constraints'].get('static', False):
+                    p = f"\t{property_def['name']} = "
+                    if property_def['default_value']:
+                        p += property_def['default_value']
+                    else:
+                        p += self.default_value(property_def['type'])
+                    p += "\n"
+                    properties_string += p
+
+            properties_string += "\n\tdef __init__(self, *args, **kwargs):\n\t\targc = len(args)\n"
 
             if self.options['encapsulate_all_props']:
                 property_prefix = "_"
@@ -126,6 +135,9 @@ class PythonCodeGenerator(CodeGenerator):
                     p += "auto()"
                 p += "\n"
             else:
+                if property_def['constraints'].get('static', False):
+                    continue
+
                 p = f"\n\t\tif argc > {counter}:\n"
                 p += f"\t\t\tself.{property_prefix}{property_def['name']} = args[{counter}]\n"
                 p += "\t\telse:\n"
@@ -144,11 +156,12 @@ class PythonCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, properties):
+    def generate_property_accessors(self, class_name, properties):
         """
         Generate property accessors for the class
 
         Parameters:
+            class_name: name of class
             properties: dictionary of properties
 
         Returns:
@@ -158,6 +171,9 @@ class PythonCodeGenerator(CodeGenerator):
         accessors_string = ""
 
         for property_def in properties.values():
+            if property_def['constraints'].get('static', False):
+                continue
+
             if self.get_property_access(property_def) == "private":
                 property_name = property_def['name']
                 if self.options['encapsulate_all_props']:
@@ -196,7 +212,11 @@ class PythonCodeGenerator(CodeGenerator):
             if class_type in ("interface", "abstract class"):
                 m = f"\t@abstractmethod\n\tdef {method_def['name']}{params}:\n\t\tpass"
             else:
-                m = f"\tdef {method_def['name']}{params}:\n\t\t{comment}\n"
+                m = ""
+                if method_def['constraints'].get('static', False):
+                    m += "\t@staticmethod\n"
+                    params = f"({', '.join(p['name'] for p in method_def['parameters'])})"
+                m += f"\tdef {method_def['name']}{params}:\n\t\t{comment}\n"
                 if method_def['return_type'] == "void":
                     m += "\t\tpass"
                 else:
@@ -229,7 +249,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         method_string = "\tdef __members(self):\n"
         method_string += "\t\treturn ("
-        method_string += ', '.join([f"self.{prefix}{p['name']}" for p in properties.values()])
+        method_string += ', '.join(f"self.{prefix}{p['name']}" for p in properties.values())
         method_string += ",)\n\n"
 
         method_string += "\tdef __eq__(self, other):\n"
@@ -249,7 +269,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         method_string = "\tdef __str__(self):\n"
         method_string += f"\t\treturn f\"{class_name} {{{{"
-        method_string += ', '.join([f"{p['name']}={{self.{prefix}{p['name']}}}" for p in properties.values()])
+        method_string += ', '.join(f"{p['name']}={{self.{prefix}{p['name']}}}" for p in properties.values())
         method_string += "}}\"\n\n"
 
         return method_string
@@ -257,7 +277,7 @@ class PythonCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return None
 
-    def map_type(self, typename):
+    def map_type(self, typename, constraints = None):
         return None
 
     def default_value(self, typename):
@@ -273,7 +293,7 @@ class PythonCodeGenerator(CodeGenerator):
         return "None"
 
     def get_parameter_list(self, parameters):
-        return '(self' + ''.join([f", {p['name']}" for p in parameters]) + ')'
+        return f"(self{''.join(f', {p['name']}' for p in parameters)})"
 
     def get_file_extension(self):
         return "py"
