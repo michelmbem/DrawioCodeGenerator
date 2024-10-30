@@ -14,11 +14,11 @@ class CommonOptionPage(CommonOptionPageBase, OptionPageWithImports):
     def lscImportOnListItemSelected(self, event):
         OptionPageWithImports.lscImportOnListItemSelected(self, event)
 
-    def btnAddModuleOnButtonClick(self, event):
-        OptionPageWithImports.btnAddModuleOnButtonClick(self, event)
+    def btnAddImportOnButtonClick(self, event):
+        OptionPageWithImports.btnAddImportOnButtonClick(self, event)
 
     def btnUpdateImportOnButtonClick( self, event ):
         OptionPageWithImports.btnUpdateImportOnButtonClick(self, event)
 
-    def btnRemoveModuleOnButtonClick(self, event):
-        OptionPageWithImports.btnRemoveModuleOnButtonClick(self, event)
+    def btnRemoveImportOnButtonClick(self, event):
+        OptionPageWithImports.btnRemoveImportOnButtonClick(self, event)

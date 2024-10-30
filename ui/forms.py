@@ -208,52 +208,57 @@ class MainFrameBase ( wx.Frame ):
 class OptionDialogBase ( wx.Dialog ):
 
     def __init__( self, parent ):
-        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,600 ), style = wx.DEFAULT_DIALOG_STYLE )
+        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,625 ), style = wx.DEFAULT_DIALOG_STYLE )
 
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        commonOptionsSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Common options" ), wx.VERTICAL )
 
         formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
         formSizer.AddGrowableCol( 1 )
         formSizer.SetFlexibleDirection( wx.BOTH )
         formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.m_staticText4 = wx.StaticText( self, wx.ID_ANY, u"Root package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText4 = wx.StaticText( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Root package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText4.Wrap( -1 )
 
         formSizer.Add( self.m_staticText4, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.txtRootPackage = wx.TextCtrl( self, wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtRootPackage = wx.TextCtrl( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         formSizer.Add( self.txtRootPackage, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
-        self.m_staticText7 = wx.StaticText( self, wx.ID_ANY, u"Generated members:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText7 = wx.StaticText( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Generated members:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.m_staticText7.Wrap( -1 )
 
         formSizer.Add( self.m_staticText7, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         genMemberSizer = wx.WrapSizer( wx.HORIZONTAL, wx.WRAPSIZER_DEFAULT_FLAGS )
 
-        self.chkGenerateDefaultCtor = wx.CheckBox( self, wx.ID_ANY, u"Default constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateDefaultCtor = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Default constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateDefaultCtor, 0, wx.ALL, 5 )
 
-        self.chkGenerateFullArgCtor = wx.CheckBox( self, wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateFullArgCtor = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
 
-        self.chkGenerateEqHc = wx.CheckBox( self, wx.ID_ANY, u"Equals and HashCode", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateEqHc = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Equals and HashCode", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
 
-        self.chkGenerateToString = wx.CheckBox( self, wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateToString = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkGenerateToString, 0, wx.ALL, 5 )
 
-        self.chkEncapsulateAllProps = wx.CheckBox( self, wx.ID_ANY, u"Make all properties private and generate public accessors", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkEncapsulateAllProps = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Make all properties private and generate public accessors", wx.DefaultPosition, wx.DefaultSize, 0 )
         genMemberSizer.Add( self.chkEncapsulateAllProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
         formSizer.Add( genMemberSizer, 1, wx.EXPAND, 5 )
 
 
-        mainSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+        commonOptionsSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+
+        mainSizer.Add( commonOptionsSizer, 0, wx.ALL|wx.EXPAND, 5 )
 
         languageOptionsSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Language specific options" ), wx.VERTICAL )
 
@@ -423,18 +428,57 @@ class JavaOptionPageBase ( wx.Panel ):
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
 
-        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
+        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.VERTICAL )
+
+        checkBoxSizer = wx.BoxSizer( wx.HORIZONTAL )
 
         self.chkUseLombok = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Use lombok annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
-        featuresSizer.Add( self.chkUseLombok, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        checkBoxSizer.Add( self.chkUseLombok, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.chkAddBuilderAnno = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add @Builder annotation", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.chkAddBuilderAnno.Enable( False )
 
-        featuresSizer.Add( self.chkAddBuilderAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        checkBoxSizer.Add( self.chkAddBuilderAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.chkAddJpaAnno = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add JPA mapping annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
-        featuresSizer.Add( self.chkAddJpaAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        self.chkAddJpaAnno = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add JPA annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
+        checkBoxSizer.Add( self.chkAddJpaAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        featuresSizer.Add( checkBoxSizer, 0, wx.EXPAND, 5 )
+
+        featureFormSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        featureFormSizer.AddGrowableCol( 1 )
+        featureFormSizer.SetFlexibleDirection( wx.BOTH )
+        featureFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.m_staticText12 = wx.StaticText( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Map temporal types to:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText12.Wrap( -1 )
+
+        featureFormSizer.Add( self.m_staticText12, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        chcTemporalChoices = [ u"java.time.LocalDate, java.time.LocalTime and java.time.LocalDateTime", u"java.time.LocalDate, java.time.OffsetTime and java.time.OffsetDateTime", u"java.sql.Date, java.sql.Time and java.sql.Timestamp", u"java.util.Date", u"java.util.Calendar" ]
+        self.chcTemporal = wx.Choice( featuresSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, chcTemporalChoices, 0 )
+        self.chcTemporal.SetSelection( 0 )
+        featureFormSizer.Add( self.chcTemporal, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.m_staticText13 = wx.StaticText( featuresSizer.GetStaticBox(), wx.ID_ANY, u"JEE root package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText13.Wrap( -1 )
+
+        featureFormSizer.Add( self.m_staticText13, 0, wx.ALL, 5 )
+
+        jeeRootPkgSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.rbnJeeRootJavax = wx.RadioButton( featuresSizer.GetStaticBox(), wx.ID_ANY, u"javax", wx.DefaultPosition, wx.DefaultSize, 0 )
+        jeeRootPkgSizer.Add( self.rbnJeeRootJavax, 0, wx.ALL, 5 )
+
+        self.rbnJeeRootJakarta = wx.RadioButton( featuresSizer.GetStaticBox(), wx.ID_ANY, u"jakarta", wx.DefaultPosition, wx.DefaultSize, 0 )
+        jeeRootPkgSizer.Add( self.rbnJeeRootJakarta, 0, wx.ALL, 5 )
+
+
+        featureFormSizer.Add( jeeRootPkgSizer, 0, wx.EXPAND, 5 )
+
+
+        featuresSizer.Add( featureFormSizer, 1, wx.EXPAND, 5 )
 
 
         mainSizer.Add( featuresSizer, 0, wx.ALL|wx.EXPAND, 5 )
@@ -444,34 +488,34 @@ class JavaOptionPageBase ( wx.Panel ):
         self.lscImport = wx.ListCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
         importSizer.Add( self.lscImport, 1, wx.ALL|wx.EXPAND, 5 )
 
-        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
-        formSizer.AddGrowableCol( 1 )
-        formSizer.SetFlexibleDirection( wx.BOTH )
-        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+        importFormSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        importFormSizer.AddGrowableCol( 1 )
+        importFormSizer.SetFlexibleDirection( wx.BOTH )
+        importFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
         self.lblModuleName = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Package name:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.lblModuleName.Wrap( -1 )
 
-        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        importFormSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
 
-        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+        importFormSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
         self.lblSymbolNames = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Classes to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
         self.lblSymbolNames.Wrap( -1 )
 
-        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        importFormSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
         self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
-        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,50 ) )
 
-        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+        importFormSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
 
-        importSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+        importSizer.Add( importFormSizer, 0, wx.EXPAND, 5 )
 
         buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
 
@@ -552,7 +596,7 @@ class CSharpOptionPageBase ( wx.Panel ):
 
         featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
 
-        self.chkAddEFCoreAttrib = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add EFCore mapping attributes", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkAddEFCoreAttrib = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add EFCore data annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
         featuresSizer.Add( self.chkAddEFCoreAttrib, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 

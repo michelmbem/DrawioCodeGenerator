@@ -43,7 +43,7 @@ class CodeGenerator(ABC):
                 baseclasses, interfaces, references = self.get_class_dependencies(class_def)
 
                 file_contents = self.generate_class_header(class_def['type'], class_def['name'], baseclasses, interfaces, references)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enumeration")
+                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):

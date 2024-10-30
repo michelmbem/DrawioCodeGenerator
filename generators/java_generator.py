@@ -40,11 +40,19 @@ class JavaCodeGenerator(CodeGenerator):
         "decimal": "BigDecimal",
         "string": "String",
         "wstring": "String",
-        "date": "LocalDate",
-        "time": "LocalTime",
-        "datetime": "LocalDateTime",
-        "timestamp": "LocalDateTime",
+        "date": {'java8_local': "LocalDate", 'java8_offset': "LocalDate", 'sql_date': "Date", 'util_date': "Date", 'calendar': "Calendar"},
+        "time": {'java8_local': "LocalTime", 'java8_offset': "OffsetTime", 'sql_date': "Time", 'util_date': "Date", 'calendar': "Calendar"},
+        "datetime": {'java8_local': "LocalDateTime", 'java8_offset': "OffsetDateTime", 'sql_date': "Timestamp", 'util_date': "Date", 'calendar': "Calendar"},
+        "timestamp": {'java8_local': "LocalDateTime", 'java8_offset': "OffsetDateTime", 'sql_date': "Timestamp", 'util_date': "Date", 'calendar': "Calendar"},
         "unspecified": "Object",
+    }
+
+    TEMPORAL_TYPE_IMPORTS = {
+        "java8_local": {"package": "java.time", "classes": ["LocalDate", "LocalTime", "LocalDateTime"]},
+        "java8_offset": {"package": "java.time", "classes": ["LocalDate", "OffsetTime", "OffsetDateTime"]},
+        "sql_date": {"package": "java.sql", "classes": ["Date", "Time", "Timestamp"]},
+        "util_date": {"package": "java.util", "classes": ["Date"]},
+        "calendar": {"package": "java.util", "classes": ["Calendar"]},
     }
 
     def __init__(self, syntax_tree, file_path, options):
@@ -70,16 +78,43 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
 
-        if class_type != "enumeration":
-            add_linebreak = False
+        if class_type != "enum":
+            imports = set()
 
-            for module, symbols in self.options['imports'].items():
-                for symbol in symbols:
-                    class_header += f"import {module}.{symbol};\n"
-                    add_linebreak = True
+            for package, classes in self.options['imports'].items():
+                for imported_class in classes:
+                    imports.add(f"{package}.{imported_class}")
 
-            if add_linebreak:
+            temporal_type_imports = self.TEMPORAL_TYPE_IMPORTS[self.get_temporal_types_option()]
+            for imported_class in temporal_type_imports['classes']:
+                imports.add(f"{temporal_type_imports['package']}.{imported_class}")
+
+            if class_type != "interface":
+                for jpa_import in self.get_jpa_imports():
+                    for imported_class in jpa_import['classes']:
+                        imports.add(f"{jpa_import['package']}.{imported_class}")
+
+                for imported_class in self.get_lombok_imported_classes():
+                    imports.add(f"lombok.{imported_class}")
+
+            for imported_class in sorted(imports):
+                class_header += f"import {imported_class};\n"
+
+            if len(imports) > 0:
                 class_header += "\n"
+
+        if class_type in ("class", "abstract class"):
+            if self.options['add_jpa']:
+                class_header += "@Entity\n"
+
+            if self.options['use_lombok']:
+                class_header += "@Data\n"
+                if self.options['add_builder'] and class_type == "class":
+                    class_header += "@Builder\n"
+                if self.options['generate']['default_ctor']:
+                    class_header += "@NoArgsConstructor\n"
+                if self.options['generate']['full_arg_ctor']:
+                    class_header += "@AllArgsConstructor\n"
 
         class_header += f"public {class_type} {class_name}"
         if len(baseclasses) > 0:
@@ -130,7 +165,21 @@ class JavaCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f"({property_def['default_value']})"
             else:
-                p = f"\t{self.get_property_access(property_def)} {self.map_type(property_def['type'])} {property_def['name']}"
+                p = "\t"
+
+                if self.options['add_jpa']:
+                    for constraint in property_def['constraints']:
+                        if constraint == 'pk':
+                            p += "@Id\n\t"
+                        elif constraint == 'required':
+                            p += "@NotNull\n\t"
+                        elif constraint == 'identity':
+                            p += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
+
+                if self.options['add_builder'] and property_def['default_value']:
+                    p += "@Builder.Default\n\t"
+
+                p += f"{self.get_property_access(property_def)} {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -149,6 +198,9 @@ class JavaCodeGenerator(CodeGenerator):
         Returns:
             accessors_string: string of the property accessors
         """
+
+        if self.options['use_lombok']:
+            return ""
 
         accessors_string = ""
 
@@ -206,9 +258,14 @@ class JavaCodeGenerator(CodeGenerator):
         return methods_string
 
     def generate_default_ctor(self, class_name):
+        if self.options['use_lombok']:
+            return ""
         return f"\tpublic {class_name}() {{\n\t}}\n\n"
 
     def generate_full_arg_ctor(self, class_name, properties):
+        if self.options['use_lombok']:
+            return ""
+
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
         ctor_string += separator.join([f"{self.map_type(p['type'])} {p['name']}" for p in properties.values()])
@@ -219,6 +276,9 @@ class JavaCodeGenerator(CodeGenerator):
         return ctor_string
 
     def generate_equal_hashcode(self, class_name, properties):
+        if self.options['use_lombok']:
+            return ""
+
         if len(properties) > 4:
             sep1 = " &&\n\t\t\t\t\t"
             sep2 = ",\n\t\t\t\t\t"
@@ -240,6 +300,9 @@ class JavaCodeGenerator(CodeGenerator):
         return method_string
 
     def generate_to_string(self, class_name, properties):
+        if self.options['use_lombok']:
+            return ""
+
         sep1 = "\n\t\t\t" if len(properties) > 4 else ""
         sep2 = f".append(\", \"){sep1}"
         method_string = "\t@Override\n\tpublic String toString() {\n"
@@ -253,7 +316,10 @@ class JavaCodeGenerator(CodeGenerator):
         return f"package {'.'.join(self.split_package_name(package_name))};\n\n"
 
     def map_type(self, typename):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        mapped_type = self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        if isinstance(mapped_type, dict):
+            return mapped_type.get(self.get_temporal_types_option(), "Object")
+        return mapped_type
 
     def default_value(self, typename):
         typename = self.map_type(typename)
@@ -272,3 +338,40 @@ class JavaCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "java"
+
+    def get_temporal_types_option(self):
+        return self.options.get('temporal_types', 'java8_local')
+
+    def get_jpa_imports(self):
+        jpa_imports = []
+
+        if self.options['use_jakarta']:
+            jee_root_package = "jakarta"
+        else:
+            jee_root_package = "javax"
+
+        if self.options['add_jpa']:
+            jpa_imports.append({
+                "package": f"{jee_root_package}.persistence",
+                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne"]
+            })
+            jpa_imports.append({
+                "package": f"{jee_root_package}.validation.constraints",
+                "classes": ["NotNull"]
+            })
+
+        return jpa_imports
+
+    def get_lombok_imported_classes(self):
+        lombok_imported_classes = []
+
+        if self.options['use_lombok']:
+            lombok_imported_classes += ["Data"]
+            if self.options['add_builder']:
+                lombok_imported_classes += ["Builder"]
+            if self.options['generate']['default_ctor']:
+                lombok_imported_classes += ["NoArgsConstructor"]
+            if self.options['generate']['full_arg_ctor']:
+                lombok_imported_classes += ["AllArgsConstructor"]
+
+        return lombok_imported_classes

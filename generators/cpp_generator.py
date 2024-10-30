@@ -65,21 +65,16 @@ class CppCodeGenerator(CodeGenerator):
 
         class_header = "#pragma once\n\n"
 
-        if class_type != "enumeration":
-            add_linebreak = False
-
-            for module in self.options['imports'].keys():
-                class_header += f"#include {module}\n"
-                add_linebreak = True
+        if class_type != "enum":
+            includes = set(self.options['imports'].keys())
 
             dependencies = {*baseclasses, *interfaces, *references}
-            dependencies.discard(class_name)
+            includes |= set(f"\"{dependency}.hpp\"" for dependency in dependencies if dependency != class_name)
 
-            for dependency in dependencies:
-                class_header += f"#include \"{dependency}.hpp\"\n"
-                add_linebreak = True
+            for include in sorted(includes):
+                class_header += f"#include {include}\n"
 
-            if add_linebreak:
+            if len(includes) > 0:
                 class_header += "\n"
 
         if self.options['package']:
@@ -87,7 +82,7 @@ class CppCodeGenerator(CodeGenerator):
         else:
             class_header += "namespace __default__\n{\n"
 
-        if class_type == "enumeration":
+        if class_type == "enum":
             type_of_class = "enum class"
         else:
             type_of_class = "class"

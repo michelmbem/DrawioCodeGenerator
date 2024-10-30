@@ -40,27 +40,20 @@ class PythonCodeGenerator(CodeGenerator):
         """
 
         class_header = ""
-        add_linebreaks = False
+        imports = set()
 
-        if class_type == "enumeration":
-            class_header += "from enum import Enum, auto\n"
+        if class_type == "enum":
+            imports.add("from enum import Enum, auto")
             class_ancestors = "(Enum)"
-            add_linebreaks = True
         else:
             if class_type == "interface":
-                class_header += "from abc import ABC, abstractmethod\n"
-                add_linebreaks = True
+                imports.add("from abc import ABC, abstractmethod")
 
             for module, symbols in self.options['imports'].items():
-                class_header += f"from {module} import {', '.join(symbols)}\n"
-                add_linebreaks = True
+                imports.add(f"from {module} import {', '.join(symbols)}")
 
             dependencies = {*baseclasses, *interfaces, *references}
-            dependencies.discard(class_name)
-
-            for dependency in dependencies:
-                class_header += f"from {dependency} import {dependency}\n"
-                add_linebreaks = True
+            imports |= set(f"from {dependency} import {dependency}" for dependency in dependencies if dependency != class_name)
 
             class_ancestors = "("
             if class_type == "interface":
@@ -77,7 +70,10 @@ class PythonCodeGenerator(CodeGenerator):
             if class_ancestors == "()":
                 class_ancestors = ""
 
-        if add_linebreaks:
+        for import_line in sorted(imports):
+            class_header += f"{import_line}\n"
+
+        if len(imports) > 0:
             class_header += "\n\n"
 
         class_header += f"class {class_name}{class_ancestors}:\n"

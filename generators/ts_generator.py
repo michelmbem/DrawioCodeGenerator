@@ -77,21 +77,19 @@ class TsCodeGenerator(CodeGenerator):
 
         class_header = ""
 
-        if class_type != "enumeration":
-            add_linebreak = False
+        if class_type != "enum":
+            imports = set()
 
             for module, symbols in self.options['imports'].items():
-                class_header += f"import {{ {', '.join(symbols)} }} from '{module}';\n"
-                add_linebreak = True
+                imports.add(f"import {{ {', '.join(symbols)} }} from '{module}';")
 
             dependencies = {*baseclasses, *interfaces, *references}
-            dependencies.discard(class_name)
+            imports |= set(f"import {{ {dependency} }} from './{dependency}.ts';" for dependency in dependencies if dependency != class_name)
 
-            for dependency in dependencies:
-                class_header += f"import {{ {dependency} }} from './{dependency}.ts';\n"
-                add_linebreak = True
+            for import_line in sorted(imports):
+                class_header += f"{import_line}\n"
 
-            if add_linebreak:
+            if len(imports) > 0:
                 class_header += "\n"
 
         class_header += f"export {class_type} {class_name}"

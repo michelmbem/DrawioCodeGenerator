@@ -4,6 +4,8 @@ from ui.option_page_with_import import OptionPageWithImports
 
 class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
 
+    TEMPORAL_TYPES = ["java8_local", "java8_offset", "sql_date", "util_date", "calendar"]
+
     def __init__(self, parent, options):
         JavaOptionPageBase.__init__(self, parent)
         OptionPageWithImports.__init__(self, "java", options)
@@ -12,6 +14,12 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
         self.chkUseLombokOnCheckBox(None)
         self.chkAddBuilderAnno.SetValue(options.get('add_builder', False))
         self.chkAddJpaAnno.SetValue(options.get('add_jpa', False))
+        self.chcTemporal.SetSelection(self.TEMPORAL_TYPES.index(options.get('temporal_types', "java8_local")))
+
+        if options.get('use_jakarta', False):
+            self.rbnJeeRootJakarta.SetValue(True)
+        else:
+            self.rbnJeeRootJavax.SetValue(True)
 
     @property
     def options(self):
@@ -19,6 +27,8 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
             'use_lombok': self.chkUseLombok.IsChecked(),
             'add_builder': self.chkAddBuilderAnno.IsChecked(),
             'add_jpa': self.chkAddJpaAnno.IsChecked(),
+            'use_jakarta': self.rbnJeeRootJakarta.GetValue(),
+            'temporal_types': self.TEMPORAL_TYPES[self.chcTemporal.GetSelection()],
             **super().options
         }
 
@@ -35,11 +45,11 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
     def lscImportOnListItemSelected(self, event):
         OptionPageWithImports.lscImportOnListItemSelected(self, event)
 
-    def btnAddModuleOnButtonClick(self, event):
-        OptionPageWithImports.btnAddModuleOnButtonClick(self, event)
+    def btnAddImportOnButtonClick(self, event):
+        OptionPageWithImports.btnAddImportOnButtonClick(self, event)
 
     def btnUpdateImportOnButtonClick( self, event ):
         OptionPageWithImports.btnUpdateImportOnButtonClick(self, event)
 
-    def btnRemoveModuleOnButtonClick(self, event):
-        OptionPageWithImports.btnRemoveModuleOnButtonClick(self, event)
+    def btnRemoveImportOnButtonClick(self, event):
+        OptionPageWithImports.btnRemoveImportOnButtonClick(self, event)

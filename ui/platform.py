@@ -3,7 +3,7 @@ import wx
 
 if wx.Platform == '__WXMSW__':
     MAIN_FRAME_SIZE = (1000, 750)
-    OPTION_DLG_SIZE = (700, 600)
+    OPTION_DLG_SIZE = (700, 625)
     FACES = {
         'times': 'Cambria',
         'mono': 'Consolas',
@@ -14,7 +14,7 @@ if wx.Platform == '__WXMSW__':
     }
 elif wx.Platform == '__WXMAC__':
     MAIN_FRAME_SIZE = (1000, 750)
-    OPTION_DLG_SIZE = (700, 600)
+    OPTION_DLG_SIZE = (700, 625)
     FACES = {
         'times': 'Times New Roman',
         'mono': 'Monaco',
@@ -25,7 +25,7 @@ elif wx.Platform == '__WXMAC__':
     }
 else:   # Unix/Linux
     MAIN_FRAME_SIZE = (1100, 850)
-    OPTION_DLG_SIZE = (800, 700)
+    OPTION_DLG_SIZE = (800, 725)
     FACES = {
         'times': 'Times',
         'mono': 'Courier',

@@ -33,7 +33,7 @@ class SqlCodeGenerator(CodeGenerator):
                     continue
 
                 file_contents = self.generate_class_header(class_def['type'], class_def['name'], None, None, None)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enumeration")
+                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
                 file_contents += self.generate_class_footer(class_def['type'], class_def['name'])
 
                 self.files.append((class_def['name'], file_contents))
@@ -104,7 +104,7 @@ class SqlCodeGenerator(CodeGenerator):
             p = f"\t{property_def['name']} {self.dialect.map_type(property_def['type'], property_def['constraints'])}"
 
             for constraint in property_def['constraints']:
-                if constraint == "notnull":
+                if constraint == "required":
                     p += " not null"
                 elif constraint == "unique":
                     p += " unique"

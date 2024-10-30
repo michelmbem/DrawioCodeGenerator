@@ -53,7 +53,7 @@ class CSharpCodeGenerator(CodeGenerator):
     @staticmethod
     def accessor_name(property_name):
         if property_name[0].islower():
-            return property_name.capitalize()
+            return f"{property_name[0].upper()}{property_name[1:]}"
         return property_name + "Property"
 
     @staticmethod
@@ -77,14 +77,18 @@ class CSharpCodeGenerator(CodeGenerator):
 
         class_header = ""
 
-        if class_type != "enumeration":
-            add_linebreak = False
+        if class_type != "enum":
+            usings = set(self.options['imports'].keys())
 
-            for module in self.options['imports'].keys():
-                class_header += f"using {module};\n"
-                add_linebreak = True
+            if class_type != "interface" and self.options['add_efcore']:
+                usings.add("System.Collections.Generic")
+                usings.add("System.ComponentModel.DataAnnotations")
+                usings.add("System.ComponentModel.DataAnnotations.Schema")
 
-            if add_linebreak:
+            for namespace in sorted(usings):
+                class_header += f"using {namespace};\n"
+
+            if len(usings) > 0:
                 class_header += "\n"
 
         if self.options['package']:
@@ -169,6 +173,13 @@ class CSharpCodeGenerator(CodeGenerator):
         accessors_string = ""
 
         for property_def in properties.values():
+            if self.options['add_efcore']:
+                for constraint in property_def['constraints']:
+                    if constraint == 'pk':
+                        accessors_string += "\t[Key]\n"
+                    elif constraint == 'required':
+                        accessors_string += "\t[Required]\n"
+
             if self.options['encapsulate_all_props']:
                 accessors_string += f"\tpublic {self.map_type(property_def['type'])} {property_def['name']} {{ get; set; }}\n\n"
             elif property_def['access'] == "private":

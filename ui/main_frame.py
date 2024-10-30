@@ -64,13 +64,18 @@ class MainFrame (MainFrameBase):
             'encapsulate_all_props': False,
             'language_specific': {
                 'java': {
+                    'use_lombok': False,
+                    'add_builder': False,
+                    'add_jpa': False,
+                    'use_jakarta': False,
+                    'temporal_types': "java8_local",
                     'imports': {
                         'java.math': ["BigInteger", "BigDecimal"],
-                        'java.time': ["LocalDate", "LocalTime", "LocalDateTime"],
                         'java.util': ["Objects"],
                     }
                 },
                 'cs': {
+                    'add_efcode': False,
                     'imports': {
                         'System': None,
                         'System.Numerics': None,

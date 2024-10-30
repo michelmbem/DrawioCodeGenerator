@@ -12,7 +12,7 @@ class OptionPageWithImports(OptionPage):
 
     LABELS = {
         'cpp': {'module_name': "Header file:"},
-        'php': {'module_name': "Required file:"},
+        'php': {'module_name': "Required script:"},
     }
 
     def __init__(self, language, options):
@@ -42,6 +42,8 @@ class OptionPageWithImports(OptionPage):
 
         for module, symbols in options.get('imports', {}).items():
             self.add_import(module, symbols)
+
+        self.lscImportOnListItemSelected(None)
 
     @property
     def language(self):
@@ -96,9 +98,13 @@ class OptionPageWithImports(OptionPage):
         if selected_index >= 0:
             self.txtModuleName.SetValue(self.lscImport.GetItemText(selected_index, 0))
             self.txtSymbolNames.SetValue(self.lscImport.GetItemText(selected_index, 1))
+            self.btnUpdateImport.Enable(True)
+            self.btnRemoveImport.Enable(True)
         else:
-            self.txtModuleName.ClearAll()
-            self.txtSymbolNames.ClearAll()
+            self.txtModuleName.Clear()
+            self.txtSymbolNames.Clear()
+            self.btnUpdateImport.Enable(False)
+            self.btnRemoveImport.Enable(False)
 
     def btnAddImportOnButtonClick(self, event):
         module, symbols = self.get_user_input()
@@ -119,7 +125,7 @@ class OptionPageWithImports(OptionPage):
             else:
                 self.show_validation_message()
         else:
-            self.show_selection_message
+            self.show_selection_message()
 
     def btnRemoveImportOnButtonClick(self, event):
         selected_index = self.lscImport.GetFirstSelected()
@@ -133,4 +139,4 @@ class OptionPageWithImports(OptionPage):
             elif line_count > 0:
                 self.lscImport.Select(line_count - 1)
         else:
-            self.show_selection_message
+            self.show_selection_message()

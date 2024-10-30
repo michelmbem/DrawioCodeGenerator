@@ -204,10 +204,10 @@ class SyntaxParser:
         name, stereotype = self.parse_class_name(template['name'])
         template['name'] = name
 
-        if stereotype in ("interface", "enumeration"):
+        if stereotype in ("interface", "enum"):
             template['type'] = stereotype
-        elif stereotype == "enum":
-            template['type'] = "enumeration"
+        elif stereotype == "enumeration":
+            template['type'] = "enum"
         elif stereotype == "abstract":
             template['type'] = "abstract class"
         else:
