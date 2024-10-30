@@ -90,7 +90,9 @@ class MainFrame (MainFrameBase):
                 'python': {},
                 'ts': {},
                 'php': {},
-                'sql': {},
+                'sql': {
+                    'dialect': "ansi"
+                },
             },
         }
 

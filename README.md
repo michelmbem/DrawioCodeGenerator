@@ -13,7 +13,7 @@
 Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 
 <div>
-    <img src="./github_assets/simple_class_diagram.jpg" width="400" height="400" alt="class_diagram"/>
+    <img src="./github_assets/simple_class_diagram.png" width="400" height="400" alt="class_diagram"/>
 </div>
 
 ## About this fork
@@ -23,13 +23,14 @@ Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 * The original Java and TypeScript code generators were extended with new functionalities. 
 * New code generators were added for C#, C++, PHP, Python and SQL with the same level of functionalities than the initial ones.
 * The generated xml and json documents are no more stored in files but displayed on the GUI.
-* Abstract classes are nomore identified by a name in italics. They should simply be annotated as **\<\<abstract\>\>** just like interfaces with **\<\<interface\>\>**.
-* The **\<\<enum\>\>** annotation indicates that a class is in fact an enumeration.
+* Abstract classes are not only identified by a name in italics. They can simply be marked with the **\<\<abstract\>\>** stereotype just like interfaces with the **\<\<interface\>\>** stereotype.
+* The **\<\<enum\>\>** and **\<\<enumeration\>\>** stereotypes indicate that a class is in fact an enumeration.
 * Properties can have a default value if their definition in the diagram ends with a _" = default_value"_, which is very practical for enum members.
+* Properties can also have constraints between curved braces to their right. **e.g.**: `+customer_id: int {pk, identity}` or `+company_name: string {required}`.
 * Code generators can produce a **package** or **namespace** directive if required. They will also automatically generate an **import** (or **using** or **#include** or **require_once**) directive for any symbol that the class being generated depends on.
 * Users can define additional module and/or symbols to import in their class headers through a configuration dialog.
 * If required code generators can also produce other members like accessors (encapsulated properties or getter/setter pairs), a default constructor, a fully parameterized constructor and overrides for the _equals_, _hashCode_ and _toString_ methods in languages that support those features.
-* The SQL code generator doesn't conform to any particular dialect. It just tries to be at least compatible with MySQL and SQL Server in general. For the moment it doesn't define any key in the generated code. Allowing the user to select a SQL dialect may be added in the future.
+* Each code generator supports a set of specific options (like using _Lombok_ and/or _JPA_ annotations for the Java code generator or specifying a SQL dialect for the SQL code generator).
 * The program recognizes a set of pseudo data types that can be mapped to equivalent data types in each of the target languages. They are listed in the table bellow:
 
 |Pseudo-type|Java equivalent|C# equivalent|C++ equivalent|TypeScript equivalent|SQL equivalent|
@@ -54,6 +55,7 @@ Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 |date|LocalDate|DateTime|time_t|Date|date|
 |time|LocalTime|DateTime|time_t|Date|time|
 |datetime, timestamp|LocalDateTime|DateTime|time_t|Date|datetime|
+|unspecified|Object|object|int|any|int|
 
 ## Setup
 

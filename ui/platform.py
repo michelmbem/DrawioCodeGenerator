@@ -25,7 +25,7 @@ elif wx.Platform == '__WXMAC__':
     }
 else:   # Unix/Linux
     MAIN_FRAME_SIZE = (1100, 850)
-    OPTION_DLG_SIZE = (800, 725)
+    OPTION_DLG_SIZE = (800, 755)
     FACES = {
         'times': 'Times',
         'mono': 'Courier',
