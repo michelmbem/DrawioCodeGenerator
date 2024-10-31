@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ###########################################################################
-## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf)
+## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf0)
 ## http://www.wxformbuilder.org/
 ##
 ## PLEASE DO *NOT* EDIT THIS FILE!
@@ -440,7 +440,7 @@ class JavaOptionPageBase ( wx.Panel ):
 
         checkBoxSizer.Add( self.chkAddBuilderAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.chkAddJpaAnno = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add JPA annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkAddJpaAnno = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Add JPA data annotations", wx.DefaultPosition, wx.DefaultSize, 0 )
         checkBoxSizer.Add( self.chkAddJpaAnno, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 

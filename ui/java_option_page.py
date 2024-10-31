@@ -10,13 +10,13 @@ class JavaOptionPage(JavaOptionPageBase, OptionPageWithImports):
         JavaOptionPageBase.__init__(self, parent)
         OptionPageWithImports.__init__(self, "java", options)
 
-        self.chkUseLombok.SetValue(options.get('use_lombok', False))
+        self.chkUseLombok.SetValue(options['use_lombok'])
         self.chkUseLombokOnCheckBox(None)
-        self.chkAddBuilderAnno.SetValue(options.get('add_builder', False))
-        self.chkAddJpaAnno.SetValue(options.get('add_jpa', False))
-        self.chcTemporal.SetSelection(self.TEMPORAL_TYPES.index(options.get('temporal_types', "java8_local")))
+        self.chkAddBuilderAnno.SetValue(options['add_builder'])
+        self.chkAddJpaAnno.SetValue(options['add_jpa'])
+        self.chcTemporal.SetSelection(self.TEMPORAL_TYPES.index(options['temporal_types']))
 
-        if options.get('use_jakarta', False):
+        if options['use_jakarta']:
             self.rbnJeeRootJakarta.SetValue(True)
         else:
             self.rbnJeeRootJavax.SetValue(True)

@@ -8,7 +8,7 @@ class CSharpOptionPage(CSharpOptionPageBase, OptionPageWithImports):
         CSharpOptionPageBase.__init__(self, parent)
         OptionPageWithImports.__init__(self, "cs", options)
 
-        self.chkAddEFCoreAttrib.SetValue(options.get('add_jpa', False))
+        self.chkAddEFCoreAttrib.SetValue(options['add_efcore'])
 
     @property
     def options(self):

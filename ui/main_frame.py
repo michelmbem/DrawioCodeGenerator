@@ -75,7 +75,7 @@ class MainFrame (MainFrameBase):
                     }
                 },
                 'cs': {
-                    'add_efcode': False,
+                    'add_efcore': False,
                     'imports': {
                         'System': None,
                         'System.Numerics': None,
