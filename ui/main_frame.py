@@ -91,7 +91,9 @@ class MainFrame (MainFrameBase):
                 'ts': {},
                 'php': {},
                 'sql': {
-                    'dialect': "ansi"
+                    'dialect': "ansi",
+                    'script_file': "single",
+                    'filename': "database",
                 },
             },
         }

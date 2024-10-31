@@ -47,22 +47,23 @@ class CodeGenerator(ABC):
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
-                    class_has_props = len(class_def['properties']) > 0
+                    instance_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
+                    has_instance_props = len(instance_props) > 0
                     should_generate = self.options['generate']
 
                     if should_generate['default_ctor']:
                         file_contents += self.generate_default_ctor(class_def['name'])
 
-                    if class_has_props and should_generate['full_arg_ctor']:
-                        file_contents += self.generate_full_arg_ctor(class_def['name'], class_def['properties'])
+                    if has_instance_props and should_generate['full_arg_ctor']:
+                        file_contents += self.generate_full_arg_ctor(class_def['name'], instance_props)
 
                     file_contents += self.generate_property_accessors(class_def['name'], class_def['properties'])
 
-                    if class_has_props and should_generate['equal_hashcode']:
-                        file_contents += self.generate_equal_hashcode(class_def['name'], class_def['properties'])
+                    if has_instance_props and should_generate['equal_hashcode']:
+                        file_contents += self.generate_equal_hashcode(class_def['name'], instance_props)
 
-                    if class_has_props and should_generate['to_string']:
-                        file_contents += self.generate_to_string(class_def['name'], class_def['properties'])
+                    if has_instance_props and should_generate['to_string']:
+                        file_contents += self.generate_to_string(class_def['name'], instance_props)
 
                 if class_def['type'] != "enumeration":
                     interface_methods = []

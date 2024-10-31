@@ -714,12 +714,56 @@ class SqlOptionPageBase ( wx.Panel ):
         self.rbxDialect.SetSelection( 0 )
         mainSizer.Add( self.rbxDialect, 0, wx.ALL|wx.EXPAND, 5 )
 
+        scriptSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Script generation" ), wx.VERTICAL )
+
+        numScriptSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+        self.rbnSingleScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a single database script", wx.DefaultPosition, wx.DefaultSize, 0 )
+        numScriptSizer.Add( self.rbnSingleScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.rbnMultiScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a script per table", wx.DefaultPosition, wx.DefaultSize, 0 )
+        numScriptSizer.Add( self.rbnMultiScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        scriptSizer.Add( numScriptSizer, 1, wx.EXPAND, 5 )
+
+        scriptFormSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        scriptFormSizer.AddGrowableCol( 1 )
+        scriptFormSizer.SetFlexibleDirection( wx.BOTH )
+        scriptFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.m_staticText14 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Script filename:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText14.Wrap( -1 )
+
+        scriptFormSizer.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtScriptFilename = wx.TextCtrl( scriptSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtScriptFilename.SetToolTip( u"Enter the script filename without the .sql extension" )
+
+        scriptFormSizer.Add( self.txtScriptFilename, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        scriptSizer.Add( scriptFormSizer, 1, wx.EXPAND, 5 )
+
+
+        mainSizer.Add( scriptSizer, 0, wx.ALL|wx.EXPAND, 5 )
+
 
         self.SetSizer( mainSizer )
         self.Layout()
 
+        # Connect Events
+        self.rbnSingleScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
+        self.rbnMultiScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
+
     def __del__( self ):
         pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def onScriptRadioButtonClicked( self, event ):
+        event.Skip()
+
 
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):
