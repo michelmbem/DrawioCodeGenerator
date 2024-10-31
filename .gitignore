@@ -1,5 +1,12 @@
 *.docx
+*.iml
 .vim
 .idea
+.vs[code]
 venv
 __pycache__
+build
+out
+bin
+lib
+dist
