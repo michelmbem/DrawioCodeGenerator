@@ -63,3 +63,6 @@ class PostgreSQLDialect(SQLDialect):
 
     def identity_spec(self):
         return ""
+
+    def fk_name(self, table, foreign_table, index):
+        return f"fk_{table}_{index}"

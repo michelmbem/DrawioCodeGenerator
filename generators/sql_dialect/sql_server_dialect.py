@@ -44,3 +44,6 @@ class SQLServerDialect(SQLDialect):
 
     def identity_spec(self):
         return "identity(1, 1)"
+
+    def fk_name(self, table, foreign_table, index):
+        return f"fk_{table}_{foreign_table}"

@@ -92,7 +92,7 @@ class MainFrame (MainFrameBase):
                 'php': {},
                 'sql': {
                     'dialect': "ansi",
-                    'script_file': "single",
+                    'single_script': True,
                     'filename': "database",
                 },
             },

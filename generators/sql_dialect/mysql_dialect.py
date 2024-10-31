@@ -44,3 +44,6 @@ class MySQLDialect(SQLDialect):
 
     def identity_spec(self):
         return "auto_increment"
+
+    def fk_name(self, table, foreign_table, index):
+        return f"fk_{table}_{foreign_table}"

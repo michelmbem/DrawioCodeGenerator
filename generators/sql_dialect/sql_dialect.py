@@ -10,3 +10,7 @@ class SQLDialect(ABC):
     @abstractmethod
     def identity_spec(self):
         pass
+
+    @abstractmethod
+    def fk_name(self, table, foreign_table, index):
+        pass

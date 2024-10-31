@@ -18,7 +18,9 @@ class SqlCodeGenerator(CodeGenerator):
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
         self.dialect = SQLDialects.get(options.get('dialect', "ansi"))
-        self.foreign_keys = []
+        self.primary_keys = {}
+        self.foreign_keys = {}
+        self.tmp_primary_key = []
         self.tmp_foreign_keys = {}
 
     def generate_code(self):
@@ -39,10 +41,14 @@ class SqlCodeGenerator(CodeGenerator):
                 class_name = class_def['name']
                 file_contents = self.generate_class_header(None, class_name)
                 file_contents += self.generate_properties(instance_props)
+                if len(self.tmp_primary_key) > 0:
+                    file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
                 file_contents += self.generate_class_footer(None, class_name)
 
                 self.files.append((class_name, file_contents))
-                self.foreign_keys.append((class_name, self.tmp_foreign_keys))
+                self.primary_keys[class_name] = self.tmp_primary_key
+                self.foreign_keys[class_name] = self.tmp_foreign_keys
+                self.tmp_primary_key = []
                 self.tmp_foreign_keys = {}
 
             self.generate_files()
@@ -61,42 +67,31 @@ class SqlCodeGenerator(CodeGenerator):
         print(f"<<< WRITING FILES TO {self.file_path} >>>")
 
         try:
-            if self.options['script_file'] == "single":
+            if self.options['single_script']:
                 filename = self.options['filename']
                 file_path = path.join(self.file_path, f"{filename}.{self.get_file_extension()}")
 
                 with open(file_path, "w") as f:
-                    if self.options['package']:
-                        f.write(self.package_directive(self.options['package']))
+                    self.write_package_directive(f)
 
                     f.write("-- TABLES:\n\n")
-
                     for table_name, table_def in self.files:
                         f.write(table_def)
                         f.write("\n")
 
                     f.write("-- FOREIGN KEYS:\n\n")
-
-                    for table_name, foreign_keys in self.foreign_keys:
-                        for foreign_table, columns in foreign_keys.items():
-                            f.write(f"alter table {table_name} add foreign key({', '.join(columns)}) references {foreign_table};\n")
+                    self.write_foreign_keys(f)
             else:
                 for table_name, table_def in self.files:
                     file_path = path.join(self.file_path, f"{table_name}.{self.get_file_extension()}")
                     with open(file_path, "w") as f:
-                        if self.options['package']:
-                            f.write(self.package_directive(self.options['package']))
-
+                        self.write_package_directive(f)
                         f.write(table_def)
 
                 file_path = path.join(self.file_path, f"_foreign_keys.{self.get_file_extension()}")
                 with open(file_path, "w") as f:
-                    if self.options['package']:
-                        f.write(self.package_directive(self.options['package']))
-
-                    for table_name, foreign_keys in self.foreign_keys:
-                        for foreign_table, columns in foreign_keys.items():
-                            f.write(f"alter table {table_name} add foreign key({', '.join(columns)}) references {foreign_table};\n")
+                    self.write_package_directive(f)
+                    self.write_foreign_keys(f)
         except Exception as e:
             print(f"{self.__class__.__name__}.generate_files ERROR: {e}")
             traceback.print_exception(e)
@@ -146,7 +141,6 @@ class SqlCodeGenerator(CodeGenerator):
 
         properties_string = ""
         first_prop = True
-        primary_key = []
 
         for property_def in properties.values():
             constraints = property_def['constraints']
@@ -165,7 +159,7 @@ class SqlCodeGenerator(CodeGenerator):
             if constraints.get('identity', False):
                 p += f" {self.dialect.identity_spec()}".rstrip()
             if constraints.get('pk', False):
-                primary_key += [property_def['name']]
+                self.tmp_primary_key.append(property_def['name'])
             if constraints.get('fk', False):
                 fk_target = constraints['fk_target']
                 if fk_target in self.tmp_foreign_keys:
@@ -177,9 +171,6 @@ class SqlCodeGenerator(CodeGenerator):
                 p += f" default {property_def['default_value']}"
 
             properties_string += p
-
-        if len(primary_key) > 0:
-            properties_string += f",\n\tprimary key({', '.join(primary_key)})"
 
         return properties_string
 
@@ -223,3 +214,16 @@ class SqlCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "sql"
+
+    def write_package_directive(self, f):
+        if self.options['package']:
+            f.write(self.package_directive(self.options['package']))
+
+    def write_foreign_keys(self, f):
+        for table_name, foreign_keys in self.foreign_keys.items():
+            index = 1
+            for foreign_table, columns in foreign_keys.items():
+                fk_name = self.dialect.fk_name(table_name, foreign_table, index)
+                f.write(f"alter table {table_name} add constraint {fk_name} foreign key ({', '.join(columns)})"
+                        f" references {foreign_table} ({', '.join(self.primary_keys[foreign_table])});\n")
+            index += 1

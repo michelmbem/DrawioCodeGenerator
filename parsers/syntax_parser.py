@@ -122,7 +122,7 @@ class SyntaxParser:
             if lparen < 0:
                 raise ValueError(f"Malformed method signature: {method_sig}. Missing opening parenthesis")
             else:
-                parameters = [SyntaxParser.parse_parameter_signature(s) for s in name[lparen + 1:-1].split(',')]
+                parameters = [SyntaxParser.parse_parameter_signature(s) for s in name[lparen + 1:-1].split(',') if s.strip()]
                 name = name[:lparen].strip()
 
                 for i in range(len(parameters)):

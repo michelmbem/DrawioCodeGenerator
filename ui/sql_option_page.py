@@ -13,7 +13,7 @@ class SqlOptionPage(SqlOptionPageBase, OptionPage):
         dialect_index = self.DIALECTS.index(options['dialect'])
         self.rbxDialect.SetSelection(dialect_index)
 
-        if options['script_file'] == "single":
+        if options['single_script'] == "single":
             self.rbnSingleScript.SetValue(True)
         else:
             self.rbnMultiScript.SetValue(True)
@@ -29,7 +29,7 @@ class SqlOptionPage(SqlOptionPageBase, OptionPage):
     def options(self):
         return {
             'dialect': self.DIALECTS[self.rbxDialect.GetSelection()],
-            'script_file': "single" if self.rbnSingleScript.GetValue() else "multi",
+            'single_script': self.rbnSingleScript.GetValue(),
             'filename': self.txtScriptFilename.GetValue().strip() or "database",
         }
 
