@@ -35,7 +35,7 @@ class MainFrameBase ( wx.Frame ):
 
         formSizer.Add( self.m_staticText1, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.fpcDiagramPath = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Open a diagram", u"Draw.io diagram files (*.drawio)|*.drawio|All files (*.*)|*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE )
+        self.fpcDiagramPath = wx.FilePickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Open a diagram", u"Draw.io diagram files (*.drawio)|*.drawio|All files (*.*)|*.*", wx.DefaultPosition, wx.DefaultSize, wx.FLP_DEFAULT_STYLE|wx.FLP_USE_TEXTCTRL )
         self.fpcDiagramPath.SetToolTip( u"Open a file dialog and browse to choose a draw.io class diagram file" )
 
         formSizer.Add( self.fpcDiagramPath, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -45,7 +45,7 @@ class MainFrameBase ( wx.Frame ):
 
         formSizer.Add( self.m_staticText2, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.dpcOutputDir = wx.DirPickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select output directory", wx.DefaultPosition, wx.DefaultSize, wx.DIRP_DEFAULT_STYLE )
+        self.dpcOutputDir = wx.DirPickerCtrl( self, wx.ID_ANY, wx.EmptyString, u"Select output directory", wx.DefaultPosition, wx.DefaultSize, wx.DIRP_DEFAULT_STYLE|wx.DIRP_USE_TEXTCTRL )
         self.dpcOutputDir.SetToolTip( u"Select the directory where to store generated code files" )
 
         formSizer.Add( self.dpcOutputDir, 1, wx.ALL|wx.EXPAND, 5 )
@@ -337,7 +337,7 @@ class CommonOptionPageBase ( wx.Panel ):
         formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
+        self.txtModuleName.SetToolTip( u"Type in the name of a module/header file that should be automatically imported/included in each generated code file" )
 
         formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
@@ -347,7 +347,7 @@ class CommonOptionPageBase ( wx.Panel ):
         formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
-        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module in each generated code file.\nSeparate the names with spaces or commas" )
         self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
 
         formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -363,19 +363,21 @@ class CommonOptionPageBase ( wx.Panel ):
         self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnAddImport.SetToolTip( u"Add the above module and symbol names to the list of imports" )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
 
         buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
 
         self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
         buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
 
         self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnRemoveImport.SetToolTip( u"Remove the selected module and symbol names from the list of imports" )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
 
         buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
 
@@ -456,7 +458,7 @@ class JavaOptionPageBase ( wx.Panel ):
 
         featureFormSizer.Add( self.m_staticText12, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        chcTemporalChoices = [ u"java.time.LocalDate, java.time.LocalTime and java.time.LocalDateTime", u"java.time.LocalDate, java.time.OffsetTime and java.time.OffsetDateTime", u"java.sql.Date, java.sql.Time and java.sql.Timestamp", u"java.util.Date", u"java.util.Calendar" ]
+        chcTemporalChoices = [ u"Java 8 local time: LocalDate, LocalTime and LocalDateTime", u"Java 8 time with offset: LocalDate, OffsetTime and OffsetDateTime", u"JDBC (java.sql): Date, Time and Timestamp", u"java.util.Date", u"java.util.Calendar" ]
         self.chcTemporal = wx.Choice( featuresSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, chcTemporalChoices, 0 )
         self.chcTemporal.SetSelection( 0 )
         featureFormSizer.Add( self.chcTemporal, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -499,7 +501,7 @@ class JavaOptionPageBase ( wx.Panel ):
         importFormSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
+        self.txtModuleName.SetToolTip( u"Type in the name of a package that should be automatically imported in each generated code file" )
 
         importFormSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
@@ -509,7 +511,7 @@ class JavaOptionPageBase ( wx.Panel ):
         importFormSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
-        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of tclasses that should be imported from the above package in each generated code file.\nSeparate the names with spaces or commas" )
         self.txtSymbolNames.SetMinSize( wx.Size( -1,50 ) )
 
         importFormSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -525,19 +527,21 @@ class JavaOptionPageBase ( wx.Panel ):
         self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnAddImport.SetToolTip( u"Add the above module and symbol names to the list of imports" )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
 
         buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
 
         self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
         buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
 
         self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnRemoveImport.SetToolTip( u"Remove the selected module and symbol names from the list of imports" )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
 
         buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
 
@@ -618,7 +622,7 @@ class CSharpOptionPageBase ( wx.Panel ):
         formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtModuleName.SetToolTip( u"Type in the name of a module or package or namespace that should be automatically imported in each generated code file" )
+        self.txtModuleName.SetToolTip( u"Type in the name of a namespace that should be automatically imported in each generated code file" )
 
         formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
@@ -628,7 +632,6 @@ class CSharpOptionPageBase ( wx.Panel ):
         formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
-        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module or package in each generated code file.\nSeparate the names with spaces or commas" )
         self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
 
         formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -644,19 +647,21 @@ class CSharpOptionPageBase ( wx.Panel ):
         self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnAddImport.SetToolTip( u"Add the above module and symbol names to the list of imports" )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
 
         buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
 
         self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
         buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
 
         self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
 
         self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnRemoveImport.SetToolTip( u"Remove the selected module and symbol names from the list of imports" )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
 
         buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
 
@@ -704,14 +709,16 @@ class CSharpOptionPageBase ( wx.Panel ):
 
 class SqlOptionPageBase ( wx.Panel ):
 
-    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
 
-        rbxDialectChoices = [ u"Generic", u"MySQL", u"PostgreSQL", u"SQL Server", u"Oracle" ]
+        rbxDialectChoices = [ u"Generic", u"MySQL", u"PostgreSQL", u"Firebird", u"Oracle", u"DB2", u"SQL Server", u"Sybase", u"Access", u"SQLite", u"Derby", u"HSQLDB", u"H2" ]
         self.rbxDialect = wx.RadioBox( self, wx.ID_ANY, u"SQL Dialect", wx.DefaultPosition, wx.DefaultSize, rbxDialectChoices, 7, wx.RA_SPECIFY_COLS )
         self.rbxDialect.SetSelection( 0 )
+        self.rbxDialect.SetToolTip( u"Select the SQL dialect that should be used in generated scripts" )
+
         mainSizer.Add( self.rbxDialect, 0, wx.ALL|wx.EXPAND, 5 )
 
         scriptSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Script generation" ), wx.VERTICAL )
@@ -719,9 +726,13 @@ class SqlOptionPageBase ( wx.Panel ):
         numScriptSizer = wx.BoxSizer( wx.HORIZONTAL )
 
         self.rbnSingleScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a single database script", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.rbnSingleScript.SetToolTip( u"Select to generate a single file with all the table and foreign keys definitions" )
+
         numScriptSizer.Add( self.rbnSingleScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.rbnMultiScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a script per table", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.rbnMultiScript.SetToolTip( u"Select to generate a specific script for each table and a separate foreign keys script" )
+
         numScriptSizer.Add( self.rbnMultiScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
@@ -732,13 +743,24 @@ class SqlOptionPageBase ( wx.Panel ):
         scriptFormSizer.SetFlexibleDirection( wx.BOTH )
         scriptFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.m_staticText14 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Script filename:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        labelSizer = wx.BoxSizer( wx.VERTICAL )
+
+        self.m_staticText14 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Script filename", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText14.SetLabelMarkup( u"Script filename" )
         self.m_staticText14.Wrap( -1 )
 
-        scriptFormSizer.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        labelSizer.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_HORIZONTAL, 5 )
+
+        self.m_staticText15 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"(without extension):", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText15.Wrap( -1 )
+
+        labelSizer.Add( self.m_staticText15, 0, wx.ALIGN_CENTER_HORIZONTAL, 5 )
+
+
+        scriptFormSizer.Add( labelSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
         self.txtScriptFilename = wx.TextCtrl( scriptSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtScriptFilename.SetToolTip( u"Enter the script filename without the .sql extension" )
+        self.txtScriptFilename.SetToolTip( u"Enter the name of the unique script file without the \".sql\" extension" )
 
         scriptFormSizer.Add( self.txtScriptFilename, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 

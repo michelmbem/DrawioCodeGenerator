@@ -271,17 +271,8 @@ class CppCodeGenerator(CodeGenerator):
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties):
-        return ""
-
-    def generate_to_string(self, class_name, properties):
-        return ""
-
     def package_directive(self, package_name):
         return " { ".join(f"namespace {ns}" for ns in self.split_package_name(package_name)) + "\n{\n"
-
-    def map_type(self, typename, constraints = None):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def default_value(self, typename):
         typename = self.map_type(typename)
@@ -300,6 +291,8 @@ class CppCodeGenerator(CodeGenerator):
             return 'L""'
         if typename.endswith("*"):
             return "nullptr"
+        if typename.endswith("]"):
+            return "{}"
         return f"{typename}()"
 
     def get_parameter_list(self, parameters):

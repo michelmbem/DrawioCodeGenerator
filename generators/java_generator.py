@@ -102,7 +102,7 @@ class JavaCodeGenerator(CodeGenerator):
                 for imported_class in classes:
                     imports.add(f"{package}.{imported_class}")
 
-            temporal_type_imports = self.TEMPORAL_TYPE_IMPORTS[self.get_temporal_types_option()]
+            temporal_type_imports = self.TEMPORAL_TYPE_IMPORTS[self.options['temporal_types']]
             for imported_class in temporal_type_imports['classes']:
                 imports.add(f"{temporal_type_imports['package']}.{imported_class}")
 
@@ -361,10 +361,10 @@ class JavaCodeGenerator(CodeGenerator):
         return f"package {'.'.join(self.split_package_name(package_name))};\n\n"
 
     def map_type(self, typename, constraints = None):
-        mapped_type = self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        mapped_type = super().map_type(typename, constraints)
         if isinstance(mapped_type, dict):
-            return mapped_type.get(self.get_temporal_types_option(), "Object")
-        if constraints and (constraints.get("pk", False) or not constraints.get("required", False)):
+            return mapped_type.get(self.options['temporal_types'], "Object")
+        if constraints and constraints.get("pk", False):
             return self.OBJECT_TYPE_MAPPINGS.get(mapped_type, mapped_type)
         return mapped_type
 
@@ -385,9 +385,6 @@ class JavaCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "java"
-
-    def get_temporal_types_option(self):
-        return self.options.get('temporal_types', 'java8_local')
 
     def get_jpa_imports(self):
         jpa_imports = []

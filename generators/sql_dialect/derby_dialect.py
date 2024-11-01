@@ -1,13 +1,13 @@
 from generators.sql_dialect.sql_dialect import SQLDialect
 
 
-class AnsiSQLDialect(SQLDialect):
+class DerbyDialect(SQLDialect):
 
     TYPE_MAPPINGS = {
-        "boolean": "smallint",
-        "bool": "smallint",
-        "char": "character(1)",
-        "wchar": "national character(1)",
+        "boolean": "boolean",
+        "bool": "boolean",
+        "char": "char(1)",
+        "wchar": "char(1)",
         "sbyte": "smallint",
         "int8": "smallint",
         "byte": "smallint",
@@ -21,17 +21,17 @@ class AnsiSQLDialect(SQLDialect):
         "int32": "integer",
         "uint": "integer",
         "uint32": "integer",
-        "long": "decimal(20)",
-        "int64": "decimal(20)",
-        "ulong": "decimal(20)",
-        "uint64": "decimal(20)",
+        "long": "bigint",
+        "int64": "bigint",
+        "ulong": "bigint",
+        "uint64": "bigint",
         "float": "real",
         "single": "real",
-        "double": "double precision",
+        "double": "double",
         "bigint": "decimal(30)",
         "decimal": "decimal(30, 10)",
-        "string": "character varying(255)",
-        "wstring": "national character varying(255)",
+        "string": "varchar(255)",
+        "wstring": "varchar(255)",
         "date": "date",
         "time": "time",
         "datetime": "timestamp",

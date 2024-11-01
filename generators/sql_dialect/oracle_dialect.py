@@ -25,11 +25,11 @@ class OracleDialect(SQLDialect):
         "int64": "number(20)",
         "ulong": "number(20)",
         "uint64": "number(20)",
-        "float": "number(10, 3)",
-        "single": "number(10, 3)",
-        "double": "number(20, 6)",
-        "bigint": "decimal(30, 0)",
-        "decimal": "decimal(30, 10)",
+        "float": "float(24)",
+        "single": "float(24)",
+        "double": "float(53)",
+        "bigint": "number(30, 0)",
+        "decimal": "number(30, 10)",
         "string": "varchar2(255)",
         "wstring": "nvarchar2(255)",
         "date": "date",
@@ -38,12 +38,3 @@ class OracleDialect(SQLDialect):
         "timestamp": "date",
         "unspecified": "number",
     }
-
-    def map_type(self, typename, constraints):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
-
-    def identity_spec(self):
-        return ""
-
-    def fk_name(self, table, foreign_table, index):
-        return f"fk_{table}_{index}"

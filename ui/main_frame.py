@@ -19,6 +19,7 @@ class MainFrame (MainFrameBase):
 
     def __init__(self):
         super().__init__(None)
+        self.syntax_tree = None
         self.options = self.default_options()
         self.original_stdout = sys.stdout
         sys.stdout = self.captured_output = StringIO()
@@ -98,15 +99,15 @@ class MainFrame (MainFrameBase):
             },
         }
 
-    def asset_path(self, bitmap_path):
-        return path.join(path.dirname(__file__), bitmap_path)
-
     def update_log(self):
         self.rtcStdout.SetValue(self.captured_output.getvalue())
         self.rtcStdout.ShowPosition(self.rtcStdout.GetLastPosition())
 
+    def asset_path(self, bitmap_path):
+        return path.join(path.dirname(__file__), bitmap_path)
+
     def fpcDiagramPathOnFileChanged(self, event):
-        self.dpcOutputDir.SetPath(path.dirname(self.fpcDiagramPath.GetPath()))
+        self.dpcOutputDir.SetPath(path.join(path.dirname(self.fpcDiagramPath.GetPath()), "src"))
         self.syntax_tree = None
         self.stcDecodedXml.xml_content = None
         self.tlcStyle.load_dict(None)
@@ -141,39 +142,42 @@ class MainFrame (MainFrameBase):
             self.update_log()
 
             if message:
-                wx.MessageBox(message, "Diagram parsing", wx.OK | wx.ICON_ERROR)
+                wx.MessageBox(message, "Diagram parsing error", wx.OK | wx.ICON_ERROR)
 
     def btnGenerateOnButtonClick(self, event):
-        message = None
-
         if not self.syntax_tree:
             self.btnParseOnButtonClick(None)
             if not self.syntax_tree:
                 return
 
+        selected_languages = set()
+        for item in self.chkLangTS.GetContainingSizer().GetChildren():
+            checkbox = item.GetWindow()
+            if isinstance(checkbox, wx.CheckBox) and checkbox.IsChecked():
+                selected_languages.add(checkbox.GetLabel())
+
+        selected_language_count = len(selected_languages)
+        if selected_language_count <= 0:
+            wx.MessageBox("No language was selected for code generation!",
+                          "Code generation aborted",
+                          wx.OK | wx.ICON_WARNING)
+            return
+
         try:
-            language_selected = False
+            for language in selected_languages:
+                out_dir = self.dpcOutputDir.GetPath()
+                if selected_language_count > 1:
+                    out_dir = path.join(out_dir, language)
+                code_gen = CodeGenerators.get(language, self.syntax_tree, out_dir, self.options)
+                code_gen.generate_code()
 
-            for item in self.chkLangTS.GetContainingSizer().GetChildren():
-                checkbox = item.GetWindow()
-                if isinstance(checkbox, wx.CheckBox) and checkbox.IsChecked():
-                    language = checkbox.GetLabel()
-                    output_dir = path.join(self.dpcOutputDir.GetPath(), language)
-                    code_gen = CodeGenerators.get(language, self.syntax_tree, output_dir, self.options)
-                    code_gen.generate_code()
-                    language_selected = True
-
-            if language_selected:
-                startfile(path.abspath(self.dpcOutputDir.GetPath()))
-            else:
-                message = "No language was selected for code generation!"
+            startfile(path.abspath(self.dpcOutputDir.GetPath()))
         except Exception as e:
-            message = f"Something went wrong: {e}"
+            wx.MessageBox(f"Something went wrong: {e}",
+                          "Code generation error",
+                          wx.OK | wx.ICON_ERROR)
         finally:
             self.update_log()
-
-            if message:
-                wx.MessageBox(message, "Code generation", wx.OK | wx.ICON_ERROR)
 
     def btnExitOnButtonClick(self, event):
         self.Close()

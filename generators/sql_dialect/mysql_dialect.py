@@ -7,7 +7,7 @@ class MySQLDialect(SQLDialect):
         "boolean": "tinyint(1)",
         "bool": "tinyint(1)",
         "char": "char(1)",
-        "wchar": "char(1)",
+        "wchar": "char(1) character set utf8mb4",
         "sbyte": "tinyint",
         "int8": "tinyint",
         "byte": "tinyint unsigned",
@@ -28,10 +28,10 @@ class MySQLDialect(SQLDialect):
         "float": "float(24)",
         "single": "float(24)",
         "double": "float(53)",
-        "bigint": "decimal(30, 0)",
+        "bigint": "decimal(30)",
         "decimal": "decimal(30, 10)",
         "string": "varchar(255)",
-        "wstring": "varchar(255)",
+        "wstring": "varchar(255) character set utf8mb4",
         "date": "date",
         "time": "time",
         "datetime": "datetime",
@@ -39,11 +39,5 @@ class MySQLDialect(SQLDialect):
         "unspecified": "int",
     }
 
-    def map_type(self, typename, constraints):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
-
     def identity_spec(self):
         return "auto_increment"
-
-    def fk_name(self, table, foreign_table, index):
-        return f"fk_{table}_{foreign_table}"

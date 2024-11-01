@@ -25,10 +25,10 @@ class SQLServerDialect(SQLDialect):
         "int64": "bigint",
         "ulong": "bigint",
         "uint64": "bigint",
-        "float": "float(24)",
-        "single": "float(24)",
-        "double": "float(53)",
-        "bigint": "decimal(30, 0)",
+        "float": "real",
+        "single": "real",
+        "double": "float",
+        "bigint": "decimal(30)",
         "decimal": "decimal(30, 10)",
         "string": "varchar(255)",
         "wstring": "nvarchar(255)",
@@ -39,11 +39,5 @@ class SQLServerDialect(SQLDialect):
         "unspecified": "int",
     }
 
-    def map_type(self, typename, constraints):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
-
     def identity_spec(self):
         return "identity(1, 1)"
-
-    def fk_name(self, table, foreign_table, index):
-        return f"fk_{table}_{foreign_table}"

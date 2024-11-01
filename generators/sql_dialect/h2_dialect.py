@@ -1,16 +1,16 @@
 from generators.sql_dialect.sql_dialect import SQLDialect
 
 
-class AnsiSQLDialect(SQLDialect):
+class H2Dialect(SQLDialect):
 
     TYPE_MAPPINGS = {
-        "boolean": "smallint",
-        "bool": "smallint",
+        "boolean": "boolean",
+        "bool": "boolean",
         "char": "character(1)",
         "wchar": "national character(1)",
-        "sbyte": "smallint",
-        "int8": "smallint",
-        "byte": "smallint",
+        "sbyte": "tinyint",
+        "int8": "tinyint",
+        "byte": "tinyint",
         "uint8": "smallint",
         "short": "smallint",
         "int16": "smallint",
@@ -21,10 +21,10 @@ class AnsiSQLDialect(SQLDialect):
         "int32": "integer",
         "uint": "integer",
         "uint32": "integer",
-        "long": "decimal(20)",
-        "int64": "decimal(20)",
-        "ulong": "decimal(20)",
-        "uint64": "decimal(20)",
+        "long": "bigint",
+        "int64": "bigint",
+        "ulong": "bigint",
+        "uint64": "bigint",
         "float": "real",
         "single": "real",
         "double": "double precision",

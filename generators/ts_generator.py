@@ -249,9 +249,6 @@ class TsCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name):
-        return ""
-
     def generate_full_arg_ctor(self, class_name, properties):
         prefix = ""
         if self.options['encapsulate_all_props']:
@@ -267,9 +264,6 @@ class TsCodeGenerator(CodeGenerator):
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties):
-        return ""
-
     def generate_to_string(self, class_name, properties):
         method_string = "\tpublic toString(): string {\n"
         method_string += f"\t\treturn `{class_name} \\{{"
@@ -277,12 +271,6 @@ class TsCodeGenerator(CodeGenerator):
         method_string += "\\}`;\n\t}\n\n"
 
         return method_string
-
-    def package_directive(self, package_name):
-        return None
-
-    def map_type(self, typename, constraints = None):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
     def default_value(self, typename):
         typename = self.map_type(typename)

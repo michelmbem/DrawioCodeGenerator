@@ -48,7 +48,7 @@ Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 |ulong, uint64|long|ulong|unsigned long long|number|bigint|
 |foat, single|float|float|float|number|float(24)|
 |double|double|double|double|number|float(53)|
-|bigint|BigInteger|BigInteger|_N/A_|bigint|decimal(30, 0)|
+|bigint|BigInteger|BigInteger|_N/A_|bigint|decimal(30)|
 |decimal|BigDecimal|decimal|_N/A_|number|decimal(30, 10)|
 |string|String|string|std::string|string|varchar(2000)|
 |wstring|String|string|std::wstring|string|nvarchar(2000)|

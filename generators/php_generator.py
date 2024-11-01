@@ -192,9 +192,6 @@ class PhpCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name):
-        return ""
-
     def generate_full_arg_ctor(self, class_name, properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
@@ -229,9 +226,6 @@ class PhpCodeGenerator(CodeGenerator):
 
     def package_directive(self, package_name):
         return f"namespace {'\\'.join(self.split_package_name(package_name))};\n\n"
-
-    def map_type(self, typename, constraints = None):
-        return None
 
     def default_value(self, typename):
         typename = typename.lower()

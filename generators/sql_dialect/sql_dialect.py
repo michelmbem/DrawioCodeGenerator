@@ -1,16 +1,6 @@
-from abc import ABC, abstractmethod
-
-
-class SQLDialect(ABC):
-
-    @abstractmethod
+class SQLDialect:
     def map_type(self, typename, constraints):
-        pass
+        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 
-    @abstractmethod
     def identity_spec(self):
-        pass
-
-    @abstractmethod
-    def fk_name(self, table, foreign_table, index):
-        pass
+        return "generated always as identity (start with 1, increment by 1)"

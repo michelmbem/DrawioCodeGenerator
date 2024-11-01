@@ -28,7 +28,7 @@ class PostgreSQLDialect(SQLDialect):
         "float": "real",
         "single": "real",
         "double": "double precision",
-        "bigint": "decimal(30, 0)",
+        "bigint": "decimal(30)",
         "decimal": "numeric(30, 10)",
         "string": "character varying(255)",
         "wstring": "character varying(255)",
@@ -63,6 +63,3 @@ class PostgreSQLDialect(SQLDialect):
 
     def identity_spec(self):
         return ""
-
-    def fk_name(self, table, foreign_table, index):
-        return f"fk_{table}_{index}"

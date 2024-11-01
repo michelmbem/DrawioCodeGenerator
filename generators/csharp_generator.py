@@ -312,9 +312,6 @@ class CSharpCodeGenerator(CodeGenerator):
     def package_directive(self, package_name):
         return f"namespace {'.'.join(self.split_package_name(package_name))};\n\n"
 
-    def map_type(self, typename, constraints = None):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
-
     def default_value(self, typename):
         return f"default({self.map_type(typename)})"
 

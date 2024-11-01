@@ -158,6 +158,45 @@ class CodeGenerator(ABC):
     def get_property_access(self, property_def):
         return "private" if self.options['encapsulate_all_props'] else property_def['access']
 
+    def generate_property_accessors(self, class_name, properties):
+        return ""
+
+    def generate_methods(self, methods, class_type, interface_methods):
+        return ""
+
+    def generate_default_ctor(self, class_name):
+        return ""
+
+    def generate_full_arg_ctor(self, class_name, properties):
+        return ""
+
+    def generate_equal_hashcode(self, class_name, properties):
+        return ""
+
+    def generate_to_string(self, class_name, properties):
+        return ""
+
+    def package_directive(self, package_name):
+        return ""
+
+    def map_type(self, typename, constraints = None):
+        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+
+    def default_value(self, typename):
+        typename = typename.lower()
+        if typename in ("boolean", "bool"):
+            return "false"
+        if typename in ("sbyte", "int8", "byte", "uint8", "short", "int16", "ushort", "uint16",
+                        "integer", "int", "int32", "uint", "uint32", "long", "int64", "ulong",
+                        "uint64", "float", "single", "double", "bigint", "decimal"):
+            return "0"
+        if typename in ("char", "wchar", "string", "wstring"):
+            return '""'
+        return None
+
+    def get_parameter_list(self, param_types):
+        return ""
+
     @abstractmethod
     def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         pass
@@ -165,49 +204,9 @@ class CodeGenerator(ABC):
     @abstractmethod
     def generate_class_footer(self, class_type, class_name):
         pass
-    
+
     @abstractmethod
     def generate_properties(self, properties, is_enum):
-        pass
-
-    @abstractmethod
-    def generate_property_accessors(self, class_name, properties):
-        pass
-
-    @abstractmethod
-    def generate_methods(self, methods, class_type, interface_methods):
-        pass
-
-    @abstractmethod
-    def generate_default_ctor(self, class_name):
-        pass
-
-    @abstractmethod
-    def generate_full_arg_ctor(self, class_name, properties):
-        pass
-
-    @abstractmethod
-    def generate_equal_hashcode(self, class_name, properties):
-        pass
-
-    @abstractmethod
-    def generate_to_string(self, class_name, properties):
-        pass
-
-    @abstractmethod
-    def package_directive(self, package_name):
-        pass
-
-    @abstractmethod
-    def map_type(self, typename, constraints = None):
-        pass
-
-    @abstractmethod
-    def default_value(self, typename):
-        pass
-
-    @abstractmethod
-    def get_parameter_list(self, param_types):
         pass
 
     @abstractmethod

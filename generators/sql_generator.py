@@ -10,7 +10,7 @@ class SqlCodeGenerator(CodeGenerator):
     Generate SQL code
 
     Parameters:
-        syntax_tree: syntax_tree of the drawio file 
+        syntax_tree: syntax_tree of the drawio file
         file_path: path for the code files to be written to
         options: set of additional options
     """
@@ -174,24 +174,6 @@ class SqlCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
-        return None
-
-    def generate_methods(self, methods, class_type, interface_methods):
-        return None
-
-    def generate_default_ctor(self, class_name):
-        return ""
-
-    def generate_full_arg_ctor(self, class_name, properties):
-        return ""
-
-    def generate_equal_hashcode(self, class_name, properties):
-        return ""
-
-    def generate_to_string(self, class_name, properties):
-        return ""
-
     def package_directive(self, package_name):
         return f"use {'_'.join(self.split_package_name(package_name))};\n\n"
 
@@ -209,9 +191,6 @@ class SqlCodeGenerator(CodeGenerator):
             return '""'
         return "None"
 
-    def get_parameter_list(self, param_types):
-        return ""
-
     def get_file_extension(self):
         return "sql"
 
@@ -221,9 +200,8 @@ class SqlCodeGenerator(CodeGenerator):
 
     def write_foreign_keys(self, f):
         for table_name, foreign_keys in self.foreign_keys.items():
-            index = 1
             for foreign_table, columns in foreign_keys.items():
-                fk_name = self.dialect.fk_name(table_name, foreign_table, index)
+                fk_name = f"fk_{table_name}_{foreign_table}"
+                foreign_columns = ', '.join(self.primary_keys[foreign_table])
                 f.write(f"alter table {table_name} add constraint {fk_name} foreign key ({', '.join(columns)})"
-                        f" references {foreign_table} ({', '.join(self.primary_keys[foreign_table])});\n")
-            index += 1
+                        f" references {foreign_table} ({foreign_columns});\n")

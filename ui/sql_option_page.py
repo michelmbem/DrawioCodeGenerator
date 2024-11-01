@@ -4,7 +4,9 @@ from ui.option_page import OptionPage
 
 class SqlOptionPage(SqlOptionPageBase, OptionPage):
 
-    DIALECTS = ["ansi", "mysql", "postgresql", "sqlserver", "oracle"]
+    # Note: Should be aligned in the same order as the corresponding radio boxes in the UI
+    DIALECTS = ["ansi", "mysql", "postgresql", "firebird", "oracle", "db2", "sqlserver",
+                "sybase", "access", "sqlite", "derby", "hsqldb", "h2"]
 
     def __init__(self, parent, options):
         SqlOptionPageBase.__init__(self, parent)
