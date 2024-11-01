@@ -52,10 +52,11 @@ class CodeGenerator(ABC):
                     should_generate = self.options['generate']
 
                     if should_generate['default_ctor']:
-                        file_contents += self.generate_default_ctor(class_def['name'])
+                        file_contents += self.generate_default_ctor(class_def['name'], len(baseclasses) > 0)
 
                     if has_instance_props and should_generate['full_arg_ctor']:
-                        file_contents += self.generate_full_arg_ctor(class_def['name'], instance_props)
+                        parents = [self.syntax_tree[r] for r in class_def['relationships']['extends']]
+                        file_contents += self.generate_full_arg_ctor(class_def['name'], instance_props, parents)
 
                     file_contents += self.generate_property_accessors(class_def['name'], class_def['properties'])
 
@@ -164,10 +165,10 @@ class CodeGenerator(ABC):
     def generate_methods(self, methods, class_type, interface_methods):
         return ""
 
-    def generate_default_ctor(self, class_name):
+    def generate_default_ctor(self, class_name, call_super):
         return ""
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         return ""
 
     def generate_equal_hashcode(self, class_name, properties):

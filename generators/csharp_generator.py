@@ -267,10 +267,10 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name):
+    def generate_default_ctor(self, class_name, call_super):
         return f"\tpublic {class_name}()\n\t{{\n\t}}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
         ctor_string += separator.join(f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values())

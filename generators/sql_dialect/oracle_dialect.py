@@ -38,3 +38,6 @@ class OracleDialect(SQLDialect):
         "timestamp": "date",
         "unspecified": "number",
     }
+
+    def __init__(self):
+        super().__init__()

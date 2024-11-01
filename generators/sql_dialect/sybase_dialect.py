@@ -39,5 +39,8 @@ class SybaseDialect(SQLDialect):
         "unspecified": "int",
     }
 
+    def __init__(self):
+        super().__init__(True)
+
     def identity_spec(self):
         return "identity(1, 1)"

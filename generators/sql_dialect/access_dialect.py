@@ -39,6 +39,9 @@ class AccessDialect(SQLDialect):
         "unspecified": "integer",
     }
 
+    def __init__(self):
+        super().__init__()
+
     def map_type(self, typename, constraints):
         if constraints.get("identity", False):
             return "counter"

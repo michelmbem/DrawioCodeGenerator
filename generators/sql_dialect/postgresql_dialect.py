@@ -56,6 +56,9 @@ class PostgreSQLDialect(SQLDialect):
         "unspecified": "bigserial",
     }
 
+    def __init__(self):
+        super().__init__()
+
     def map_type(self, typename, constraints):
         if constraints.get("identity", False):
             return self.SERIAL_TYPE_MAPPINGS.get(typename.lower(), "serial")

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ###########################################################################
-## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf0)
+## Python code generated with wxFormBuilder (version 4.0.0-0-g0efcecf)
 ## http://www.wxformbuilder.org/
 ##
 ## PLEASE DO *NOT* EDIT THIS FILE!
@@ -208,7 +208,7 @@ class MainFrameBase ( wx.Frame ):
 class OptionDialogBase ( wx.Dialog ):
 
     def __init__( self, parent ):
-        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,625 ), style = wx.DEFAULT_DIALOG_STYLE )
+        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,650 ), style = wx.DEFAULT_DIALOG_STYLE )
 
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
@@ -316,7 +316,7 @@ class OptionDialogBase ( wx.Dialog ):
 
 class CommonOptionPageBase ( wx.Panel ):
 
-    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
@@ -425,7 +425,7 @@ class CommonOptionPageBase ( wx.Panel ):
 
 class JavaOptionPageBase ( wx.Panel ):
 
-    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
@@ -593,7 +593,7 @@ class JavaOptionPageBase ( wx.Panel ):
 
 class CSharpOptionPageBase ( wx.Panel ):
 
-    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 500,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
@@ -786,6 +786,123 @@ class SqlOptionPageBase ( wx.Panel ):
     def onScriptRadioButtonClicked( self, event ):
         event.Skip()
 
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class TypeScriptOptionPageBase
+###########################################################################
+
+class TypeScriptOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
+
+        self.chkOptionalProps = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Make all properties optional", wx.DefaultPosition, wx.DefaultSize, 0 )
+        featuresSizer.Add( self.chkOptionalProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( featuresSizer, 0, wx.ALL|wx.EXPAND, 5 )
+
+        importSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Imports" ), wx.VERTICAL )
+
+        self.lscImport = wx.ListCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        importSizer.Add( self.lscImport, 1, wx.ALL|wx.EXPAND, 5 )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.lblModuleName = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Module name:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
+
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtModuleName.SetToolTip( u"Type in the name of a module/header file that should be automatically imported/included in each generated code file" )
+
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.lblSymbolNames = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
+
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        importSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
+
+        buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
+
+        self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
+        buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
+
+        self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
+
+        buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
+
+
+        importSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+
+        mainSizer.Add( importSizer, 1, wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        # Connect Events
+        self.lscImport.Bind( wx.EVT_LIST_ITEM_SELECTED, self.lscImportOnListItemSelected )
+        self.btnAddImport.Bind( wx.EVT_BUTTON, self.btnAddImportOnButtonClick )
+        self.btnUpdateImport.Bind( wx.EVT_BUTTON, self.btnUpdateImportOnButtonClick )
+        self.btnRemoveImport.Bind( wx.EVT_BUTTON, self.btnRemoveImportOnButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def lscImportOnListItemSelected( self, event ):
+        event.Skip()
+
+    def btnAddImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnUpdateImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveImportOnButtonClick( self, event ):
+        event.Skip()
 
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):

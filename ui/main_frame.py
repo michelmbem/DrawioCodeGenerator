@@ -43,7 +43,7 @@ class MainFrame (MainFrameBase):
         self.tlcSyntax = SymbolTreeCtrl(self.nbTrees)
         self.nbTrees.AddPage(self.tlcSyntax, "Syntax tree", imageId=1)
 
-        self.rtcStdout.SetFont(wx.Font(wx.FontInfo(FACES['size2']).FaceName(FACES['mono'])))
+        self.rtcStdout.SetFont(wx.Font(wx.FontInfo(FACES['medium']).FaceName(FACES['mono'])))
 
         self.fpcDiagramPath.SetPath("examples/simple_class_diagram.drawio")
         self.fpcDiagramPathOnFileChanged(None)
@@ -89,7 +89,9 @@ class MainFrame (MainFrameBase):
                     }
                 },
                 'python': {},
-                'ts': {},
+                'ts': {
+                    'optional_props': True,
+                },
                 'php': {},
                 'sql': {
                     'dialect': "ansi",

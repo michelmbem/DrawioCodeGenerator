@@ -39,5 +39,8 @@ class SQLiteDialect(SQLDialect):
         "unspecified": "integer",
     }
 
+    def __init__(self):
+        super().__init__()
+
     def identity_spec(self):
         return ""

@@ -144,6 +144,7 @@ class SqlCodeGenerator(CodeGenerator):
 
         for property_def in properties.values():
             constraints = property_def['constraints']
+            is_identity = False
 
             if first_prop:
                 first_prop = False
@@ -157,6 +158,7 @@ class SqlCodeGenerator(CodeGenerator):
             if constraints.get('unique', False):
                 p += " unique"
             if constraints.get('identity', False):
+                is_identity = True
                 p += f" {self.dialect.identity_spec()}".rstrip()
             if constraints.get('pk', False):
                 self.tmp_primary_key.append(property_def['name'])
@@ -167,7 +169,7 @@ class SqlCodeGenerator(CodeGenerator):
                 else:
                     self.tmp_foreign_keys[fk_target] = [property_def['name']]
 
-            if property_def['default_value']:
+            if property_def['default_value'] and not is_identity:
                 p += f" default {property_def['default_value']}"
 
             properties_string += p
@@ -175,27 +177,30 @@ class SqlCodeGenerator(CodeGenerator):
         return properties_string
 
     def package_directive(self, package_name):
-        return f"use {'_'.join(self.split_package_name(package_name))};\n\n"
+        return f"use {self.split_package_name(package_name)[-1]};\n\n"
 
     def map_type(self, typename, constraints = None):
-        return self.dialect.map_type(typename, constraints)
+        mapped_type = self.dialect.map_type(typename, constraints)
 
-    def default_value(self, typename):
-        typename = typename.lower()
-        if typename == "boolean":
-            return "False"
-        if typename in ("int8", "uint8", "int16", "uint16", "int32", "uint32",
-                        "int64", "uint64", "single", "double", "bigint", "decimal"):
-            return "0"
-        if typename == "string":
-            return '""'
-        return "None"
+        if constraints:
+            length = constraints.get("length")
+            if not length:
+                size = constraints.get("size")
+                if size:
+                    length = size[1]
+
+            if length:
+                lparen, rparen = mapped_type.find('('), mapped_type.find(')')
+                if 0 <= lparen < rparen:
+                    return f"{mapped_type[:lparen]}({length}){mapped_type[rparen + 1:]}"
+
+        return mapped_type
 
     def get_file_extension(self):
         return "sql"
 
     def write_package_directive(self, f):
-        if self.options['package']:
+        if self.options['package'] and self.dialect.multi_catalog:
             f.write(self.package_directive(self.options['package']))
 
     def write_foreign_keys(self, f):

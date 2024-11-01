@@ -1,36 +1,51 @@
-import wx
+# Importing the standard 'platform' module, not this module!
+import platform
 
 
-if wx.Platform == '__WXMSW__':
+OS_NAME = platform.system()
+
+if OS_NAME == "Windows":
     MAIN_FRAME_SIZE = (1000, 750)
-    OPTION_DLG_SIZE = (700, 625)
+    OPTION_DLG_SIZE = (700, 650)
     FACES = {
-        'times': 'Cambria',
+        'serif': 'Cambria',
+        'sans-serif': 'Calibri',
         'mono': 'Consolas',
-        'helv': 'Calibri',
-        'other': 'Segoe UI',
-        'size': 11,
-        'size2': 9,
-    }
-elif wx.Platform == '__WXMAC__':
-    MAIN_FRAME_SIZE = (1000, 750)
-    OPTION_DLG_SIZE = (700, 625)
-    FACES = {
-        'times': 'Times New Roman',
-        'mono': 'Monaco',
-        'helv': 'Arial',
         'other': 'Comic Sans MS',
-        'size': 12,
-        'size2': 10,
+        'medium': 11,
+    }
+elif OS_NAME == "Darwin":
+    MAIN_FRAME_SIZE = (1000, 750)   # Check on a Mac
+    OPTION_DLG_SIZE = (700, 650)    # Check on a Mac
+    FACES = {
+        'serif': 'Times New Roman',
+        'sans-serif': 'Arial',
+        'mono': 'Monaco',
+        'other': 'Comic Sans MS',
+        'medium': 12,
     }
 else:   # Unix/Linux
+    OS_RELEASE = platform.freedesktop_os_release()
     MAIN_FRAME_SIZE = (1100, 850)
-    OPTION_DLG_SIZE = (800, 755)
+    OPTION_DLG_SIZE = (800, 750)
     FACES = {
-        'times': 'Times',
+        'serif': 'Times',
+        'sans-serif': 'Helvetica',
         'mono': 'Courier',
-        'helv': 'Helvetica',
         'other': 'new century schoolbook',
-        'size': 12,
-        'size2': 10,
+        'medium': 12,
     }
+
+    if OS_RELEASE['NAME'] == "Ubuntu":
+        FACES['mono'] = 'Ubuntu Mono'
+
+
+FACES['sanserif'] = FACES['sans-serif']
+
+FACES['large'] = FACES['medium'] + 2
+FACES['larger'] = FACES['large'] + 2
+FACES['largest'] = FACES['larger'] + 2
+
+FACES['small'] = FACES['medium'] - 2
+FACES['smaller'] = FACES['small'] - 2
+FACES['smallest'] = FACES['smaller'] - 2

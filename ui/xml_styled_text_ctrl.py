@@ -20,7 +20,7 @@ class XMLStyledTextCtrl(stc.StyledTextCtrl):
 
         # Global default styles for all languages
         self.StyleResetDefault()
-        self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "fore:%(fg)s,back:%(bg)s,face:%(mono)s,size:%(size)d" % {**FACES, **colors})
+        self.StyleSetSpec(stc.STC_STYLE_DEFAULT, "fore:{fg},back:{bg},face:{mono},size:{medium}".format(**FACES, **colors))
         self.StyleClearAll()
 
         # Set styles for XML elements

@@ -38,3 +38,6 @@ class DerbyDialect(SQLDialect):
         "timestamp": "timestamp",
         "unspecified": "integer",
     }
+
+    def __init__(self):
+        super().__init__()

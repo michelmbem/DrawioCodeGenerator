@@ -302,12 +302,12 @@ class JavaCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name):
+    def generate_default_ctor(self, class_name, call_super):
         if self.options['use_lombok']:
             return ""
         return f"\tpublic {class_name}() {{\n\t}}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         if self.options['use_lombok']:
             return ""
 

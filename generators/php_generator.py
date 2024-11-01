@@ -192,7 +192,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
         ctor_string += separator.join(f"${p['name']} = {self.default_value(p['type'])}" for p in properties.values())

@@ -258,10 +258,10 @@ class CppCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name):
+    def generate_default_ctor(self, class_name, call_super):
         return f"\t\tpublic: {class_name}()\n\t\t{{\n\t\t}}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         separator = ",\n\t\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\t\tpublic: {class_name}("
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())

@@ -127,12 +127,14 @@ class TsCodeGenerator(CodeGenerator):
             properties_string: string of the properties
         """
 
-        properties_string = ""
-        property_prefix = ""
+        properties_string = property_prefix = property_suffix = ""
         first_prop = True
 
-        if not is_enum and self.options['encapsulate_all_props']:
-            property_prefix = "_"
+        if not is_enum:
+            if self.options['encapsulate_all_props']:
+                property_prefix = "_"
+            if self.options['optional_props']:
+                property_suffix = "?"
 
         for property_def in properties.values():
             if is_enum:
@@ -153,8 +155,8 @@ class TsCodeGenerator(CodeGenerator):
                 if constraints.get('final', False):
                     modifier += " readonly"
 
-                p = (f"\t{modifier} {property_prefix}{property_def['name']}"
-                     f": {self.map_type(property_def['type'])}")
+                p = (f"\t{modifier} {property_prefix}{property_def['name']}{property_suffix}:"
+                     f" {self.map_type(property_def['type'])}")
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -183,6 +185,10 @@ class TsCodeGenerator(CodeGenerator):
                 if self.options['encapsulate_all_props']:
                     property_name = f"_{property_name}"
 
+                param_ref_suffix = ""
+                if self.options['optional_props']:
+                    param_ref_suffix = "!"
+
                 accessor_name = self.accessor_name(property_name)
                 accessor_type = self.map_type(property_def['type'])
                 parameter_name = self.parameter_name(property_name)
@@ -195,7 +201,7 @@ class TsCodeGenerator(CodeGenerator):
                 modifier += " "
 
                 accessors_string += (f"\tpublic{modifier}get {accessor_name}(): {accessor_type} {{\n"
-                                     f"\t\treturn {target}.{property_name};\n\t}}\n\n")
+                                     f"\t\treturn {target}.{property_name}{param_ref_suffix};\n\t}}\n\n")
 
                 if not constraints.get('final', False):
                     accessors_string += (f"\tpublic{modifier}set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
@@ -226,9 +232,9 @@ class TsCodeGenerator(CodeGenerator):
             else:
                 constraints = method_def['constraints']
 
-                modifier = " "
+                modifier = ""
                 if constraints.get('static', False):
-                    modifier += " static "
+                    modifier = " static "
 
                 m = f"\t{method_def['access']}{modifier}{method_def['name']}{params}: {self.map_type(method_def['return_type'])} {{\n"
                 m += f"\t\t{comment}\n"
@@ -249,17 +255,25 @@ class TsCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_full_arg_ctor(self, class_name, properties):
+    def generate_full_arg_ctor(self, class_name, properties, parents):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"
 
-        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
-        ctor_string = "\tpublic constructor("
-        ctor_string += separator.join(f"{p['name']}: {self.map_type(p['type'])} = {self.default_value(p['type'])}"
-                                      for p in properties.values())
-        ctor_string += ") {\n"
-        ctor_string += '\n'.join(f"\t\tthis.{prefix}{p['name']} = {p['name']};" for p in properties.values())
+        suffix = ""
+        if not self.options['optional_props']:
+            suffix = "!"
+
+        parent_ctor_params = self.parent_constructor_params(parents)
+        separator = ",\n\t\t\t" if len(properties) + len(parent_ctor_params) > 4 else ", "
+        parent_ctor_params = separator.join(f"{p['name']}?: {self.map_type(p['type'])}" for p in parent_ctor_params)
+
+        ctor_string = f"\tpublic constructor({parent_ctor_params}"
+        if not ctor_string.endswith('('):
+            ctor_string += ", "
+        ctor_string += separator.join(f"{p['name']}?: {self.map_type(p['type'])}" for p in properties.values())
+        ctor_string += f") {{\n{self.parent_constructor_call(parents)}"
+        ctor_string += '\n'.join(f"\t\tthis.{prefix}{p['name']} = {p['name']}{suffix};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
@@ -280,10 +294,29 @@ class TsCodeGenerator(CodeGenerator):
             return "0"
         if typename == "string":
             return '""'
-        return "null"
+        if typename.endswith(']'):
+            return "[]"
+        return f"new {typename}()"
 
     def get_parameter_list(self, parameters):
         return f"({', '.join(f"{p['name']}: {self.map_type(p['type'])}" for p in parameters)})"
 
     def get_file_extension(self):
         return "ts"
+
+    def parent_constructor_params(self, parents):
+        if len(parents) > 0:
+            parent = parents[0]
+            grandparents = [self.syntax_tree[r] for r in parent['relationships']['extends']]
+            args = self.parent_constructor_params(grandparents)
+            args += [p for p in parent['properties'].values() if not p['constraints'].get("static", False)]
+        else:
+            args = []
+
+        return args
+
+    def parent_constructor_call(self, parents):
+        if len(parents) > 0:
+            args = ', '.join(p['name'] for p in parents[0]['properties'].values())
+            return f"\t\tsuper({args});\n"
+        return ""
