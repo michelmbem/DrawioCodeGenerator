@@ -13,6 +13,7 @@ class PythonCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.baseclass_name = None
 
     @staticmethod
     def accessor_name(property_name):
@@ -61,9 +62,11 @@ class PythonCodeGenerator(CodeGenerator):
             if len(baseclasses) > 0:
                 if class_type == "interface":
                     class_ancestors += ", "
+                else:
+                    self.baseclass_name = baseclasses[0]
                 class_ancestors += ', '.join(baseclasses)
             if len(interfaces) > 0:
-                if class_type == "interface" or len(baseclasses) > 0:
+                if class_type == "interface" or self.baseclass_name:
                     class_ancestors += ", "
                 class_ancestors += ', '.join(interfaces)
             class_ancestors += ")"
@@ -91,6 +94,8 @@ class PythonCodeGenerator(CodeGenerator):
         Returns:
             properties_string: the closing brace of a class definition
         """
+
+        self.baseclass_name = None
 
         return ""
 
@@ -121,7 +126,10 @@ class PythonCodeGenerator(CodeGenerator):
                     p += "\n"
                     properties_string += p
 
-            properties_string += "\n\tdef __init__(self, *args, **kwargs):\n\t\targc = len(args)\n"
+            properties_string += "\n\tdef __init__(self, *args, **kwargs):\n"
+            if self.baseclass_name:
+                properties_string += f"\t\t{self.baseclass_name}.__init__(self, *args, **kwargs)\n\n"
+            properties_string += "\t\targc = len(args)\n"
 
             if self.options['encapsulate_all_props']:
                 property_prefix = "_"
@@ -151,7 +159,7 @@ class PythonCodeGenerator(CodeGenerator):
             properties_string += p
             counter += 1
 
-        if not counter:
+        if not (self.baseclass_name or counter):
             properties_string = "\tdef __init__(self, *args, **kwargs):\n\t\tpass\n"
 
         return properties_string
@@ -243,6 +251,10 @@ class PythonCodeGenerator(CodeGenerator):
 
         method_string = "\tdef __members(self):\n"
         method_string += "\t\treturn ("
+        if call_super:
+            method_string += f"*{self.baseclass_name}.__members(self)"
+            if len(properties) > 0:
+                method_string += ", "
         method_string += ', '.join(f"self.{prefix}{p['name']}" for p in properties.values())
         method_string += ",)\n\n"
 
@@ -263,6 +275,10 @@ class PythonCodeGenerator(CodeGenerator):
 
         method_string = "\tdef __str__(self):\n"
         method_string += f"\t\treturn f\"{class_name} {{{{"
+        if call_super:
+            method_string += f"{{{self.baseclass_name}.__str__(self)}}"
+            if len(properties) > 0:
+                method_string += ", "
         method_string += ', '.join(f"{p['name']}={{self.{prefix}{p['name']}}}" for p in properties.values())
         method_string += "}}\"\n\n"
 

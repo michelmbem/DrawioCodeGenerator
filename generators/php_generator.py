@@ -195,8 +195,14 @@ class PhpCodeGenerator(CodeGenerator):
     def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
+        if call_super:
+            ctor_string += separator.join(f"${p['name']} = {self.default_value(p['type'])}" for p in inherited_properties)
+            if not ctor_string.endswith('(') and len(properties) > 0:
+                ctor_string += ", "
         ctor_string += separator.join(f"${p['name']} = {self.default_value(p['type'])}" for p in properties.values())
         ctor_string += ") {\n"
+        if call_super:
+            ctor_string += f"\t\tparent::__construct({', '.join(f"${p['name']}" for p in inherited_properties)});\n"
         ctor_string += '\n'.join(f"\t\t$this->{p['name']} = ${p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
@@ -206,6 +212,10 @@ class PhpCodeGenerator(CodeGenerator):
         method_string = "\tpublic function equals($obj) {\n"
         method_string += "\t\tif ($this === $obj) return true;\n"
         method_string += "\t\tif (get_class($this) === get_class($obj)) {\n\t\t\treturn "
+        if call_super:
+            method_string += "parent::equals($obj)"
+            if len(properties) > 0:
+                method_string += " &&\n\t\t\t\t"
         method_string += " &&\n\t\t\t\t".join(f"$this->{p['name']} === $obj->{p['name']}" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
@@ -219,6 +229,10 @@ class PhpCodeGenerator(CodeGenerator):
     def generate_to_string(self, class_name, properties, call_super):
         method_string = "\tpublic function toString() {\n"
         method_string += f"\t\treturn \"{class_name} {{"
+        if call_super:
+            method_string += "${parent::toString()}"
+            if len(properties) > 0:
+                method_string += ", "
         method_string += ', '.join(f"{p['name']}=$this->{p['name']}" for p in properties.values())
         method_string += "}\";\n\t}\n\n"
 

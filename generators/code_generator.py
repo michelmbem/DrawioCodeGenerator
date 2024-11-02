@@ -40,42 +40,43 @@ class CodeGenerator(ABC):
             self.ensure_dir_exists(self.file_path)
 
             for class_def in self.syntax_tree.values():
+                class_name, class_type, properties = class_def['name'], class_def['type'], class_def['properties']
                 baseclasses, interfaces, references = self.get_class_dependencies(class_def)
 
-                file_contents = self.generate_class_header(class_def['type'], class_def['name'], baseclasses, interfaces, references)
-                file_contents += self.generate_properties(class_def['properties'], class_def['type'] == "enum")
+                file_contents = self.generate_class_header(class_type, class_name, baseclasses, interfaces, references)
+                file_contents += self.generate_properties(properties, class_type == "enum")
                 file_contents += "\n"
 
-                if class_def['type'] in ("class", "abstract class"):
+                if class_type in ("class", "abstract class"):
                     inherited_props = []
                     self.get_inherited_instance_properties(class_def, inherited_props)
-                    declared_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
+                    declared_props = {k: p for k, p in properties.items() if not p['constraints'].get("static", False)}
                     has_instance_props = len(declared_props) + len(inherited_props) > 0
                     has_parent = len(baseclasses) > 0
                     should_generate = self.options['generate']
 
                     if should_generate['default_ctor']:
-                        file_contents += self.generate_default_ctor(class_def['name'], has_parent)
+                        file_contents += self.generate_default_ctor(class_name, has_parent)
 
                     if has_instance_props and should_generate['full_arg_ctor']:
-                        file_contents += self.generate_full_arg_ctor(class_def['name'], declared_props, has_parent, inherited_props)
+                        file_contents += self.generate_full_arg_ctor(class_name, declared_props, has_parent, inherited_props)
 
-                    file_contents += self.generate_property_accessors(class_def['name'], class_def['properties'])
+                    file_contents += self.generate_property_accessors(class_name, properties)
 
                     if has_instance_props and should_generate['equal_hashcode']:
-                        file_contents += self.generate_equal_hashcode(class_def['name'], declared_props, has_parent)
+                        file_contents += self.generate_equal_hashcode(class_name, declared_props, has_parent)
 
                     if has_instance_props and should_generate['to_string']:
-                        file_contents += self.generate_to_string(class_def['name'], declared_props, has_parent)
+                        file_contents += self.generate_to_string(class_name, declared_props, has_parent)
 
-                if class_def['type'] != "enumeration":
+                if class_type != "enum":
                     interface_methods = []
                     self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
-                    file_contents += self.generate_methods(class_def['methods'], class_def['type'], interface_methods)
+                    file_contents += self.generate_methods(class_def['methods'], class_type, interface_methods)
 
-                file_contents += self.generate_class_footer(class_def['type'], class_def['name'])
+                file_contents += self.generate_class_footer(class_type, class_name)
 
-                self.files.append((class_def['name'], file_contents))
+                self.files.append((class_name, file_contents))
 
             self.generate_files()
         except Exception as e:
@@ -109,21 +110,11 @@ class CodeGenerator(ABC):
         :return: a tuple of baseclasses, implemented interfaces and referenced classes
         """
 
-        baseclasses = []
-        if len(class_def['relationships']['extends']) > 0:
-            baseclasses += [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
-
-        interfaces = []
-        if len(class_def['relationships']['implements']) > 0:
-            interfaces += [self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]
-
-        references = []
-        if len(class_def['relationships']['association']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['association']]
-        if len(class_def['relationships']['aggregation']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
-        if len(class_def['relationships']['composition']) > 0:
-            references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
+        baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
+        interfaces = [self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]
+        references = [self.syntax_tree[r]['name'] for r in class_def['relationships']['association']]
+        references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
+        references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
 
         class_methods = [*class_def['methods'].values()]
         if class_def['type'] in ("class", "abstract class"):
@@ -132,15 +123,15 @@ class CodeGenerator(ABC):
         for other_class in self.syntax_tree.values():
             for property_def in class_def['properties'].values():
                 if property_def['type'] == other_class['name']:
-                    references += [other_class['name']]
+                    references.append(other_class['name'])
 
             for method_def in class_methods:
                 if method_def['return_type'] == other_class['name']:
-                    references += [other_class['name']]
+                    references.append(other_class['name'])
 
                 for parameter in method_def['parameters']:
                     if parameter['type'] == other_class['name']:
-                        references += [other_class['name']]
+                        references.append(other_class['name'])
 
         return baseclasses, interfaces, references
 

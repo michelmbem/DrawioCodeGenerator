@@ -47,6 +47,7 @@ class CppCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.baseclass_name = None
 
     @staticmethod
     def accessor_name(property_name):
@@ -72,15 +73,21 @@ class CppCodeGenerator(CodeGenerator):
         class_header = "#pragma once\n\n"
 
         if class_type != "enum":
-            includes = set(self.options['imports'].keys())
+            header_files = set(self.options['imports'].keys())
 
             dependencies = {*baseclasses, *interfaces, *references}
-            includes |= set(f"\"{dependency}.hpp\"" for dependency in dependencies if dependency != class_name)
+            header_files |= set(f"\"{dependency}.hpp\"" for dependency in dependencies if dependency != class_name)
+            header_files = sorted(header_files)
 
-            for include in sorted(includes):
-                class_header += f"#include {include}\n"
+            for header_file in header_files:
+                if header_file.endswith('>'):
+                    class_header += f"#include {header_file}\n"
 
-            if len(includes) > 0:
+            for header_file in header_files:
+                if header_file.endswith('"'):
+                    class_header += f"#include {header_file}\n"
+
+            if len(header_files) > 0:
                 class_header += "\n"
 
         if self.options['package']:
@@ -95,10 +102,10 @@ class CppCodeGenerator(CodeGenerator):
 
         class_header += f"\t{type_of_class} {class_name}"
         if len(baseclasses) > 0:
-            self.parent_name = baseclasses[0]    # Note: check this
+            self.baseclass_name = baseclasses[0]    # Note: check this
             class_header += f" : {', '.join(f"public {baseclass}" for baseclass in baseclasses)}"
         if len(interfaces) > 0:
-            if len(baseclasses) > 0:
+            if self.baseclass_name:   # Checks if there is at least one baseclass
                 class_header += ", "
             else:
                 class_header += " : "
@@ -118,6 +125,8 @@ class CppCodeGenerator(CodeGenerator):
         Returns:
             properties_string: the closing brace of a class definition
         """
+
+        self.baseclass_name = None
 
         if self.options['package']:
             braces = '}' * len(self.split_package_name(self.options['package']))
@@ -262,7 +271,7 @@ class CppCodeGenerator(CodeGenerator):
     def generate_default_ctor(self, class_name, call_super):
         ctor_string = f"\t\tpublic: {class_name}()"
         if call_super:
-            ctor_string += f": {self.parent_name}()"
+            ctor_string += f": {self.baseclass_name}()"
         ctor_string += "\n\t\t{\n\t\t}\n\n"
 
         return ctor_string
@@ -277,7 +286,7 @@ class CppCodeGenerator(CodeGenerator):
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ")"
         if call_super:
-            ctor_string += f":\n\t\t\t{self.parent_name}({', '.join(p['name'] for p in inherited_properties)})"
+            ctor_string += f":\n\t\t\t{self.baseclass_name}({', '.join(p['name'] for p in inherited_properties)})"
         ctor_string += "\n\t\t{\n"
         ctor_string += '\n'.join(f"\t\t\tthis->{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t\t}\n\n"
