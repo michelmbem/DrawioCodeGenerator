@@ -192,7 +192,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_full_arg_ctor(self, class_name, properties, parents):
+    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = "\tpublic function __construct("
         ctor_string += separator.join(f"${p['name']} = {self.default_value(p['type'])}" for p in properties.values())
@@ -202,7 +202,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties, call_super):
         method_string = "\tpublic function equals($obj) {\n"
         method_string += "\t\tif ($this === $obj) return true;\n"
         method_string += "\t\tif (get_class($this) === get_class($obj)) {\n\t\t\treturn "
@@ -216,7 +216,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties, call_super):
         method_string = "\tpublic function toString() {\n"
         method_string += f"\t\treturn \"{class_name} {{"
         method_string += ', '.join(f"{p['name']}=$this->{p['name']}" for p in properties.values())

@@ -305,26 +305,38 @@ class JavaCodeGenerator(CodeGenerator):
     def generate_default_ctor(self, class_name, call_super):
         if self.options['use_lombok']:
             return ""
-        return f"\tpublic {class_name}() {{\n\t}}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties, parents):
+        ctor_string = f"\tpublic {class_name}() {{\n"
+        if call_super:
+            ctor_string += "\t\tsuper();\n"
+        ctor_string += "\t}\n\n"
+
+        return ctor_string
+
+    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         if self.options['use_lombok']:
             return ""
 
-        separator = ",\n\t\t\t" if len(properties) > 4 else ", "
+        separator = ",\n\t\t\t" if len(properties) + len(inherited_properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
+        if call_super:
+            ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
+            if not ctor_string.endswith('(') and len(properties) > 0:
+                ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ") {\n"
+        if call_super:
+            ctor_string += f"\t\tsuper({', '.join(p['name'] for p in inherited_properties)});\n"
         ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties, call_super):
         if self.options['use_lombok']:
             return ""
 
-        if len(properties) > 4:
+        if len(properties) > 2:
             sep1 = " &&\n\t\t\t\t\t"
             sep2 = ",\n\t\t\t\t\t"
         else:
@@ -334,24 +346,38 @@ class JavaCodeGenerator(CodeGenerator):
         method_string = "\t@Override\n\tpublic boolean equals(Object obj) {\n"
         method_string += "\t\tif (this == obj) return true;\n"
         method_string += f"\t\tif (obj instanceof {class_name} other) {{\n\t\t\treturn "
+        if call_super:
+            method_string += "super.equals(other)"
+            if len(properties) > 0:
+                method_string += sep1
         method_string += sep1.join(f"Objects.equals({p['name']}, other.{p['name']})" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\t@Override\n\tpublic int hashCode() {\n"
         method_string += "\t\treturn Objects.hash("
+        if call_super:
+            method_string += "super.hashCode()"
+            if len(properties) > 0:
+                method_string += sep2
         method_string += sep2.join(p['name'] for p in properties.values())
         method_string += ");\n\t}\n\n"
 
         return method_string
 
-    def generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties, call_super):
         if self.options['use_lombok']:
             return ""
 
-        sep1 = "\n\t\t\t" if len(properties) > 4 else ""
+        sep1 = "\n\t\t\t" if len(properties) > 2 else ""
         sep2 = f".append(\", \"){sep1}"
         method_string = "\t@Override\n\tpublic String toString() {\n"
         method_string += f"\t\treturn new StringBuilder(\"{class_name} {{\"){sep1}"
+        if call_super:
+            method_string += ".append(super.toString())"
+            if len(properties) > 0:
+                method_string += sep2
+            else:
+                method_string += sep1
         method_string += sep2.join(f".append(\"{p['name']}=\").append({p['name']})" for p in properties.values())
         method_string += f"{sep1}.append(\"}}\").toString();\n\t}}\n\n"
 

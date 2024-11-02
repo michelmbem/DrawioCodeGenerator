@@ -236,7 +236,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties, call_super):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"
@@ -256,7 +256,7 @@ class PythonCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties, call_super):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"

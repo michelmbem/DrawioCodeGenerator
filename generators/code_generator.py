@@ -47,24 +47,26 @@ class CodeGenerator(ABC):
                 file_contents += "\n"
 
                 if class_def['type'] in ("class", "abstract class"):
-                    instance_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
-                    has_instance_props = len(instance_props) > 0
+                    inherited_props = []
+                    self.get_inherited_instance_properties(class_def, inherited_props)
+                    declared_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
+                    has_instance_props = len(declared_props) + len(inherited_props) > 0
+                    has_parent = len(baseclasses) > 0
                     should_generate = self.options['generate']
 
                     if should_generate['default_ctor']:
-                        file_contents += self.generate_default_ctor(class_def['name'], len(baseclasses) > 0)
+                        file_contents += self.generate_default_ctor(class_def['name'], has_parent)
 
                     if has_instance_props and should_generate['full_arg_ctor']:
-                        parents = [self.syntax_tree[r] for r in class_def['relationships']['extends']]
-                        file_contents += self.generate_full_arg_ctor(class_def['name'], instance_props, parents)
+                        file_contents += self.generate_full_arg_ctor(class_def['name'], declared_props, has_parent, inherited_props)
 
                     file_contents += self.generate_property_accessors(class_def['name'], class_def['properties'])
 
                     if has_instance_props and should_generate['equal_hashcode']:
-                        file_contents += self.generate_equal_hashcode(class_def['name'], instance_props)
+                        file_contents += self.generate_equal_hashcode(class_def['name'], declared_props, has_parent)
 
                     if has_instance_props and should_generate['to_string']:
-                        file_contents += self.generate_to_string(class_def['name'], instance_props)
+                        file_contents += self.generate_to_string(class_def['name'], declared_props, has_parent)
 
                 if class_def['type'] != "enumeration":
                     interface_methods = []
@@ -142,6 +144,20 @@ class CodeGenerator(ABC):
 
         return baseclasses, interfaces, references
 
+    def get_inherited_instance_properties(self, class_def, properties):
+        """
+        Get a collection of all non-static properties of the ancestors of the given class
+
+        Parameters:
+            class_def: the given class
+            properties: list of inherited instance properties
+        """
+
+        parents = [self.syntax_tree[r] for r in class_def['relationships']['extends']]
+        for parent in parents:
+            self.get_inherited_instance_properties(parent, properties)
+            properties += [p for p in parent['properties'].values() if not p['constraints'].get("static", False)]
+
     def get_interface_methods(self, interface_ids, interface_methods):
         """
         Get the interface methods that require implementation
@@ -168,13 +184,13 @@ class CodeGenerator(ABC):
     def generate_default_ctor(self, class_name, call_super):
         return ""
 
-    def generate_full_arg_ctor(self, class_name, properties, parents):
+    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         return ""
 
-    def generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties, call_super):
         return ""
 
-    def generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties, call_super):
         return ""
 
     def package_directive(self, package_name):

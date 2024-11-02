@@ -268,19 +268,31 @@ class CSharpCodeGenerator(CodeGenerator):
         return methods_string
 
     def generate_default_ctor(self, class_name, call_super):
-        return f"\tpublic {class_name}()\n\t{{\n\t}}\n\n"
+        ctor_string = f"\tpublic {class_name}()"
+        if call_super:
+            ctor_string += ": base()"
+        ctor_string += "\n\t{\n\t}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties, parents):
+        return ctor_string
+
+    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
+        if call_super:
+            ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
+            if not ctor_string.endswith('(') and len(properties) > 0:
+                ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values())
-        ctor_string += ")\n\t{\n"
+        ctor_string += ")"
+        if call_super:
+            ctor_string += f":\n\t\tbase({', '.join(p['name'] for p in inherited_properties)})"
+        ctor_string += "\n\t{\n"
         ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {self.parameter_name(p['name'])};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties):
+    def generate_equal_hashcode(self, class_name, properties, call_super):
         if len(properties) > 4:
             sep1 = " &&\n\t\t\t\t\t"
             sep2 = ",\n\t\t\t\t\t"
@@ -291,19 +303,31 @@ class CSharpCodeGenerator(CodeGenerator):
         method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
         method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
         method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
+        if call_super:
+            method_string += "base.Equals(other)"
+            if len(properties) > 0:
+                method_string += sep1
         method_string += sep1.join(f"Equals({p['name']}, other.{p['name']})" for p in properties.values())
         method_string += ";\n\t\t}\n\t\treturn false;\n\t}\n\n"
 
         method_string += "\tpublic override int GetHashCode()\n\t{\n"
         method_string += "\t\treturn HashCode.Combine("
+        if call_super:
+            method_string += "base.GetHashCode()"
+            if len(properties) > 0:
+                method_string += sep2
         method_string += sep2.join(p['name'] for p in properties.values())
         method_string += ");\n\t}\n\n"
 
         return method_string
 
-    def generate_to_string(self, class_name, properties):
+    def generate_to_string(self, class_name, properties, call_super):
         method_string = "\tpublic override string ToString() {\n"
         method_string += f"\t\treturn $\"{class_name} {{{{"
+        if call_super:
+            method_string += "{base.ToString()}"
+            if len(properties) > 0:
+                method_string += ", "
         method_string += ', '.join(f"{p['name']}={{{p['name']}}}" for p in properties.values())
         method_string += "}}\";\n\t}\n\n"
 

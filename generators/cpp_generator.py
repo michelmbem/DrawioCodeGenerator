@@ -95,6 +95,7 @@ class CppCodeGenerator(CodeGenerator):
 
         class_header += f"\t{type_of_class} {class_name}"
         if len(baseclasses) > 0:
+            self.parent_name = baseclasses[0]    # Note: check this
             class_header += f" : {', '.join(f"public {baseclass}" for baseclass in baseclasses)}"
         if len(interfaces) > 0:
             if len(baseclasses) > 0:
@@ -259,13 +260,25 @@ class CppCodeGenerator(CodeGenerator):
         return methods_string
 
     def generate_default_ctor(self, class_name, call_super):
-        return f"\t\tpublic: {class_name}()\n\t\t{{\n\t\t}}\n\n"
+        ctor_string = f"\t\tpublic: {class_name}()"
+        if call_super:
+            ctor_string += f": {self.parent_name}()"
+        ctor_string += "\n\t\t{\n\t\t}\n\n"
 
-    def generate_full_arg_ctor(self, class_name, properties, parents):
+        return ctor_string
+
+    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
         separator = ",\n\t\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\t\tpublic: {class_name}("
+        if call_super:
+            ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
+            if not ctor_string.endswith('(') and len(properties) > 0:
+                ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
-        ctor_string += ")\n\t\t{\n"
+        ctor_string += ")"
+        if call_super:
+            ctor_string += f":\n\t\t\t{self.parent_name}({', '.join(p['name'] for p in inherited_properties)})"
+        ctor_string += "\n\t\t{\n"
         ctor_string += '\n'.join(f"\t\t\tthis->{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t\t}\n\n"
 
