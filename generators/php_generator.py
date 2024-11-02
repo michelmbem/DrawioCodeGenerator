@@ -228,13 +228,15 @@ class PhpCodeGenerator(CodeGenerator):
 
     def generate_to_string(self, class_name, properties, call_super):
         method_string = "\tpublic function toString() {\n"
-        method_string += f"\t\treturn \"{class_name} {{"
         if call_super:
-            method_string += "${parent::toString()}"
+            method_string += "\t\t$parentStr = parent::toString();\n"
+        method_string += f"\t\treturn \"{class_name} \\{{"
+        if call_super:
+            method_string += "$parentStr"
             if len(properties) > 0:
                 method_string += ", "
         method_string += ', '.join(f"{p['name']}=$this->{p['name']}" for p in properties.values())
-        method_string += "}\";\n\t}\n\n"
+        method_string += "\\}\";\n\t}\n\n"
 
         return method_string
 
