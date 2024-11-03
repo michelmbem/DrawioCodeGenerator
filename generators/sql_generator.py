@@ -34,12 +34,14 @@ class SqlCodeGenerator(CodeGenerator):
             self.ensure_dir_exists(self.file_path)
 
             for class_def in self.syntax_tree.values():
+                baseclasses, _, __ = self.get_class_dependencies(class_def)
                 instance_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
+
                 if not (class_def['type'] in ("class", "abstract class") and len(instance_props) > 0):
                     continue
 
                 class_name = class_def['name']
-                file_contents = self.generate_class_header(None, class_name)
+                file_contents = self.generate_class_header(None, class_name, baseclasses)
                 file_contents += self.generate_properties(instance_props)
                 if len(self.tmp_primary_key) > 0:
                     file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
@@ -96,7 +98,7 @@ class SqlCodeGenerator(CodeGenerator):
             print(f"{self.__class__.__name__}.generate_files ERROR: {e}")
             traceback.print_exception(e)
 
-    def generate_class_header(self, class_type, class_name, baseclasses = None, interfaces = None, references = None):
+    def generate_class_header(self, class_type, class_name, baseclasses, interfaces = None, references = None):
         """
         Generate the class header
 
@@ -111,7 +113,17 @@ class SqlCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        return f"CREATE TABLE {class_name} (\n"
+        header_string = f"CREATE TABLE {class_name} (\n"
+
+        if len(baseclasses) > 0:
+            pk = self.get_primary_key(baseclasses[0])
+
+            for p in pk:
+                header_string += f"\t{p['name']} {self.map_type(p['type'])},\n"
+
+            self.tmp_primary_key = self.tmp_foreign_keys[baseclasses[0]] = [p['name'] for p in pk]
+
+        return header_string
 
     def generate_class_footer(self, class_type = None, class_name = None):
         """

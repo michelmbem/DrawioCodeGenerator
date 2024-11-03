@@ -135,9 +135,6 @@ class CSharpCodeGenerator(CodeGenerator):
             properties_string: string of the properties
         """
 
-        if not is_enum and self.options['encapsulate_all_props']:
-            return ""
-
         properties_string = ""
         first_prop = True
 
@@ -163,10 +160,13 @@ class CSharpCodeGenerator(CodeGenerator):
                 elif constraints.get('final', False):
                     modifier += " readonly"
 
-                p = f"\t{modifier} {self.map_type(property_def['type'])} {property_def['name']}"
-                if property_def['default_value']:
-                    p += f" = {property_def['default_value']}"
-                p += ";\n"
+                if not self.options['encapsulate_all_props'] or modifier.endswith("const"):
+                    p = f"\t{modifier} {self.map_type(property_def['type'])} {property_def['name']}"
+                    if property_def['default_value']:
+                        p += f" = {property_def['default_value']}"
+                    p += ";\n"
+                else:
+                    p = ""
 
             properties_string += p
  

@@ -160,6 +160,30 @@ class CodeGenerator(ABC):
             interface_methods += interface['methods'].values()
             self.get_interface_methods(interface['relationships']['implements'], interface_methods)
 
+    def get_primary_key(self, class_name):
+        """
+        Searches for the set of properties that represent the primary key of an entity
+
+        Parameters:
+            class_name: the class name
+        """
+
+        for class_def in self.syntax_tree.values():
+            if class_def['name'] == class_name:
+                pk = [p for p in class_def['properties'].values() if p['constraints'].get("pk", False)]
+                if len(pk) > 0:
+                    return pk
+
+                baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
+                for baseclass in baseclasses:
+                    pk = self.get_primary_key(baseclass)
+                    if len(pk) > 0:
+                        return pk
+
+                break
+
+        return []
+
     def get_property_access(self, property_def):
         return "private" if self.options['encapsulate_all_props'] else property_def['access']
 

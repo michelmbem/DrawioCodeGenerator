@@ -132,7 +132,9 @@ class JavaCodeGenerator(CodeGenerator):
             if self.options['add_jpa']:
                 class_header += "@Entity\n"
                 if handle_jpa_inheritance:
-                    class_header += "@PrimaryKeyJoinColumn(name = \"<<define_me!>>\")\n"
+                    pk = self.get_primary_key(baseclasses[0])
+                    pk = pk[0]['name'] if len(pk) > 0 else "--no-primary-key-found--"
+                    class_header += f"@PrimaryKeyJoinColumn(name = \"{pk}\")\n"
 
             if self.options['use_lombok']:
                 class_header += "@Data\n"
@@ -430,11 +432,15 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['add_jpa']:
             jpa_imports.append({
                 "package": f"{jee_root_package}.persistence",
-                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne"]
+                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne", "Temporal", "Lob"]
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
-                "classes": ["*"]
+                "classes": ["Size", "Pattern", "Email"]
+            })
+            jpa_imports.append({
+                "package": "org.hibernate.validator.constraints",
+                "classes": ["CreditCardNumber", "URL"]
             })
 
         return jpa_imports
@@ -465,20 +471,21 @@ class JavaCodeGenerator(CodeGenerator):
         if constraints.get('identity', False):
             jpa_annotations += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
 
-        constraint = constraints.get('min')
-        if constraint:
-            jpa_annotations += f"@Min({constraint})\n\t"
-
-        constraint = constraints.get('max')
-        if constraint:
-            jpa_annotations += f"@Max({constraint})\n\t"
+        if constraints.get('lob', False):
+            jpa_annotations += "@Lob\n\t"
 
         constraint = constraints.get('size')
         if constraint:
             jpa_annotations += f"@Size(min={constraint[0]},max={constraint[1]})\n\t"
 
         constraint = constraints.get('format')
-        if constraint == "email":
+        if constraint == "phone":
+            jpa_annotations += r'@Pattern("^\\+?\\d([ -]?\\d)+$")' + "\n\t"
+        elif constraint == "email":
             jpa_annotations += "@Email\n\t"
+        elif constraint == "url":
+            jpa_annotations += "@URL\n\t"
+        elif constraint == "creditcard":
+            jpa_annotations += "@CreditCardNumber\n\t"
 
         return jpa_annotations
