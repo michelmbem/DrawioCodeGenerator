@@ -52,9 +52,11 @@ class CSharpCodeGenerator(CodeGenerator):
 
     @staticmethod
     def accessor_name(property_name, avoid_conflict):
-        if property_name[0].islower():
-            return f"{property_name[0].upper()}{property_name[1:]}"
-        return property_name + "Property" if avoid_conflict else property_name
+        if avoid_conflict:
+            if property_name[0].islower():
+                return f"{property_name[0].upper()}{property_name[1:]}"
+            return property_name + "Property"
+        return property_name
 
     @staticmethod
     def parameter_name(property_name):
@@ -193,13 +195,7 @@ class CSharpCodeGenerator(CodeGenerator):
                     continue    # No encapsulation for constants
                 modifier = " static "
             elif self.options['add_efcore']:
-                if constraints.get('required', False):
-                    accessors_string += "\t[Required]\n"
-                if constraints.get('pk', False):
-                    accessors_string += "\t[Key]\n"
-                size = constraints.get('size')
-                if size:
-                    accessors_string += f"\t[MaxLength({size[1]})]\n"
+                accessors_string += self.get_data_annotations(property_def['type'], constraints)
 
             if self.options['encapsulate_all_props']:
                 accessor_name = self.accessor_name(property_def['name'], False)
@@ -251,7 +247,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
                 m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params}"
                 if constraints.get('abstract', False):
-                    m += ";\n"
+                    m += ";"
                 else:
                     m += f"\n\t{{\n\t\t{comment}\n"
                     if method_def['return_type'] != "void":
@@ -349,3 +345,52 @@ class CSharpCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "cs"
+
+    def get_data_annotations(self, data_type, constraints):
+        annotation_string = ""
+        data_type = data_type.lower()
+
+        if constraints.get('required', False):
+            annotation_string += "\t[Required]\n"
+
+        if constraints.get('pk', False):
+            annotation_string += "\t[Key]\n"
+
+        if constraints.get('identity', False):
+            annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Identity)]\n"
+        elif constraints.get('generated', False):
+            annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Computed)]\n"
+
+        if constraints.get('rowversion', False):
+            if data_type == "byte[]":
+                annotation_string += "\t[TimeStamp]\n"
+            else:
+                annotation_string += "\t[ConcurrencyCheck]\n"
+
+        constraint = constraints.get('size')
+        if constraint:
+            annotation_string += f"\t[MinLength({constraint[0]})]\n"
+            annotation_string += f"\t[MaxLength({constraint[1]})]\n"
+        else:
+            constraint = constraints.get('length')
+            if constraint:
+                annotation_string += f"\t[StringLength({constraint})]\n"
+
+        if data_type == "date":
+            annotation_string += "\t[DataType(DataType.Date)]\n"
+        elif data_type == "time":
+            annotation_string += "\t[DataType(DataType.Time)]\n"
+        elif data_type == "datetime":
+            annotation_string += "\t[DataType(DataType.DateTime)]\n"
+        else:
+            constraint = constraints.get('format')
+            if constraint == "phone":
+                annotation_string += "\t[DataType(DataType.PhoneNumber)]\n"
+            elif constraint == "email":
+                annotation_string += "\t[DataType(DataType.EmailAddress)]\n"
+            elif constraint == "url":
+                annotation_string += "\t[DataType(DataType.PhoneNumber)]\n"
+            elif constraint == "creditcard":
+                annotation_string += "\t[DataType(DataType.CreditCard)]\n"
+
+        return annotation_string

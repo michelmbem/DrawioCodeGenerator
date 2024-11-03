@@ -23,6 +23,7 @@ class SyntaxParser:
         'nonnull': "required",
         'key': "pk",
         'id': "identity",
+        'computed': "generated",
         'counter': "identity",
         'serial': "identity",
     }
@@ -72,9 +73,11 @@ class SyntaxParser:
         other_constraints = set()
 
         for constraint in constraints:
-            if constraint in ("static", "abstract", "virtual", "final", "required", "unique", "pk", "identity", "lob"):
+            if constraint in ("static", "abstract", "virtual", "final", "required",
+                              "unique", "pk", "identity", "generated", "lob"):
                 constraint_dict[constraint] = True
-            elif constraint in ("sealed", "const", "readonly", "notnull", "nonnull", "key", "id", "counter", "serial"):
+            elif constraint in ("sealed", "const", "readonly", "notnull", "nonnull",
+                                "key", "id", "computed", "counter", "serial"):
                 constraint_dict[SyntaxParser.CONSTRAINT_MAPPINGS[constraint]] = True
             elif constraint.startswith("fk:"):
                 constraint_dict['fk'] = True

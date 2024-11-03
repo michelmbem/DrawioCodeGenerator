@@ -93,6 +93,7 @@ class JavaCodeGenerator(CodeGenerator):
         """
 
         class_header = ""
+        handle_jpa_inheritance = False
 
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
@@ -116,6 +117,11 @@ class JavaCodeGenerator(CodeGenerator):
                 for imported_class in self.get_lombok_imported_classes():
                     imports.add(f"lombok.{imported_class}")
 
+                if self.options['add_jpa'] and len(baseclasses) > 0:
+                    handle_jpa_inheritance = True
+                    jee_root_package = "jakarta" if self.options['use_jakarta'] else "javax"
+                    imports.add(f"{jee_root_package}.persistence.PrimaryKeyJoinColumn")
+
             for imported_class in sorted(imports):
                 class_header += f"import {imported_class};\n"
 
@@ -125,6 +131,8 @@ class JavaCodeGenerator(CodeGenerator):
         if class_type in ("class", "abstract class"):
             if self.options['add_jpa']:
                 class_header += "@Entity\n"
+                if handle_jpa_inheritance:
+                    class_header += "@PrimaryKeyJoinColumn(name = \"<<define_me!>>\")\n"
 
             if self.options['use_lombok']:
                 class_header += "@Data\n"

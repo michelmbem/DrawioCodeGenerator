@@ -272,7 +272,7 @@ class CppCodeGenerator(CodeGenerator):
                 m = f"\t\t{method_def['access']}:{modifier}{self.map_type(method_def['return_type'])}"
                 m += f" {method_def['name']}{params}"
                 if constraints.get('abstract', False):
-                    m += " = 0;\n"
+                    m += " = 0;"
                 else:
                     m += f"\n\t\t{{\n\t\t\t{comment}\n"
                     if method_def['return_type'] != "void":
