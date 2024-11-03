@@ -86,9 +86,6 @@ class CodeGenerator(ABC):
     def generate_files(self):
         """
         Write generated code to file
-
-        Returns:
-            boolean: True if successful, False if unsuccessful
         """
 
         print(f"<<< WRITING FILES TO {self.file_path} >>>")

@@ -92,13 +92,18 @@ class PhpCodeGenerator(CodeGenerator):
             else:
                 modifier = f"{self.get_property_access(property_def)}"
                 constraints = property_def['constraints']
+                dollar = '$'
 
                 if constraints.get('static', False):
-                    modifier += " static"
-                if constraints.get('final', False):
+                    if constraints.get('final', False):
+                        modifier = f"{property_def['access']} const"
+                        dollar = ''
+                    else:
+                        modifier += " static"
+                elif constraints.get('final', False):
                     modifier += " final"
 
-                p = f"\t{modifier} ${property_def['name']}"
+                p = f"\t{modifier} {dollar}{property_def['name']}"
 
             if property_def['default_value']:
                 p += f" = {property_def['default_value']}"
@@ -125,12 +130,13 @@ class PhpCodeGenerator(CodeGenerator):
         for property_def in properties.values():
             if self.get_property_access(property_def) == "private":
                 constraints = property_def['constraints']
+                modifier, target = " ", "$this->"
 
-                target, modifier = "$this->", ""
                 if constraints.get('static', False):
+                    if constraints.get('final', False):
+                        continue    # No encapsulation for constants
+                    modifier = " static "
                     target = f"{class_name}::"
-                    modifier += " static"
-                modifier += " "
 
                 getter = (f"\tpublic{modifier}function get_{property_def['name']}() {{\n"
                           f"\t\treturn {target}{property_def['name']};\n\t}}\n\n")
@@ -161,6 +167,7 @@ class PhpCodeGenerator(CodeGenerator):
 
         for method_def in methods.values():
             params = self.get_parameter_list(method_def['parameters'])
+
             if class_type == "interface":
                 m = f"\t{method_def['access']} function {method_def['name']}{params};"
             else:
@@ -169,21 +176,27 @@ class PhpCodeGenerator(CodeGenerator):
                 modifier = ""
                 if constraints.get('static', False):
                     modifier += " static"
+                elif constraints.get('abstract', False):
+                    modifier += " abstract"
                 elif constraints.get('final', False):
                     modifier += " final"
                 modifier += " "
 
-                m = f"\t{method_def['access']}{modifier}function {method_def['name']}{params}\n\t{{\n"
-                m += f"\t\t{comment}\n"
-                if method_def['return_type'] != "void":
-                    m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
-                m += "\t}"
+                m = f"\t{method_def['access']}{modifier}function {method_def['name']}{params}"
+                if constraints.get('abstract', False):
+                    m += ";\n"
+                else:
+                    m += f" \t{{\n\t\t{comment}\n"
+                    if method_def['return_type'] != "void":
+                        m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += "\t}"
+
             methods_string += m + "\n\n"
 
         if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self.get_parameter_list(interface_method['parameters'])
-                m = f"\t{interface_method['access']} function {interface_method['name']}{params}\n\t{{\n"
+                m = f"\t{interface_method['access']} function {interface_method['name']}{params} \t{{\n"
                 m += f"\t\t{comment}\n"
                 if interface_method['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(interface_method['return_type'])};\n"
@@ -229,10 +242,10 @@ class PhpCodeGenerator(CodeGenerator):
     def generate_to_string(self, class_name, properties, call_super):
         method_string = "\tpublic function toString() {\n"
         if call_super:
-            method_string += "\t\t$parentStr = parent::toString();\n"
+            method_string += "\t\t$parentString = parent::toString();\n"
         method_string += f"\t\treturn \"{class_name} \\{{"
         if call_super:
-            method_string += "$parentStr"
+            method_string += "$parentString"
             if len(properties) > 0:
                 method_string += ", "
         method_string += ', '.join(f"{p['name']}=$this->{p['name']}" for p in properties.values())
@@ -244,16 +257,7 @@ class PhpCodeGenerator(CodeGenerator):
         return f"namespace {'\\'.join(self.split_package_name(package_name))};\n\n"
 
     def default_value(self, typename):
-        typename = typename.lower()
-        if typename in ("boolean", "bool"):
-            return "false"
-        if typename in ("sbyte", "int8", "byte", "uint8", "short", "int16", "ushort", "uint16",
-                        "integer", "int", "int32", "uint", "uint32", "long", "int64", "ulong",
-                        "uint64", "float", "single", "double", "bigint", "decimal"):
-            return "0"
-        if typename in ("char", "wchar", "string", "wstring"):
-            return '""'
-        return "null"
+        return super().default_value(typename) or "null"
 
     def get_parameter_list(self, parameters):
         return f"({', '.join(f"${p['name']}" for p in parameters)})"

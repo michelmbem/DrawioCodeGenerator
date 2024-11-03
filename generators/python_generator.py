@@ -47,7 +47,8 @@ class PythonCodeGenerator(CodeGenerator):
             imports.add("from enum import Enum, auto")
             class_ancestors = "(Enum)"
         else:
-            if class_type == "interface":
+            is_abstract = class_type == "interface" or (class_type == "abstract class" and len(baseclasses) <= 0)
+            if is_abstract:
                 imports.add("from abc import ABC, abstractmethod")
 
             for module, symbols in self.options['imports'].items():
@@ -57,10 +58,10 @@ class PythonCodeGenerator(CodeGenerator):
             imports |= set(f"from {dependency} import {dependency}" for dependency in dependencies if dependency != class_name)
 
             class_ancestors = "("
-            if class_type == "interface":
+            if is_abstract:
                 class_ancestors += "ABC"
             if len(baseclasses) > 0:
-                if class_type == "interface":
+                if is_abstract:
                     class_ancestors += ", "
                 else:
                     self.baseclass_name = baseclasses[0]
@@ -217,18 +218,26 @@ class PythonCodeGenerator(CodeGenerator):
 
         for method_def in methods.values():
             params = self.get_parameter_list(method_def['parameters'])
-            if class_type in ("interface", "abstract class"):
+            constraints = method_def['constraints']
+            is_abstract = (class_type == "interface" or
+                           (class_type == "abstract class" and constraints.get('abstract', False)))
+
+            if is_abstract:
                 m = f"\t@abstractmethod\n\tdef {method_def['name']}{params}:\n\t\tpass"
             else:
                 m = ""
-                if method_def['constraints'].get('static', False):
+
+                if constraints.get('static', False):
                     m += "\t@staticmethod\n"
                     params = f"({', '.join(p['name'] for p in method_def['parameters'])})"
+
                 m += f"\tdef {method_def['name']}{params}:\n\t\t{comment}\n"
+
                 if method_def['return_type'] == "void":
                     m += "\t\tpass"
                 else:
                     m += f"\t\treturn {self.default_value(method_def['return_type'])}"
+
             methods_string += m + "\n\n"
 
         # inherited abstract methods
@@ -285,16 +294,7 @@ class PythonCodeGenerator(CodeGenerator):
         return method_string
 
     def default_value(self, typename):
-        typename = typename.lower()
-        if typename in ("boolean", "bool"):
-            return "False"
-        if typename in ("sbyte", "int8", "byte", "uint8", "short", "int16", "ushort", "uint16",
-                        "integer", "int", "int32", "uint", "uint32", "long", "int64", "ulong",
-                        "uint64", "float", "single", "double", "bigint", "decimal"):
-            return "0"
-        if typename in ("char", "wchar", "string", "wstring"):
-            return '""'
-        return "None"
+        return super().default_value(typename) or "None"
 
     def get_parameter_list(self, parameters):
         return f"(self{''.join(f', {p['name']}' for p in parameters)})"

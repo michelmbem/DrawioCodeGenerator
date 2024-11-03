@@ -44,6 +44,8 @@ class JavaCodeGenerator(CodeGenerator):
         "time": {'java8_local': "LocalTime", 'java8_offset': "OffsetTime", 'sql_date': "Time", 'util_date': "Date", 'calendar': "Calendar"},
         "datetime": {'java8_local': "LocalDateTime", 'java8_offset': "OffsetDateTime", 'sql_date': "Timestamp", 'util_date': "Date", 'calendar': "Calendar"},
         "timestamp": {'java8_local': "LocalDateTime", 'java8_offset': "OffsetDateTime", 'sql_date': "Timestamp", 'util_date': "Date", 'calendar': "Calendar"},
+        "uuid": "UUID",
+        "guid": "UUID",
         "unspecified": "Object",
     }
 
@@ -187,16 +189,7 @@ class JavaCodeGenerator(CodeGenerator):
 
                 if not (constraints.get('static', False) or constraints.get('final', False)):
                     if self.options['add_jpa']:
-                        if constraints.get('required', False):
-                            p += "@NotNull\n\t"
-                        if constraints.get('pk', False):
-                            p += "@Id\n\t"
-                        if constraints.get('identity', False):
-                            p += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
-                        size = constraints.get('size')
-                        if size:
-                            p += f"@Size(min={size[0]},max={size[1]})\n\t"
-
+                        p += self.get_jpa_annotations(constraints)
                     if self.options['add_builder'] and property_def['default_value']:
                         p += "@Builder.Default\n\t"
 
@@ -278,22 +271,28 @@ class JavaCodeGenerator(CodeGenerator):
                 modifier = ""
                 if constraints.get('static', False):
                     modifier += " static"
+                elif constraints.get('abstract', False):
+                    modifier += " abstract"
                 elif constraints.get('final', False):
                     modifier += " final"
                 modifier += " "
 
-                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params} {{\n"
-                m += f"\t\t{comment}\n"
-                if method_def['return_type'] != "void":
-                    m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
-                m += "\t}"
+                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params}"
+                if constraints.get('abstract', False):
+                    m += ";\n"
+                else:
+                    m += f" {{\n\t\t{comment}\n"
+                    if method_def['return_type'] != "void":
+                        m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += "\t}"
 
             methods_string += m + "\n\n"
 
         if class_type in ("class", "abstract class"):
             for interface_method in interface_methods:
                 params = self.get_parameter_list(interface_method['parameters'])
-                m = f"\tpublic {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} {{\n"
+                m = "\t@Override\n"
+                m += f"\tpublic {self.map_type(interface_method['return_type'])} {interface_method['name']}{params} {{\n"
                 m += f"\t\t{comment}\n"
                 if interface_method['return_type'] != "void":
                     m += f"\t\treturn {self.default_value(interface_method['return_type'])};\n"
@@ -390,7 +389,7 @@ class JavaCodeGenerator(CodeGenerator):
         mapped_type = super().map_type(typename, constraints)
         if isinstance(mapped_type, dict):
             return mapped_type.get(self.options['temporal_types'], "Object")
-        if constraints and constraints.get("pk", False):
+        if self.options['add_jpa'] and constraints and constraints.get("pk", False):
             return self.OBJECT_TYPE_MAPPINGS.get(mapped_type, mapped_type)
         return mapped_type
 
@@ -427,7 +426,7 @@ class JavaCodeGenerator(CodeGenerator):
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
-                "classes": ["NotNull", "Size"]
+                "classes": ["*"]
             })
 
         return jpa_imports
@@ -445,3 +444,33 @@ class JavaCodeGenerator(CodeGenerator):
                 lombok_imported_classes += ["AllArgsConstructor"]
 
         return lombok_imported_classes
+
+    def get_jpa_annotations(self, constraints):
+        jpa_annotations = ""
+
+        if constraints.get('required', False):
+            jpa_annotations += "@NotNull\n\t"
+
+        if constraints.get('pk', False):
+            jpa_annotations += "@Id\n\t"
+
+        if constraints.get('identity', False):
+            jpa_annotations += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
+
+        constraint = constraints.get('min')
+        if constraint:
+            jpa_annotations += f"@Min({constraint})\n\t"
+
+        constraint = constraints.get('max')
+        if constraint:
+            jpa_annotations += f"@Max({constraint})\n\t"
+
+        constraint = constraints.get('size')
+        if constraint:
+            jpa_annotations += f"@Size(min={constraint[0]},max={constraint[1]})\n\t"
+
+        constraint = constraints.get('format')
+        if constraint == "email":
+            jpa_annotations += "@Email\n\t"
+
+        return jpa_annotations

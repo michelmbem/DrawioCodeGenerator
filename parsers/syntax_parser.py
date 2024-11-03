@@ -15,6 +15,18 @@ class SyntaxParser:
         '-': "private"
     }
 
+    CONSTRAINT_MAPPINGS = {
+        'sealed': "final",
+        'const': "final",
+        'readonly': "final",
+        'notnull': "required",
+        'nonnull': "required",
+        'key': "pk",
+        'id': "identity",
+        'counter': "identity",
+        'serial': "identity",
+    }
+
     def __init__(self, style_tree):
         self.style_tree = style_tree
 
@@ -60,8 +72,10 @@ class SyntaxParser:
         other_constraints = set()
 
         for constraint in constraints:
-            if constraint in ("static", "virtual", "final", "required", "unique", "pk", "identity"):
+            if constraint in ("static", "abstract", "virtual", "final", "required", "unique", "pk", "identity", "lob"):
                 constraint_dict[constraint] = True
+            elif constraint in ("sealed", "const", "readonly", "notnull", "nonnull", "key", "id", "counter", "serial"):
+                constraint_dict[SyntaxParser.CONSTRAINT_MAPPINGS[constraint]] = True
             elif constraint.startswith("fk:"):
                 constraint_dict['fk'] = True
                 constraint_dict['fk_target'] = constraint[3:]

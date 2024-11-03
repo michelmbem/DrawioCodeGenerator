@@ -42,12 +42,16 @@ class CppCodeGenerator(CodeGenerator):
         "time": "time_t",
         "datetime": "time_t",
         "timestamp": "time_t",
+        "uuid": "std::string",
+        "guid": "std::string",
         "unspecified": "int",
     }
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.class_name = None
         self.baseclass_name = None
+        self.initializer_string = ""
 
     @staticmethod
     def accessor_name(property_name):
@@ -70,6 +74,7 @@ class CppCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
+        self.class_name = class_name
         class_header = "#pragma once\n\n"
 
         if class_type != "enum":
@@ -126,14 +131,20 @@ class CppCodeGenerator(CodeGenerator):
             properties_string: the closing brace of a class definition
         """
 
-        self.baseclass_name = None
+        self.baseclass_name = self.class_name = None
 
         if self.options['package']:
             braces = '}' * len(self.split_package_name(self.options['package']))
         else:
             braces = '}'
 
-        return "\t};\n" + ''.join(braces)
+        footer_string = "\t};\n"
+        if self.initializer_string:
+            footer_string += "\n" + self.initializer_string
+            self.initializer_string = ""
+        footer_string += ''.join(braces)
+
+        return footer_string
 
     def generate_properties(self, properties, is_enum):
         """
@@ -171,7 +182,14 @@ class CppCodeGenerator(CodeGenerator):
 
                 p = f"\t\t{modifier} {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
-                    p += f" = {property_def['default_value']}"
+                    if constraints.get('static', False):
+                        self.initializer_string += "\t"
+                        if constraints.get('final', False):
+                            self.initializer_string += "const "
+                        self.initializer_string += f"{self.map_type(property_def['type'])} {self.class_name}::"
+                        self.initializer_string += f"{property_def['name']}{{{property_def['default_value']}}};\n"
+                    else:
+                        p += f"{{{property_def['default_value']}}}"
                 p += ";\n"
 
             properties_string += p
@@ -206,13 +224,16 @@ class CppCodeGenerator(CodeGenerator):
                     modifier += " const"
                 modifier += " "
 
-                getter = (f"\t\tpublic:{modifier}{accessor_type} Get{accessor_name}() const\n"
-                          f"\t\t{{\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n")
+                getter = f"\t\tpublic:{modifier}{accessor_type} Get{accessor_name}()"
+                if not constraints.get('static', False):
+                    getter += " const"
+                getter += f"\n\t\t{{\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n"
                 accessors_string += getter
 
-                setter = (f"\t\tpublic:{modifier}void Set{accessor_name}({accessor_type} {property_def['name']})\n"
-                          f"\t\t{{\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
-                accessors_string += setter
+                if not constraints.get('final', False):
+                    setter = (f"\t\tpublic:{modifier}void Set{accessor_name}({accessor_type} {property_def['name']})\n"
+                              f"\t\t{{\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
+                    accessors_string += setter
 
         return accessors_string
 
@@ -242,17 +263,21 @@ class CppCodeGenerator(CodeGenerator):
                 modifier = ""
                 if constraints.get('static', False):
                     modifier += " static"
-                elif constraints.get('virtual', False):
+                elif constraints.get('abstract', False) or constraints.get('virtual', False):
                     modifier += " virtual"
                 if constraints.get('final', False):
                     modifier += " const"
                 modifier += " "
 
                 m = f"\t\t{method_def['access']}:{modifier}{self.map_type(method_def['return_type'])}"
-                m += f" {method_def['name']}{params}\n\t\t{{\n\t\t\t{comment}\n"
-                if method_def['return_type'] != "void":
-                    m += f"\t\t\treturn {self.default_value(method_def['return_type'])};\n"
-                m += "\t\t}"
+                m += f" {method_def['name']}{params}"
+                if constraints.get('abstract', False):
+                    m += " = 0;\n"
+                else:
+                    m += f"\n\t\t{{\n\t\t\t{comment}\n"
+                    if method_def['return_type'] != "void":
+                        m += f"\t\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += "\t\t}"
 
             methods_string += m + "\n\n"
 
@@ -271,7 +296,7 @@ class CppCodeGenerator(CodeGenerator):
     def generate_default_ctor(self, class_name, call_super):
         ctor_string = f"\t\tpublic: {class_name}()"
         if call_super:
-            ctor_string += f": {self.baseclass_name}()"
+            ctor_string += f": {self.baseclass_name}{{}}"
         ctor_string += "\n\t\t{\n\t\t}\n\n"
 
         return ctor_string
@@ -286,10 +311,13 @@ class CppCodeGenerator(CodeGenerator):
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ")"
         if call_super:
-            ctor_string += f":\n\t\t\t{self.baseclass_name}({', '.join(p['name'] for p in inherited_properties)})"
-        ctor_string += "\n\t\t{\n"
-        ctor_string += '\n'.join(f"\t\t\tthis->{p['name']} = {p['name']};" for p in properties.values())
-        ctor_string += "\n\t\t}\n\n"
+            ctor_string += f":\n\t\t\t{self.baseclass_name}{{{', '.join(p['name'] for p in inherited_properties)}}}"
+            if len(properties) > 0:
+                ctor_string += ", "
+        else:
+            ctor_string += ":\n\t\t\t"
+        ctor_string += ", ".join(f"{p['name']}{{{p['name']}}}" for p in properties.values())
+        ctor_string += "\n\t\t{\n\t\t}\n\n"
 
         return ctor_string
 

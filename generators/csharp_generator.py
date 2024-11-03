@@ -243,15 +243,20 @@ class CSharpCodeGenerator(CodeGenerator):
                 modifier = ""
                 if constraints.get('static', False):
                     modifier += " static"
+                elif constraints.get('abstract', False):
+                    modifier += " abstract"
                 elif constraints.get('virtual', False):
                     modifier += " virtual"
                 modifier += " "
 
-                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params}\n\t{{\n"
-                m += f"\t\t{comment}\n"
-                if method_def['return_type'] != "void":
-                    m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
-                m += "\t}"
+                m = f"\t{method_def['access']}{modifier}{self.map_type(method_def['return_type'])} {method_def['name']}{params}"
+                if constraints.get('abstract', False):
+                    m += ";\n"
+                else:
+                    m += f"\n\t{{\n\t\t{comment}\n"
+                    if method_def['return_type'] != "void":
+                        m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += "\t}"
 
             methods_string += m + "\n\n"
 
