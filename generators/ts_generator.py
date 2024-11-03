@@ -227,20 +227,28 @@ class TsCodeGenerator(CodeGenerator):
 
         for method_def in methods.values():
             params = self.get_parameter_list(method_def['parameters'])
+
             if class_type == "interface":
                 m = f"\t{method_def['name']}{params}: {self.map_type(method_def['return_type'])};"
             else:
                 constraints = method_def['constraints']
 
-                modifier = " "
+                modifier = ""
                 if constraints.get('static', False):
-                    modifier = " static "
+                    modifier += " static"
+                elif constraints.get('abstract', False):
+                    modifier += " abstract"
+                modifier += " "
 
-                m = f"\t{method_def['access']}{modifier}{method_def['name']}{params}: {self.map_type(method_def['return_type'])} {{\n"
-                m += f"\t\t{comment}\n"
-                if method_def['return_type'] != "void":
-                    m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
-                m += "\t}"
+                m = f"\t{method_def['access']}{modifier}{method_def['name']}{params}: {self.map_type(method_def['return_type'])}"
+                if constraints.get('abstract', False):
+                    m += ";"
+                else:
+                    m += f" {{\n\t\t{comment}\n"
+                    if method_def['return_type'] != "void":
+                        m += f"\t\treturn {self.default_value(method_def['return_type'])};\n"
+                    m += "\t}"
+
             methods_string += m + "\n\n"
 
         if class_type in ("class", "abstract class"):
