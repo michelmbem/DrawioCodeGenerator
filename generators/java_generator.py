@@ -244,7 +244,8 @@ class JavaCodeGenerator(CodeGenerator):
                 if constraints.get('static', False):
                     target, modifier = class_name, " static "
 
-                getter = (f"\tpublic{modifier}{accessor_type} get{accessor_name}() {{\n"
+                getter_prefix = "is" if accessor_type == "boolean" else "get"
+                getter = (f"\tpublic{modifier}{accessor_type} {getter_prefix}{accessor_name}() {{\n"
                           f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 

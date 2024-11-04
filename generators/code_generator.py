@@ -1,6 +1,7 @@
 import re
 import traceback
 
+from operator import itemgetter
 from os import makedirs, path
 from abc import ABC, abstractmethod
 
@@ -49,7 +50,7 @@ class CodeGenerator(ABC):
 
                 if class_type in ("class", "abstract class"):
                     inherited_props = []
-                    self.get_inherited_instance_properties(class_def, inherited_props)
+                    self.get_inherited_instance_props(class_def, inherited_props)
                     declared_props = {k: p for k, p in properties.items() if not p['constraints'].get("static", False)}
                     has_instance_props = len(declared_props) + len(inherited_props) > 0
                     has_parent = len(baseclasses) > 0
@@ -107,32 +108,37 @@ class CodeGenerator(ABC):
         :return: a tuple of baseclasses, implemented interfaces and referenced classes
         """
 
-        baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
-        interfaces = [self.syntax_tree[r]['name'] for r in class_def['relationships']['implements']]
-        references = [self.syntax_tree[r]['name'] for r in class_def['relationships']['association']]
-        references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['aggregation']]
-        references += [self.syntax_tree[r]['name'] for r in class_def['relationships']['composition']]
+        get_items = itemgetter('extends', 'implements', 'association', 'aggregation', 'composition')
+        extends, implements, association, aggregation, composition = get_items(class_def['relationships'])
+
+        baseclasses = [self.syntax_tree[r]['name'] for r in extends]
+        interfaces = [self.syntax_tree[r]['name'] for r in implements]
+        references = [(r[0], self.syntax_tree[r[1]]['name']) for r in association]
+        references += [(r[0], self.syntax_tree[r[1]]['name']) for r in aggregation]
+        references += [(r[0], self.syntax_tree[r[1]]['name']) for r in composition]
 
         class_methods = [*class_def['methods'].values()]
         if class_def['type'] in ("class", "abstract class"):
-            self.get_interface_methods(class_def['relationships']['implements'], class_methods)
+            self.get_interface_methods(implements, class_methods)
 
         for other_class in self.syntax_tree.values():
+            other_class_name = other_class['name']
+
             for property_def in class_def['properties'].values():
-                if property_def['type'] == other_class['name']:
-                    references.append(other_class['name'])
+                if property_def['type'] == other_class_name:
+                    references.append(('uses', other_class_name))
 
             for method_def in class_methods:
-                if method_def['return_type'] == other_class['name']:
-                    references.append(other_class['name'])
+                if method_def['return_type'] == other_class_name:
+                    references.append(('uses', other_class_name))
 
                 for parameter in method_def['parameters']:
-                    if parameter['type'] == other_class['name']:
-                        references.append(other_class['name'])
+                    if parameter['type'] == other_class_name:
+                        references.append(('uses', other_class_name))
 
         return baseclasses, interfaces, references
 
-    def get_inherited_instance_properties(self, class_def, properties):
+    def get_inherited_instance_props(self, class_def, properties):
         """
         Get a collection of all non-static properties of the ancestors of the given class
 
@@ -142,8 +148,9 @@ class CodeGenerator(ABC):
         """
 
         parents = [self.syntax_tree[r] for r in class_def['relationships']['extends']]
+
         for parent in parents:
-            self.get_inherited_instance_properties(parent, properties)
+            self.get_inherited_instance_props(parent, properties)
             properties += [p for p in parent['properties'].values() if not p['constraints'].get("static", False)]
 
     def get_interface_methods(self, interface_ids, interface_methods):

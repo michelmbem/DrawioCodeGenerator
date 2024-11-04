@@ -36,6 +36,8 @@ class SQLServerDialect(SQLDialect):
         "time": "time",
         "datetime": "datetime",
         "timestamp": "datetime",
+        "uuid": "uniqueidentifier",
+        "guid": "uniqueidentifier",
         "unspecified": "int",
     }
 

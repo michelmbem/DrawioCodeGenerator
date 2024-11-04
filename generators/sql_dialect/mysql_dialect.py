@@ -36,6 +36,8 @@ class MySQLDialect(SQLDialect):
         "time": "time",
         "datetime": "datetime",
         "timestamp": "timestamp",
+        "uuid": "binary(16)",
+        "guid": "binary(16)",
         "unspecified": "int",
     }
 

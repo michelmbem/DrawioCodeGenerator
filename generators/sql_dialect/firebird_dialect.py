@@ -36,6 +36,8 @@ class FirebirdDialect(SQLDialect):
         "time": "time",
         "datetime": "timestamp",
         "timestamp": "timestamp",
+        "uuid": "char(16) character set octets",
+        "guid": "char(16) character set octets",
         "unspecified": "integer",
     }
 

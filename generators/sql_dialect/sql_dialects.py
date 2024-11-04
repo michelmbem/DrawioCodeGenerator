@@ -17,32 +17,32 @@ class SQLDialects:
 
     @staticmethod
     def get(dialect):
-        dialect = dialect.lower()
-        if dialect == "ansi":
-            return AnsiSQLDialect()
-        elif dialect == "mysql":
-            return MySQLDialect()
-        elif dialect == "postgresql":
-            return PostgreSQLDialect()
-        elif dialect == "firebird":
-            return FirebirdDialect()
-        elif dialect == "oracle":
-            return OracleDialect()
-        elif dialect == "db2":
-            return DB2Dialect()
-        elif dialect == "sqlserver":
-            return SQLServerDialect()
-        elif dialect == "sybase":
-            return SybaseDialect()
-        elif dialect == "access":
-            return AccessDialect()
-        elif dialect == "sqlite":
-            return SQLiteDialect()
-        elif dialect == "derby":
-            return DerbyDialect()
-        elif dialect == "hsqldb":
-            return HSQLDBDialect()
-        elif dialect == "h2":
-            return H2Dialect()
-        else:
-            raise ValueError(f"Could not find an implementation of SQLDialect for the '{dialect}' dialect")
+        match dialect.lower(): 
+            case "ansi":
+                return AnsiSQLDialect()
+            case "mysql":
+                return MySQLDialect()
+            case "postgresql":
+                return PostgreSQLDialect()
+            case "firebird":
+                return FirebirdDialect()
+            case "oracle":
+                return OracleDialect()
+            case "db2":
+                return DB2Dialect()
+            case "sqlserver":
+                return SQLServerDialect()
+            case "sybase":
+                return SybaseDialect()
+            case "access":
+                return AccessDialect()
+            case "sqlite":
+                return SQLiteDialect()
+            case "derby":
+                return DerbyDialect()
+            case "hsqldb":
+                return HSQLDBDialect()
+            case "h2":
+                return H2Dialect()
+            case _:
+                raise ValueError(f"Could not find an implementation of SQLDialect for the '{dialect}' dialect")

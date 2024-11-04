@@ -36,6 +36,8 @@ class DB2Dialect(SQLDialect):
         "time": "time",
         "datetime": "timestamp",
         "timestamp": "timestamp",
+        "uuid": "char(16)",
+        "guid": "char(16)",
         "unspecified": "integer",
     }
 

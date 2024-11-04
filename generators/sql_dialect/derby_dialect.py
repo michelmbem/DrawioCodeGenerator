@@ -36,6 +36,8 @@ class DerbyDialect(SQLDialect):
         "time": "time",
         "datetime": "timestamp",
         "timestamp": "timestamp",
+        "uuid": "char(16) for bit data",
+        "guid": "char(16) for bit data",
         "unspecified": "integer",
     }
 

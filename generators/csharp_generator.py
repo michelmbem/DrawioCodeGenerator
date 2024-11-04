@@ -44,6 +44,8 @@ class CSharpCodeGenerator(CodeGenerator):
         "time": "DateTime",
         "datetime": "DateTime",
         "timestamp": "DateTime",
+        "uuid": "Guid",
+        "guid": "Guid",
         "unspecified": "object",
     }
 

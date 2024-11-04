@@ -11,7 +11,6 @@ from ui.option_page import OptionPage
 class OptionPageWithImports(OptionPage):
 
     LABELS = {
-        'cpp': {'module_name': "Header file:"},
         'php': {'module_name': "Required script:"},
     }
 

@@ -6,6 +6,7 @@ from ui.forms import OptionDialogBase
 from ui.common_option_page import CommonOptionPage
 from ui.java_option_page import JavaOptionPage
 from ui.csharp_option_page import CSharpOptionPage
+from ui.cpp_option_page import CppOptionPage
 from ui.ts_option_page import TypeScriptOptionPage
 from ui.sql_option_page import SqlOptionPage
 
@@ -31,16 +32,19 @@ class OptionDialog(OptionDialogBase):
         for language in languages:
             language_options = language_specific.get(language, {})
 
-            if language == 'java':
-                option_page = JavaOptionPage(self.nbLanguageOptions, language_options)
-            elif language == 'cs':
-                option_page = CSharpOptionPage(self.nbLanguageOptions, language_options)
-            elif language == 'ts':
-                option_page = TypeScriptOptionPage(self.nbLanguageOptions, language_options)
-            elif language == "sql":
-                option_page = SqlOptionPage(self.nbLanguageOptions, language_options)
-            else:
-                option_page = CommonOptionPage(self.nbLanguageOptions, language, language_options)
+            match language:
+                case 'java':
+                    option_page = JavaOptionPage(self.nbLanguageOptions, language_options)
+                case 'cs':
+                    option_page = CSharpOptionPage(self.nbLanguageOptions, language_options)
+                case 'cpp':
+                    option_page = CppOptionPage(self.nbLanguageOptions, language_options)
+                case 'ts':
+                    option_page = TypeScriptOptionPage(self.nbLanguageOptions, language_options)
+                case "sql":
+                    option_page = SqlOptionPage(self.nbLanguageOptions, language_options)
+                case _:
+                    option_page = CommonOptionPage(self.nbLanguageOptions, language, language_options)
 
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 

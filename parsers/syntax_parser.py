@@ -1,5 +1,7 @@
 import traceback
 
+from operator import itemgetter
+
 
 class SyntaxParser:
     """
@@ -163,47 +165,43 @@ class SyntaxParser:
         syntax_tree = {}
 
         try:
-            cells = self.style_tree['root']['cells']
-            relationships = self.style_tree['root']['relationships']
-            parent = self.style_tree['root']['id']
+            get_item = itemgetter('id', 'cells', 'relationships')
+            root_id, cells, relationships = get_item(self.style_tree['root'])
 
             properties_done = False
-            _id = 0
+            child_id = 0
 
             for key, value in cells.items():
-                if value['parent_id'] in relationships.keys() or "endArrow" in value['style'].keys():
-                    # skip the label for relationships
+                parent_id, style = value['parent_id'], value['style']
+
+                # skip the label for relationships
+                if parent_id in relationships.keys() or "endArrow" in style.keys():
                     continue
 
-                if value['parent_id'] == parent and value['style']['type'].lower() in ('swimlane', 'html', 'text'):
+                style_type = style['type'].lower()
+
+                if parent_id == root_id and style_type in ('swimlane', 'html', 'text'):
                     # start of a new cell
                     syntax_tree[key] = self.tree_template(value)
                     properties_done = False
-                    _id = 0
+                    child_id = 0
+                elif style_type == 'line' and parent_id in syntax_tree.keys():
+                    # line separating the properties and methods
+                    properties_done = True
+                    child_id = 0
+                elif properties_done:
+                    # methods
+                    syntax_tree[parent_id]['methods'].update(self.methods_template(value, child_id))
+                    child_id += len(value['values'])
                 else:
-                    # properties and methods in the cell
-                    if value['style']['type'].lower() == 'line' and value['parent_id'] in syntax_tree.keys():
-                        # line separating the properties and methods
-                        properties_done = True
-                        _id = 0
-                    else:
-                        if properties_done:  # methods
-                            syntax_tree[value['parent_id']]['methods'] = {
-                                **syntax_tree[value['parent_id']]['methods'],
-                                **self.methods_template(value, _id)
-                            }
-                        else:  # properties
-                            syntax_tree[value['parent_id']]['properties'] = {
-                                **syntax_tree[value['parent_id']]['properties'],
-                                **self.properties_template(value, _id)
-                            }
-
-                        _id += len(value['values'])
+                    # properties
+                    syntax_tree[parent_id]['properties'].update(self.properties_template(value, child_id))
+                    child_id += len(value['values'])
 
             for relationship in relationships.keys():
                 self.add_relationships(syntax_tree, relationships[relationship])
         except Exception as e:
-            print(f"SyntaxParser.convert_to_syntax_tree ERROR: {e}")
+            print(f"{self.__class__.__name__}.convert_to_syntax_tree ERROR: {e}")
             traceback.print_exception(e)
 
         return syntax_tree
@@ -230,15 +228,16 @@ class SyntaxParser:
                 'extends': [],
                 'association': [],
                 'aggregation': [],
-                'composition': []
+                'composition': [],
             }
         }
 
         if main_cell['style']['type'] in ("html", "text"):
-            values_length = len(main_cell['values'])
-            name = main_cell['values'][0] if values_length > 0 else ""
-            properties = {'values': main_cell['values'][1] if values_length > 1 else None}
-            methods = {'values': main_cell['values'][2] if values_length > 2 else None}
+            main_cell_values = main_cell['values']
+            value_count = len(main_cell_values)
+            name = main_cell_values[0] if value_count > 0 else ""
+            properties = {'values': main_cell_values[1] if value_count > 1 else None}
+            methods = {'values': main_cell_values[2] if value_count > 2 else None}
 
             template['name'] = name[0]
             template['properties'] = self.properties_template(properties, 0) or {}
@@ -247,26 +246,27 @@ class SyntaxParser:
         name, stereotype = self.parse_class_name(template['name'])
         template['name'] = name
 
-        if stereotype in ("interface", "enum"):
-            template['type'] = stereotype
-        elif stereotype == "enumeration":
-            template['type'] = "enum"
-        elif stereotype == "abstract":
-            template['type'] = "abstract class"
-        else:
-            template['stereotype'] = stereotype
-            if main_cell['style'].get('fontStyle') == "2":  # itallic
+        match stereotype:
+            case "interface" | "enum":
+                template['type'] = stereotype
+            case "enumeration":
+                template['type'] = "enum"
+            case "abstract":
                 template['type'] = "abstract class"
+            case _:
+                template['stereotype'] = stereotype
+                if main_cell['style'].get('fontStyle') == "2":  # itallic
+                    template['type'] = "abstract class"
 
         return template
 
-    def properties_template(self, property_dict, _id):
+    def properties_template(self, property_dict, property_id):
         """
         Create the template for properties
 
         Parameters:
           property_dict: the properties dictionary from the style tree
-          _id: id for the keys in the dictionary
+          property_id: id for the keys in the dictionary
 
         Returns:
           template: the properties template (dictionary)
@@ -276,13 +276,13 @@ class SyntaxParser:
         template = {}
 
         if values:
-            for val in values:
-                if len(val) == 0:
+            for value in values:
+                if len(value) == 0:
                     continue
 
-                _id += 1
-                access, name, data_type, default_value, constraints = self.parse_property_signature(val)
-                template[_id] = {
+                property_id += 1
+                access, name, data_type, default_value, constraints = self.parse_property_signature(value)
+                template[property_id] = {
                     'access': self.get_access_modifier(access),
                     'name': name,
                     'type': data_type,
@@ -292,13 +292,13 @@ class SyntaxParser:
 
         return template
 
-    def methods_template(self, method_dict, _id):
+    def methods_template(self, method_dict, method_id):
         """
         Create the template for methods
 
         Parameters:
           method_dict: the methods dictionary from the style tree
-          _id: id for the keys in the dictionary
+          method_id: id for the keys in the dictionary
 
         Returns:
           template: the methods template (dictionary)
@@ -308,13 +308,13 @@ class SyntaxParser:
         template = {}
 
         if values:
-            for val in values:
-                if len(val) == 0:
+            for value in values:
+                if len(value) == 0:
                     continue
 
-                _id += 1
-                access, name, parameters, return_type, constraints = self.parse_method_signature(val)
-                template[_id] = {
+                method_id += 1
+                access, name, parameters, return_type, constraints = self.parse_method_signature(value)
+                template[method_id] = {
                     'access': self.get_access_modifier(access),
                     'name': name,
                     'parameters': parameters,
@@ -346,28 +346,54 @@ class SyntaxParser:
           relationship: relationship to be added to the syntax tree
         """
 
-        source = relationship['source']
-        target = relationship['target']
-        style = relationship['style']
+        get_item = itemgetter('source', 'target', 'style')
+        source, target, style = get_item(relationship)
 
         source_cell = syntax_tree[source]
-        target_cell = syntax_tree[target]
+        source_relations = source_cell['relationships']
 
-        if "endArrow" in style.keys() and style['endArrow'].lower() in ("block", "none"):
-            if style['endArrow'].lower() == "none" or style['endFill'].lower() == "1":
+        target_cell = syntax_tree[target]
+        target_relations = target_cell['relationships']
+
+        start_arrow_style = style.get("startArrow", "").lower()
+        end_arrow_style = style.get("endArrow", "").lower()
+        start_arrow_filled = style.get("startFill") == "1"
+        end_arrow_filled = style.get("endFill") == "1"
+        dashed_line = style.get("dashed") == "1"
+
+        match end_arrow_style:
+            case "none":
                 # association
-                target_cell['relationships']['association'] += [source]
-            elif "dashed" in style.keys() and style['dashed'] == "1":
-                # implements
-                source_cell['relationships']['implements'] += [target]
-            else:
-                # extends
-                source_cell['relationships']['extends'] += [target]
-        elif ("endArrow" in style.keys() and style['endArrow'].lower() == "diamondthin") or \
-                ("startArrow" in style.keys() and style['startArrow'].lower() == "diamondthin"):
-            if "endFill" in style.keys() and style['endFill'] == "1":
-                # composition
-                target_cell['relationships']['composition'] += [source]
-            else:
-                # aggregation
-                target_cell['relationships']['aggregation'] += [source]
+                source_relations['association'].append(('to', target))
+                target_relations['association'].append(('from', source))
+            case "block":
+                if end_arrow_filled:
+                    # association
+                    source_relations['association'].append(('to', target))
+                    target_relations['association'].append(('from', source))
+                elif dashed_line:
+                    # implements
+                    source_relations['implements'].append(target)
+                else:
+                    # extends
+                    source_relations['extends'].append(target)
+            case "diamondthin":
+                if end_arrow_filled:
+                    # composition
+                    source_relations['composition'].append(('to', target))
+                    target_relations['composition'].append(('from', source))
+                else:
+                    # aggregation
+                    source_relations['aggregation'].append(('to', target))
+                    target_relations['aggregation'].append(('from', source))
+            case "open":
+                match start_arrow_style:
+                    case "diamondthin":
+                        if start_arrow_filled:
+                            # composition
+                            source_relations['composition'].append(('to', target))
+                            target_relations['composition'].append(('from', source))
+                        else:
+                            # aggregation
+                            source_relations['aggregation'].append(('to', target))
+                            target_relations['aggregation'].append(('from', source))

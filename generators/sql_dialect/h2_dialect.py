@@ -36,6 +36,8 @@ class H2Dialect(SQLDialect):
         "time": "time",
         "datetime": "timestamp",
         "timestamp": "timestamp",
+        "uuid": "uuid",
+        "guid": "uuid",
         "unspecified": "integer",
     }
 

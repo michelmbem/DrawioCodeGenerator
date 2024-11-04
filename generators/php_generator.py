@@ -40,8 +40,9 @@ class PhpCodeGenerator(CodeGenerator):
             for module, symbols in self.options['imports'].items():
                 imports.add(f"require_once '{module}';")
 
-            dependencies = {*baseclasses, *interfaces, *references}
-            imports |= set(f"require_once './{dependency}.php';" for dependency in dependencies if dependency != class_name)
+            imports |= set(f"require_once './{baseclass}.php';" for baseclass in baseclasses)
+            imports |= set(f"require_once './{interface}.php';" for interface in interfaces)
+            imports |= set(f"require_once './{reference[1]}.php';" for reference in references if reference[1] != class_name)
 
             for import_line in sorted(imports):
                 class_header += f"{import_line}\n"
@@ -138,7 +139,8 @@ class PhpCodeGenerator(CodeGenerator):
                     modifier = " static "
                     target = f"{class_name}::"
 
-                getter = (f"\tpublic{modifier}function get_{property_def['name']}() {{\n"
+                getter_prefix = "is" if property_def['type'] in ("bool", "boolean") else "get"
+                getter = (f"\tpublic{modifier}function {getter_prefix}_{property_def['name']}() {{\n"
                           f"\t\treturn {target}{property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 

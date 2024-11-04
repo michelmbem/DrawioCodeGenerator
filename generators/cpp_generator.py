@@ -36,16 +36,22 @@ class CppCodeGenerator(CodeGenerator):
         "float": "float",
         "single": "float",
         "double": "double",
-        "string": "std::string",
-        "wstring": "std::wstring",
-        "date": "time_t",
-        "time": "time_t",
-        "datetime": "time_t",
-        "timestamp": "time_t",
-        "uuid": "std::string",
-        "guid": "std::string",
+        "bigint": {'std': "long long", 'boost': "cpp_int"},
+        "decimal": {'std': "long double", 'boost': "cpp_dec_float_50"},
+        "string": "string",
+        "wstring": "wstring",
+        "date": {'std': "time_t", 'boost': "date"},
+        "time": {'std': "time_t", 'boost': "time_duration"},
+        "datetime": {'std': "time_t", 'boost': "ptime"},
+        "timestamp": {'std': "time_t", 'boost': "ptime"},
+        "uuid": {'std': "char[16]", 'boost': "uuid"},
+        "guid": {'std': "char[16]", 'boost': "uuid"},
         "unspecified": "int",
     }
+
+    ACCESSORS_PREFIX = { 'pascal': ("Get", "Set", "Is", "To", "From", "Of") }
+    ACCESSORS_PREFIX['camel'] = tuple(prefix.lower() for prefix in ACCESSORS_PREFIX['pascal'])
+    ACCESSORS_PREFIX['snake'] = tuple(prefix + '_' for prefix in ACCESSORS_PREFIX['camel'])
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
@@ -54,8 +60,8 @@ class CppCodeGenerator(CodeGenerator):
         self.initializer_string = ""
 
     @staticmethod
-    def accessor_name(property_name):
-        if property_name[0].islower():
+    def accessor_name(property_name, naming_conv):
+        if naming_conv != "snake" and property_name[0].islower():
             return f"{property_name[0].upper()}{property_name[1:]}"
         return property_name
 
@@ -79,10 +85,32 @@ class CppCodeGenerator(CodeGenerator):
 
         if class_type != "enum":
             header_files = set(self.options['imports'].keys())
+            usings = {"std::string", "std::wstring"}
 
-            dependencies = {*baseclasses, *interfaces, *references}
-            header_files |= set(f"\"{dependency}.hpp\"" for dependency in dependencies if dependency != class_name)
+            header_files |= set(f"\"{baseclass}.hpp\"" for baseclass in baseclasses)
+            header_files |= set(f"\"{interface}.hpp\"" for interface in interfaces)
+            header_files |= set(f"\"{reference[1]}.hpp\"" for reference in references if reference[1] != class_name)
+
+            if self.options['use_boost']:
+                header_files |= {
+                    "<boost/multiprecision/cpp_int.hpp>",
+                    "<boost/multiprecision/cpp_dec_float.hpp>",
+                    "<boost/date_time/gregorian/gregorian.hpp>",
+                    "<boost/date_time/posix_time/posix_time.hpp>",
+                    "<boost/uuid/uuid.hpp>"
+                }
+
+                usings |= {
+                    "boost::multiprecision::cpp_int",
+                    "boost::multiprecision::cpp_dec_float_50",
+                    "boost::gregorian::date",
+                    "boost::posix_time::time_duration",
+                    "boost::posix_time::ptime",
+                    "boost::uuids::uuid"
+                }
+
             header_files = sorted(header_files)
+            usings = sorted(usings)
 
             for header_file in header_files:
                 if header_file.endswith('>'):
@@ -95,10 +123,16 @@ class CppCodeGenerator(CodeGenerator):
             if len(header_files) > 0:
                 class_header += "\n"
 
+            for using in usings:
+                class_header += f"using {using};\n"
+
+            if len(usings) > 0:
+                class_header += "\n"
+
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
         else:
-            class_header += "namespace __default__\n{\n"
+            class_header += f"namespace __default__{self.lbrace()}\n"
 
         if class_type == "enum":
             type_of_class = "enum class"
@@ -115,7 +149,7 @@ class CppCodeGenerator(CodeGenerator):
             else:
                 class_header += " : "
             class_header += ', '.join(f"public virtual {interface}" for interface in interfaces)
-        class_header += "\n\t{\n"
+        class_header += f"{self.lbrace(1)}\n"
 
         return class_header
 
@@ -209,10 +243,12 @@ class CppCodeGenerator(CodeGenerator):
         """
 
         accessors_string = ""
+        lbrace = self.lbrace(2)
+        prefix = self.ACCESSORS_PREFIX[self.options['naming']]
 
         for property_def in properties.values():
             if self.get_property_access(property_def) == "private":
-                accessor_name = self.accessor_name(property_def['name'])
+                accessor_name = self.accessor_name(property_def['name'], self.options['naming'])
                 accessor_type = self.map_type(property_def['type'])
                 constraints = property_def['constraints']
 
@@ -224,15 +260,16 @@ class CppCodeGenerator(CodeGenerator):
                     modifier += " const"
                 modifier += " "
 
-                getter = f"\t\tpublic:{modifier}{accessor_type} Get{accessor_name}()"
+                getter_prefix = prefix[2] if accessor_type == "bool" else prefix[0]
+                getter = f"\t\tpublic:{modifier}{accessor_type} {getter_prefix}{accessor_name}()"
                 if not constraints.get('static', False):
                     getter += " const"
-                getter += f"\n\t\t{{\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n"
+                getter += f"{lbrace}\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n"
                 accessors_string += getter
 
                 if not constraints.get('final', False):
-                    setter = (f"\t\tpublic:{modifier}void Set{accessor_name}({accessor_type} {property_def['name']})\n"
-                              f"\t\t{{\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
+                    setter = (f"\t\tpublic:{modifier}void {prefix[1]}{accessor_name}({accessor_type} {property_def['name']})"
+                              f"{lbrace}\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
                     accessors_string += setter
 
         return accessors_string
@@ -297,7 +334,7 @@ class CppCodeGenerator(CodeGenerator):
         ctor_string = f"\t\tpublic: {class_name}()"
         if call_super:
             ctor_string += f": {self.baseclass_name}{{}}"
-        ctor_string += "\n\t\t{\n\t\t}\n\n"
+        ctor_string += f"{self.lbrace(2)}\n\t\t}}\n\n"
 
         return ctor_string
 
@@ -317,12 +354,19 @@ class CppCodeGenerator(CodeGenerator):
         else:
             ctor_string += ":\n\t\t\t"
         ctor_string += ", ".join(f"{p['name']}{{{p['name']}}}" for p in properties.values())
-        ctor_string += "\n\t\t{\n\t\t}\n\n"
+        ctor_string += f"{self.lbrace(2)}\n\t\t}}\n\n"
 
         return ctor_string
 
     def package_directive(self, package_name):
-        return " { ".join(f"namespace {ns}" for ns in self.split_package_name(package_name)) + "\n{\n"
+        return " { ".join(f"namespace {ns}" for ns in self.split_package_name(package_name)) + self.lbrace() + "\n"
+
+    def map_type(self, typename, constraints = None):
+        mapped_type = super().map_type(typename, constraints)
+        if isinstance(mapped_type, dict):
+            key = "boost" if self.options['use_boost'] else "std"
+            return mapped_type.get(key, "int")
+        return mapped_type
 
     def default_value(self, typename):
         typename = self.map_type(typename)
@@ -332,12 +376,12 @@ class CppCodeGenerator(CodeGenerator):
             return "'\\0'"
         if typename == "wchar_t":
             return "L'\\0'"
-        if typename in ("signed char", "unsigned char", "short", "unsigned short", "int",
-                        "unsigned int", "long long", "unsigned long long", "float", "double"):
+        if typename in ("signed char", "unsigned char", "short", "unsigned short", "int", "unsigned int",
+                        "long long", "unsigned long long", "float", "double", "long double", "time_t"):
             return "0"
-        if typename == "std::string":
+        if typename == "string":
             return '""'
-        if typename == "std::wstring":
+        if typename == "wstring":
             return 'L""'
         if typename.endswith("*"):
             return "nullptr"
@@ -350,3 +394,8 @@ class CppCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "hpp"
+
+    def lbrace(self, tabs = 0):
+        if self.options['lbrace_same_line']:
+            return " {"
+        return '\n' + '\t' * tabs + '{'

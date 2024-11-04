@@ -53,6 +53,8 @@ class PostgreSQLDialect(SQLDialect):
         "int64": "bigserial",
         "ulong": "bigserial",
         "uint64": "bigserial",
+        "uuid": "uuid",
+        "guid": "uuid",
         "unspecified": "bigserial",
     }
 

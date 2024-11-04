@@ -337,7 +337,7 @@ class CommonOptionPageBase ( wx.Panel ):
         formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtModuleName.SetToolTip( u"Type in the name of a module/header file that should be automatically imported/included in each generated code file" )
+        self.txtModuleName.SetToolTip( u"Type in the name of a module that should be automatically imported in each generated code file" )
 
         formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
@@ -828,6 +828,148 @@ class TypeScriptOptionPageBase ( wx.Panel ):
 
         self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
         self.txtModuleName.SetToolTip( u"Type in the name of a module/header file that should be automatically imported/included in each generated code file" )
+
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.lblSymbolNames = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
+
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+
+        importSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
+
+        buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
+
+        self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
+        buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
+
+        self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
+
+        buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
+
+
+        importSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+
+        mainSizer.Add( importSizer, 1, wx.EXPAND, 5 )
+
+
+        self.SetSizer( mainSizer )
+        self.Layout()
+
+        # Connect Events
+        self.lscImport.Bind( wx.EVT_LIST_ITEM_SELECTED, self.lscImportOnListItemSelected )
+        self.btnAddImport.Bind( wx.EVT_BUTTON, self.btnAddImportOnButtonClick )
+        self.btnUpdateImport.Bind( wx.EVT_BUTTON, self.btnUpdateImportOnButtonClick )
+        self.btnRemoveImport.Bind( wx.EVT_BUTTON, self.btnRemoveImportOnButtonClick )
+
+    def __del__( self ):
+        pass
+
+
+    # Virtual event handlers, override them in your derived class
+    def lscImportOnListItemSelected( self, event ):
+        event.Skip()
+
+    def btnAddImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnUpdateImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveImportOnButtonClick( self, event ):
+        event.Skip()
+
+    # Virtual image path resolution method. Override this in your derived class.
+    def asset_path( self, bitmap_path ):
+        return bitmap_path
+
+
+###########################################################################
+## Class CppOptionPageBase
+###########################################################################
+
+class CppOptionPageBase ( wx.Panel ):
+
+    def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
+        wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
+
+        mainSizer = wx.BoxSizer( wx.VERTICAL )
+
+        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
+
+        self.chkUseBoost = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Use the boost libraries", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkUseBoost.SetToolTip( u"Tells whether to use the boost libraries to represent large numbers,  dates and uuids or not" )
+
+        featuresSizer.Add( self.chkUseBoost, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.m_staticText22 = wx.StaticText( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Naming convention:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText22.Wrap( -1 )
+
+        featuresSizer.Add( self.m_staticText22, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        chcNamingConventionChoices = [ u"Pascal case (Get/Set)", u"Camel case (get/set)", u"Snake case (get_/set_)" ]
+        self.chcNamingConvention = wx.Choice( featuresSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, chcNamingConventionChoices, 0 )
+        self.chcNamingConvention.SetSelection( 0 )
+        self.chcNamingConvention.SetToolTip( u"Defines accessors and generated methods are named" )
+
+        featuresSizer.Add( self.chcNamingConvention, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.chkLBraceOnSameLine = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Opening brace on same line", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkLBraceOnSameLine.SetToolTip( u"Tells if the opening curved brace of a block should be on the same line or not" )
+
+        featuresSizer.Add( self.chkLBraceOnSameLine, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+
+        mainSizer.Add( featuresSizer, 0, wx.ALL|wx.EXPAND, 5 )
+
+        importSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Imports" ), wx.VERTICAL )
+
+        self.lscImport = wx.ListCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        importSizer.Add( self.lscImport, 1, wx.ALL|wx.EXPAND, 5 )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.lblModuleName = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"C++ header file:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
+
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtModuleName.SetToolTip( u"Type in the name of a header file that should be automatically included in each generated code file" )
 
         formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 

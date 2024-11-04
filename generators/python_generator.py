@@ -54,8 +54,9 @@ class PythonCodeGenerator(CodeGenerator):
             for module, symbols in self.options['imports'].items():
                 imports.add(f"from {module} import {', '.join(symbols)}")
 
-            dependencies = {*baseclasses, *interfaces, *references}
-            imports |= set(f"from {dependency} import {dependency}" for dependency in dependencies if dependency != class_name)
+            imports |= set(f"from {baseclass} import {baseclass}" for baseclass in baseclasses)
+            imports |= set(f"from {interface} import {interface}" for interface in interfaces)
+            imports |= set(f"from {reference[1]} import {reference[1]}" for reference in references if reference[1] != class_name)
 
             class_ancestors = "("
             if is_abstract:

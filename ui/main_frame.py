@@ -83,10 +83,13 @@ class MainFrame (MainFrameBase):
                     }
                 },
                 'cpp': {
+                    'use_boost': False,
+                    'naming': "pascal",
+                    'lbrace_same_line': False,
                     'imports': {
                         '<ctime>': None,
                         '<string>': None,
-                    }
+                    },
                 },
                 'python': {},
                 'ts': {

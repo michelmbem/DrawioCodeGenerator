@@ -36,6 +36,8 @@ class OracleDialect(SQLDialect):
         "time": "date",
         "datetime": "date",
         "timestamp": "date",
+        "uuid": "raw(16)",
+        "guid": "raw(16)",
         "unspecified": "number",
     }
 

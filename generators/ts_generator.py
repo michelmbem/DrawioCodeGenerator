@@ -44,6 +44,8 @@ class TsCodeGenerator(CodeGenerator):
         "time": "Date",
         "datetime": "Date",
         "timestamp": "Date",
+        "uuid": "string",
+        "guid": "string",
         "unspecified": "any",
     }
 
@@ -83,8 +85,9 @@ class TsCodeGenerator(CodeGenerator):
             for module, symbols in self.options['imports'].items():
                 imports.add(f"import {{ {', '.join(symbols)} }} from '{module}';")
 
-            dependencies = {*baseclasses, *interfaces, *references}
-            imports |= set(f"import {{ {dependency} }} from './{dependency}.ts';" for dependency in dependencies if dependency != class_name)
+            imports |= set(f"import {baseclass} from './{baseclass}.ts';" for baseclass in baseclasses)
+            imports |= set(f"import {interface} from './{interface}.ts';" for interface in interfaces)
+            imports |= set(f"import {reference[1]} from './{reference[1]}.ts';" for reference in references if reference[1] != class_name)
 
             for import_line in sorted(imports):
                 class_header += f"{import_line}\n"

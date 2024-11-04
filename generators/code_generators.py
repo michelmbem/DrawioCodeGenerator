@@ -55,22 +55,23 @@ class CodeGenerators:
         language_code = CodeGenerators.language_code(language)
         language_options = CodeGenerators.extract_language_options(options, language_code)
 
-        if language_code == "java":
-            code_gen = JavaCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "cs":
-            code_gen = CSharpCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "cpp":
-            code_gen = CppCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "python":
-            code_gen = PythonCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "ts":
-            code_gen = TsCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "php":
-            code_gen = PhpCodeGenerator(syntax_tree, output_dir, language_options)
-        elif language_code == "sql":
-            code_gen = SqlCodeGenerator(syntax_tree, output_dir, language_options)
-        else:
-            raise ValueError(f"Could not find a code generator for the '{language}' language")
+        match language_code:
+            case "java":
+                code_gen = JavaCodeGenerator(syntax_tree, output_dir, language_options)
+            case "cs":
+                code_gen = CSharpCodeGenerator(syntax_tree, output_dir, language_options)
+            case "cpp":
+                code_gen = CppCodeGenerator(syntax_tree, output_dir, language_options)
+            case "python":
+                code_gen = PythonCodeGenerator(syntax_tree, output_dir, language_options)
+            case "ts":
+                code_gen = TsCodeGenerator(syntax_tree, output_dir, language_options)
+            case "php":
+                code_gen = PhpCodeGenerator(syntax_tree, output_dir, language_options)
+            case "sql":
+                code_gen = SqlCodeGenerator(syntax_tree, output_dir, language_options)
+            case _:
+                raise ValueError(f"Could not find a code generator for the '{language}' language")
 
         return code_gen
 

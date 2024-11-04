@@ -36,6 +36,8 @@ class AccessDialect(SQLDialect):
         "time": "datetime",
         "datetime": "datetime",
         "timestamp": "datetime",
+        "uuid": "guid",
+        "guid": "guid",
         "unspecified": "integer",
     }
 

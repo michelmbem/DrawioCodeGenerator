@@ -36,6 +36,8 @@ class SQLiteDialect(SQLDialect):
         "time": "text",
         "datetime": "text",
         "timestamp": "text",
+        "uuid": "text",
+        "guid": "text",
         "unspecified": "integer",
     }
 
