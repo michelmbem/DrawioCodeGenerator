@@ -65,6 +65,13 @@ class CSharpCodeGenerator(CodeGenerator):
     def parameter_name(property_name):
         return f"{property_name[0].lower()}{property_name[1:]}"
 
+    @staticmethod
+    def foreign_key_name(class_name, property_name):
+        fk_name = CSharpCodeGenerator.accessor_name(property_name, False)
+        if not property_name.lower().startswith(class_name.lower()):
+            fk_name = class_name + fk_name
+        return fk_name
+
     def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header
@@ -246,13 +253,13 @@ class CSharpCodeGenerator(CodeGenerator):
                             pk = self.get_primary_key(reference[1])
 
                             if len(pk) > 0:
-                                pk_name = pk[0]['type']
-                                fk_field_name = f"{reference[1]}{self.accessor_name(pk[0]['name'], False)}"
+                                fk_field_type = pk[0]['type']
+                                fk_field_name = self.foreign_key_name(reference[1], pk[0]['name'])
                             else:
-                                pk_name = "object /* No primary key found! */"
-                                fk_field_name = f"{reference[1]}Id /* No primary key found! */"
+                                fk_field_type = "object"
+                                fk_field_name = "MissingProperty"
 
-                            accessors_string += f"\tpublic {pk_name} {fk_field_name} {{ get; set; }}\n\n"
+                            accessors_string += f"\tpublic {fk_field_type} {fk_field_name} {{ get; set; }}\n\n"
                             accessors_string += f"\t[ForeignKey(nameof({fk_field_name}))]\n"
 
                         accessors_string += f"\tpublic virtual {reference[1]} {reference[1]} {{ get; set; }}\n\n"

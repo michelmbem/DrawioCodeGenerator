@@ -175,7 +175,7 @@ class SyntaxParser:
                 parent_id, style = value['parent_id'], value['style']
 
                 # skip the label for relationships
-                if parent_id in relationships.keys() or "endArrow" in style.keys():
+                if parent_id in relationships.keys() or "endArrow" in style:
                     continue
 
                 style_type = style['type'].lower()
@@ -185,7 +185,7 @@ class SyntaxParser:
                     syntax_tree[key] = self.tree_template(value)
                     properties_done = False
                     child_id = 0
-                elif style_type == 'line' and parent_id in syntax_tree.keys():
+                elif style_type == 'line' and parent_id in syntax_tree:
                     # line separating the properties and methods
                     properties_done = True
                     child_id = 0
