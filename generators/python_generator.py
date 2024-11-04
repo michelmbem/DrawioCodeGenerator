@@ -101,13 +101,14 @@ class PythonCodeGenerator(CodeGenerator):
 
         return ""
 
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -130,8 +131,22 @@ class PythonCodeGenerator(CodeGenerator):
 
             properties_string += "\n\tdef __init__(self, *args, **kwargs):\n"
             if self.baseclass_name:
-                properties_string += f"\t\t{self.baseclass_name}.__init__(self, *args, **kwargs)\n\n"
-            properties_string += "\t\targc = len(args)\n"
+                properties_string += f"\t\t{self.baseclass_name}.__init__(self, args, kwargs)\n"
+
+            for reference in references:
+                field_name = f"_{reference[1][0].lower()}{reference[1][1:]}"
+
+                match reference[0]:
+                    case "to":
+                        properties_string += f"\t\tself.{field_name} = None\n"
+                    case "from":
+                        properties_string += f"\t\tself.{field_name}s = []\n"
+                    case _:
+                        continue
+
+                counter += 1
+
+            properties_string += "\n\t\targc = len(args)\n"
 
             if self.options['encapsulate_all_props']:
                 property_prefix = "_"
@@ -166,13 +181,14 @@ class PythonCodeGenerator(CodeGenerator):
 
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
@@ -198,6 +214,23 @@ class PythonCodeGenerator(CodeGenerator):
                 accessors_string += (f"\t@{accessor_name}.setter\n"
                                      f"\tdef {accessor_name}(self, {parameter_name}):\n"
                                      f"\t\tself.{property_name} = {parameter_name}\n\n")
+
+        for reference in references:
+            field_name = f"_{reference[1][0].lower()}{reference[1][1:]}"
+            if reference[0] == "from": field_name += 's'
+            accessor_name = self.accessor_name(field_name)
+            parameter_name = self.parameter_name(field_name)
+
+            match reference[0]:
+                case "to" | "from":
+                    accessors_string += (f"\t@property\n\tdef {accessor_name}(self):\n"
+                                         f"\t\treturn self.{field_name}\n\n")
+
+                    accessors_string += (f"\t@{accessor_name}.setter\n"
+                                         f"\tdef {accessor_name}(self, {parameter_name}):\n"
+                                         f"\t\tself.{field_name} = {parameter_name}\n\n")
+                case _:
+                    continue
 
         return accessors_string
 
@@ -295,7 +328,14 @@ class PythonCodeGenerator(CodeGenerator):
         return method_string
 
     def default_value(self, typename):
-        return super().default_value(typename) or "None"
+        defval = super().default_value(typename)
+        match defval:
+            case None:
+                return "None"
+            case "true" | "false":
+                return defval.capitalize()
+            case _:
+                return defval
 
     def get_parameter_list(self, parameters):
         return f"(self{''.join(f', {p['name']}' for p in parameters)})"

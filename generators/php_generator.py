@@ -73,13 +73,14 @@ class PhpCodeGenerator(CodeGenerator):
 
         return "}\n"
 
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -112,15 +113,26 @@ class PhpCodeGenerator(CodeGenerator):
             p += ";\n"
             properties_string += p
 
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+            if reference[0] == "from": field_name += 's'
+
+            match reference[0]:
+                case "to" | "from":
+                    properties_string += f"\tprivate ${field_name};\n"
+                case _:
+                    continue
+
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
@@ -148,6 +160,20 @@ class PhpCodeGenerator(CodeGenerator):
                     setter = (f"\tpublic{modifier}function set_{property_def['name']}(${property_def['name']}) {{\n"
                               f"\t\t{target}{property_def['name']} = ${property_def['name']};\n\t}}\n\n")
                     accessors_string += setter
+
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+            if reference[0] == "from": field_name += 's'
+
+            match reference[0]:
+                case "to" | "from":
+                    accessors_string += (f"\tpublic function get_{field_name}() {{\n"
+                                         f"\t\treturn $this->{field_name};\n\t}}\n\n")
+
+                    accessors_string += (f"\tpublic function set_{field_name}(${field_name}) {{\n"
+                                         f"\t\t$this->{field_name} = ${field_name};\n\t}}\n\n")
+                case _:
+                    continue
 
         return accessors_string
 

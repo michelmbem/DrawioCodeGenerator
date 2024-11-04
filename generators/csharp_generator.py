@@ -51,6 +51,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.current_class_name = None
 
     @staticmethod
     def accessor_name(property_name, avoid_conflict):
@@ -79,6 +80,7 @@ class CSharpCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
+        self.current_class_name = class_name
         class_header = ""
 
         if class_type != "enum":
@@ -123,15 +125,18 @@ class CSharpCodeGenerator(CodeGenerator):
             properties_string: the closing brace of a class definition
         """
 
+        self.current_class_name = None
+
         return "}\n"
  
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -171,22 +176,40 @@ class CSharpCodeGenerator(CodeGenerator):
                     p = ""
 
             properties_string += p
+
+        if not (self.options['add_efcore'] or self.options['encapsulate_all_props']):
+            for reference in references:
+                field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+                p = "\t"
+
+                match reference[0]:
+                    case "to":
+                        p += f"private {reference[1]} {field_name};\n"
+                    case "from":
+                        p += f"private ICollection<{reference[1]}> {field_name}s = new HashSet<{reference[1]}>();\n"
+                    case _:
+                        continue
+
+                properties_string += p
  
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
         """
 
         accessors_string = ""
+        encapsulate_all = self.options['encapsulate_all_props']
+        add_jpa = self.options['add_efcore']
 
         for property_def in properties.values():
             constraints = property_def['constraints']
@@ -196,10 +219,10 @@ class CSharpCodeGenerator(CodeGenerator):
                 if constraints.get('final', False):
                     continue    # No encapsulation for constants
                 modifier = " static "
-            elif self.options['add_efcore']:
+            elif add_jpa:
                 accessors_string += self.get_data_annotations(property_def['type'], constraints)
 
-            if self.options['encapsulate_all_props']:
+            if encapsulate_all:
                 accessor_name = self.accessor_name(property_def['name'], False)
                 accessors_string += f"\tpublic{modifier}{self.map_type(property_def['type'])} {accessor_name} {{ get;"
                 if not constraints.get('final', False):
@@ -212,6 +235,45 @@ class CSharpCodeGenerator(CodeGenerator):
                 if not constraints.get('final', False):
                     accessors_string += f"\n\t\tset => {property_def['name']} = value;"
                 accessors_string += "\n\t}\n\n"
+
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+
+            match reference[0]:
+                case "to":
+                    if encapsulate_all or add_jpa:
+                        if add_jpa:
+                            pk = self.get_primary_key(reference[1])
+
+                            if len(pk) > 0:
+                                pk_name = pk[0]['type']
+                                fk_field_name = f"{reference[1]}{self.accessor_name(pk[0]['name'], False)}"
+                            else:
+                                pk_name = "object /* No primary key found! */"
+                                fk_field_name = f"{reference[1]}Id /* No primary key found! */"
+
+                            accessors_string += f"\tpublic {pk_name} {fk_field_name} {{ get; set; }}\n\n"
+                            accessors_string += f"\t[ForeignKey(nameof({fk_field_name}))]\n"
+
+                        accessors_string += f"\tpublic virtual {reference[1]} {reference[1]} {{ get; set; }}\n\n"
+                    else:
+                        accessors_string += f"\tpublic virtual {reference[1]} {reference[1]}\n\t{{"
+                        accessors_string += f"\n\t\tget => {field_name};"
+                        accessors_string += f"\n\t\tset => {field_name} = value;"
+                        accessors_string += "\n\t}\n\n"
+                case "from":
+                    if encapsulate_all or add_jpa:
+                        if add_jpa:
+                            accessors_string += f"\t[InverseProperty(nameof({reference[1]}.{self.current_class_name}))]\n"
+                        accessors_string += f"\tpublic virtual ICollection<{reference[1]}> {reference[1]}s"
+                        accessors_string += f" {{ get; set; }} = new HashSet<{reference[1]}>()\n\n"
+                    else:
+                        accessors_string += f"\tpublic virtual ICollection<{reference[1]}> {reference[1]}s\n\t{{"
+                        accessors_string += f"\n\t\tget => {field_name}s;"
+                        accessors_string += f"\n\t\tset => {field_name}s = value;"
+                        accessors_string += "\n\t}\n\n"
+                case _:
+                    continue
 
         return accessors_string
 

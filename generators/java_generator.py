@@ -70,6 +70,7 @@ class JavaCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
+        self.current_class_name = None
 
     @staticmethod
     def accessor_name(property_name):
@@ -92,6 +93,7 @@ class JavaCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
+        self.current_class_name = class_name
         class_header = ""
         handle_jpa_inheritance = False
 
@@ -166,15 +168,18 @@ class JavaCodeGenerator(CodeGenerator):
             properties_string: the closing brace of a class definition
         """
 
+        self.current_class_name = None
+
         return "}\n"
  
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class 
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -214,10 +219,31 @@ class JavaCodeGenerator(CodeGenerator):
                 p += ";\n"
 
             properties_string += p
+
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+            inverse_field_name = f"{self.current_class_name[0].lower()}{self.current_class_name[1:]}"
+            p = "\t"
+
+            match reference[0]:
+                case "to":
+                    if self.options['add_jpa']:
+                        p += "@ManyToOne\n\t"
+                    p += f"private {reference[1]} {field_name};\n"
+                case "from":
+                    if self.options['add_jpa']:
+                        p += f"@OneToMany(mappedBy=\"{inverse_field_name}\")\n\t"
+                    if self.options['add_builder']:
+                        p += "@Builder.Default\n\t"
+                    p += f"private Set<{reference[1]}> {field_name}s = new HashSet<>();\n"
+                case _:
+                    continue
+
+            properties_string += p
  
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
@@ -253,6 +279,29 @@ class JavaCodeGenerator(CodeGenerator):
                     setter = (f"\tpublic{modifier}void set{accessor_name}({accessor_type} {property_def['name']}) {{\n"
                               f"\t\t{target}.{property_def['name']} = {property_def['name']};\n\t}}\n\n")
                     accessors_string += setter
+
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+
+            match reference[0]:
+                case "to":
+                    getter = (f"\tpublic {reference[1]} get{reference[1]}() {{\n"
+                              f"\t\treturn {field_name};\n\t}}\n\n")
+                    accessors_string += getter
+
+                    setter = (f"\tpublic void set{reference[1]}({reference[1]} {field_name}) {{\n"
+                              f"\t\tthis.{field_name} = {field_name};\n\t}}\n\n")
+                    accessors_string += setter
+                case "from":
+                    getter = (f"\tpublic Set<{reference[1]}> get{reference[1]}s() {{\n"
+                              f"\t\treturn {field_name}s;\n\t}}\n\n")
+                    accessors_string += getter
+
+                    setter = (f"\tpublic void set{reference[1]}s(Set<{reference[1]}> {field_name}s) {{\n"
+                              f"\t\tthis.{field_name}s = {field_name}s;\n\t}}\n\n")
+                    accessors_string += setter
+                case _:
+                    continue
 
         return accessors_string
 
@@ -433,7 +482,7 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['add_jpa']:
             jpa_imports.append({
                 "package": f"{jee_root_package}.persistence",
-                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne", "Temporal", "Lob"]
+                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne", "OneToMany", "Lob"]
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
@@ -481,7 +530,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         constraint = constraints.get('format')
         if constraint == "phone":
-            jpa_annotations += r'@Pattern("^\\+?\\d([ -]?\\d)+$")' + "\n\t"
+            jpa_annotations += r'@Pattern(regexp="^\\+?\\d([ -]?\\d)+$")' + "\n\t"
         elif constraint == "email":
             jpa_annotations += "@Email\n\t"
         elif constraint == "url":

@@ -118,13 +118,14 @@ class TsCodeGenerator(CodeGenerator):
 
         return "}\n"
  
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -165,16 +166,28 @@ class TsCodeGenerator(CodeGenerator):
                 p += ";\n"
 
             properties_string += p
+
+        for reference in references:
+            field_name = f"_{reference[1][0].lower()}{reference[1][1:]}"
+
+            match reference[0]:
+                case "to":
+                    properties_string += f"\tprivate {field_name}: {reference[1]};\n"
+                case "from":
+                    properties_string += f"\tprivate {field_name}s: {reference[1]}[] = [];\n"
+                case _:
+                    continue
  
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
@@ -209,6 +222,22 @@ class TsCodeGenerator(CodeGenerator):
                 if not constraints.get('final', False):
                     accessors_string += (f"\tpublic{modifier}set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
                                          f"\t\t{target}.{property_name} = {parameter_name};\n\t}}\n\n")
+
+        for reference in references:
+            field_name = f"_{reference[1][0].lower()}{reference[1][1:]}"
+            if reference[0] == "from": field_name += 's'
+            accessor_name = self.accessor_name(field_name)
+            parameter_name = self.parameter_name(field_name)
+
+            match reference[0]:
+                case "to" | "from":
+                    accessors_string += (f"\tpublic get {accessor_name}(): {reference[1]} {{\n"
+                                         f"\t\treturn this.{field_name};\n\t}}\n\n")
+
+                    accessors_string += (f"\tpublic set {accessor_name}({parameter_name}: {reference[1]}) {{\n"
+                                         f"\t\tthis.{field_name} = {parameter_name};\n\t}}\n\n")
+                case _:
+                    continue
 
         return accessors_string
 

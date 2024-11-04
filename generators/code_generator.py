@@ -45,7 +45,7 @@ class CodeGenerator(ABC):
                 baseclasses, interfaces, references = self.get_class_dependencies(class_def)
 
                 file_contents = self.generate_class_header(class_type, class_name, baseclasses, interfaces, references)
-                file_contents += self.generate_properties(properties, class_type == "enum")
+                file_contents += self.generate_properties(properties, class_type == "enum", references)
                 file_contents += "\n"
 
                 if class_type in ("class", "abstract class"):
@@ -62,7 +62,7 @@ class CodeGenerator(ABC):
                     if has_instance_props and should_generate['full_arg_ctor']:
                         file_contents += self.generate_full_arg_ctor(class_name, declared_props, has_parent, inherited_props)
 
-                    file_contents += self.generate_property_accessors(class_name, properties)
+                    file_contents += self.generate_property_accessors(class_name, properties, references)
 
                     if has_instance_props and should_generate['equal_hashcode']:
                         file_contents += self.generate_equal_hashcode(class_name, declared_props, has_parent)
@@ -194,7 +194,7 @@ class CodeGenerator(ABC):
     def get_property_access(self, property_def):
         return "private" if self.options['encapsulate_all_props'] else property_def['access']
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         return ""
 
     def generate_methods(self, methods, class_type, interface_methods):
@@ -242,7 +242,7 @@ class CodeGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         pass
 
     @abstractmethod

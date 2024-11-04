@@ -72,13 +72,14 @@ class MainFrame (MainFrameBase):
                     'temporal_types': "java8_local",
                     'imports': {
                         'java.math': ["BigInteger", "BigDecimal"],
-                        'java.util': ["Objects"],
+                        'java.util': ["Objects", "Set", "HashSet", "UUID"],
                     }
                 },
                 'cs': {
                     'add_efcore': False,
                     'imports': {
                         'System': None,
+                        'System.Collections.Generic': None,
                         'System.Numerics': None,
                     }
                 },
@@ -89,13 +90,20 @@ class MainFrame (MainFrameBase):
                     'imports': {
                         '<ctime>': None,
                         '<string>': None,
+                        '<array>': None,
+                        '<vector>': None,
                     },
                 },
-                'python': {},
+                'python': {
+                    'imports': {},
+                },
                 'ts': {
                     'optional_props': True,
+                    'imports': {},
                 },
-                'php': {},
+                'php': {
+                    'imports': {},
+                },
                 'sql': {
                     'dialect': "ansi",
                     'single_script': True,

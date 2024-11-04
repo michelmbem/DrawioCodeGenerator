@@ -34,7 +34,7 @@ class SqlCodeGenerator(CodeGenerator):
             self.ensure_dir_exists(self.file_path)
 
             for class_def in self.syntax_tree.values():
-                baseclasses, _, __ = self.get_class_dependencies(class_def)
+                baseclasses, _, references = self.get_class_dependencies(class_def)
                 instance_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
 
                 if not (class_def['type'] in ("class", "abstract class") and len(instance_props) > 0):
@@ -42,7 +42,7 @@ class SqlCodeGenerator(CodeGenerator):
 
                 class_name = class_def['name']
                 file_contents = self.generate_class_header(None, class_name, baseclasses)
-                file_contents += self.generate_properties(instance_props)
+                file_contents += self.generate_properties(instance_props, False, references)
                 if len(self.tmp_primary_key) > 0:
                     file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
                 file_contents += self.generate_class_footer(None, class_name)
@@ -139,13 +139,14 @@ class SqlCodeGenerator(CodeGenerator):
 
         return "\n);\n"
 
-    def generate_properties(self, properties, is_enum = False):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
-            is_enum: ignored! should tell if we are generating enum members
+            is_enum: tells if we are generating enum members or not; always false
+            references: classes referenced by or referencing this one
 
         Returns:
             properties_string: string of the properties

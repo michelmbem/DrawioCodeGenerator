@@ -44,8 +44,8 @@ class CppCodeGenerator(CodeGenerator):
         "time": {'std': "time_t", 'boost': "time_duration"},
         "datetime": {'std': "time_t", 'boost': "ptime"},
         "timestamp": {'std': "time_t", 'boost': "ptime"},
-        "uuid": {'std': "char[16]", 'boost': "uuid"},
-        "guid": {'std': "char[16]", 'boost': "uuid"},
+        "uuid": {'std': "array<char, 16>", 'boost': "uuid"},
+        "guid": {'std': "array<char, 16>", 'boost': "uuid"},
         "unspecified": "int",
     }
 
@@ -55,7 +55,7 @@ class CppCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
-        self.class_name = None
+        self.current_class_name = None
         self.baseclass_name = None
         self.initializer_string = ""
 
@@ -80,12 +80,12 @@ class CppCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        self.class_name = class_name
+        self.current_class_name = class_name
         class_header = "#pragma once\n\n"
 
         if class_type != "enum":
             header_files = set(self.options['imports'].keys())
-            usings = {"std::string", "std::wstring"}
+            usings = {"std::string", "std::wstring", "std::array", "std::vector"}
 
             header_files |= set(f"\"{baseclass}.hpp\"" for baseclass in baseclasses)
             header_files |= set(f"\"{interface}.hpp\"" for interface in interfaces)
@@ -165,7 +165,7 @@ class CppCodeGenerator(CodeGenerator):
             properties_string: the closing brace of a class definition
         """
 
-        self.baseclass_name = self.class_name = None
+        self.baseclass_name = self.current_class_name = None
 
         if self.options['package']:
             braces = '}' * len(self.split_package_name(self.options['package']))
@@ -180,13 +180,14 @@ class CppCodeGenerator(CodeGenerator):
 
         return footer_string
 
-    def generate_properties(self, properties, is_enum):
+    def generate_properties(self, properties, is_enum, references):
         """
         Generate properties for the class
 
         Parameters:
             properties: dictionary of properties
             is_enum: tells if we are generating enum members
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties
@@ -220,7 +221,7 @@ class CppCodeGenerator(CodeGenerator):
                         self.initializer_string += "\t"
                         if constraints.get('final', False):
                             self.initializer_string += "const "
-                        self.initializer_string += f"{self.map_type(property_def['type'])} {self.class_name}::"
+                        self.initializer_string += f"{self.map_type(property_def['type'])} {self.current_class_name}::"
                         self.initializer_string += f"{property_def['name']}{{{property_def['default_value']}}};\n"
                     else:
                         p += f"{{{property_def['default_value']}}}"
@@ -228,15 +229,30 @@ class CppCodeGenerator(CodeGenerator):
 
             properties_string += p
 
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+            p = "\t\t"
+
+            match reference[0]:
+                case "to":
+                    p += f"private: {reference[1]} {field_name};\n"
+                case "from":
+                    p += f"private: vector<{reference[1]}> {field_name}s;\n"
+                case _:
+                    continue
+
+            properties_string += p
+
         return properties_string
 
-    def generate_property_accessors(self, class_name, properties):
+    def generate_property_accessors(self, class_name, properties, references):
         """
         Generate property accessors for the class
 
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
@@ -271,6 +287,29 @@ class CppCodeGenerator(CodeGenerator):
                     setter = (f"\t\tpublic:{modifier}void {prefix[1]}{accessor_name}({accessor_type} {property_def['name']})"
                               f"{lbrace}\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
                     accessors_string += setter
+
+        for reference in references:
+            field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
+
+            match reference[0]:
+                case "to":
+                    getter = (f"\t\tpublic: {reference[1]} {prefix[0]}{reference[1]}()"
+                              f"{lbrace}\n\t\t\treturn {field_name};\n\t\t}}\n\n")
+                    accessors_string += getter
+
+                    setter = (f"\t\tpublic: void {prefix[1]}{reference[1]}({reference[1]} {field_name})"
+                              f"{lbrace}\n\t\t\tthis->{field_name} = {field_name};\n\t\t}}\n\n")
+                    accessors_string += setter
+                case "from":
+                    getter = (f"\t\tpublic: vector<{reference[1]}> {prefix[0]}{reference[1]}s()"
+                              f"{lbrace}\n\t\t\treturn {field_name}s;\n\t\t}}\n\n")
+                    accessors_string += getter
+
+                    setter = (f"\t\tpublic: void {prefix[1]}{reference[1]}s(const vector<{reference[1]}>& {field_name}s)"
+                              f"{lbrace}\n\t\t\tthis->{field_name}s = {field_name}s;\n\t\t}}\n\n")
+                    accessors_string += setter
+                case _:
+                    continue
 
         return accessors_string
 
