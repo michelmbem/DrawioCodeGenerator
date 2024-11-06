@@ -2,8 +2,12 @@ import re
 import traceback
 
 from operator import itemgetter
+from copy import deepcopy
 from os import makedirs, path
 from abc import ABC, abstractmethod
+
+
+INTEGRAL_TYPE = re.compile(r"^(?:u(?:nsigned\s+)?)?(?:short|int(?:16|32|64|eger)?|long)$", re.IGNORECASE)
 
 
 class CodeGenerator(ABC):
@@ -22,6 +26,9 @@ class CodeGenerator(ABC):
         self.options = options
         self.files = []
 
+        if options['infer_keys']:
+            self.infer_keys_from_names(options['pk_pattern'])
+
     @staticmethod
     def ensure_dir_exists(dir_path):
         makedirs(dir_path, exist_ok=True)
@@ -29,6 +36,29 @@ class CodeGenerator(ABC):
     @staticmethod
     def split_package_name(package_name):
         return re.split(r"[./\\:]+", package_name)
+
+    def infer_keys_from_names(self, pk_pattern):
+        syntax_tree = deepcopy(self.syntax_tree)
+
+        for class_def in syntax_tree.values():
+            pk_found = False
+            pk_candidate = None
+
+            for property_def in class_def['properties'].values():
+                if property_def['constraints'].get("pk"):
+                    pk_found = True
+                    break
+
+                new_pattern = pk_pattern.replace("@class", class_def['name'])
+                if re.match(new_pattern, property_def['name'], re.IGNORECASE):
+                    pk_candidate = property_def
+
+            if pk_candidate and not pk_found:
+                pk_candidate['constraints']['pk'] = True
+                is_integer = INTEGRAL_TYPE.match(pk_candidate['type'])
+                pk_candidate['constraints']['identity'] = is_integer
+
+        self.syntax_tree = syntax_tree
 
     def generate_code(self):
         """
@@ -113,9 +143,9 @@ class CodeGenerator(ABC):
 
         baseclasses = [self.syntax_tree[r]['name'] for r in extends]
         interfaces = [self.syntax_tree[r]['name'] for r in implements]
-        references = [(r[0], self.syntax_tree[r[1]]['name']) for r in association]
-        references += [(r[0], self.syntax_tree[r[1]]['name']) for r in aggregation]
-        references += [(r[0], self.syntax_tree[r[1]]['name']) for r in composition]
+        references = [(r[0], self.syntax_tree[r[1]]['name'], False) for r in association]
+        references += [(r[0], self.syntax_tree[r[1]]['name'], False) for r in aggregation]
+        references += [(r[0], self.syntax_tree[r[1]]['name'], True) for r in composition]
 
         class_methods = [*class_def['methods'].values()]
         if class_def['type'] in ("class", "abstract class"):
@@ -126,15 +156,15 @@ class CodeGenerator(ABC):
 
             for property_def in class_def['properties'].values():
                 if property_def['type'] == other_class_name:
-                    references.append(('uses', other_class_name))
+                    references.append(('uses', other_class_name, False))
 
             for method_def in class_methods:
                 if method_def['return_type'] == other_class_name:
-                    references.append(('uses', other_class_name))
+                    references.append(('uses', other_class_name, False))
 
                 for parameter in method_def['parameters']:
                     if parameter['type'] == other_class_name:
-                        references.append(('uses', other_class_name))
+                        references.append(('uses', other_class_name, False))
 
         return baseclasses, interfaces, references
 
@@ -178,14 +208,12 @@ class CodeGenerator(ABC):
         for class_def in self.syntax_tree.values():
             if class_def['name'] == class_name:
                 pk = [p for p in class_def['properties'].values() if p['constraints'].get("pk", False)]
-                if len(pk) > 0:
-                    return pk
+                if len(pk) > 0: return pk
 
                 baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
                 for baseclass in baseclasses:
                     pk = self.get_primary_key(baseclass)
-                    if len(pk) > 0:
-                        return pk
+                    if len(pk) > 0: return pk
 
                 break
 

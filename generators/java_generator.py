@@ -202,16 +202,16 @@ class JavaCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
                 p = "\t"
 
-                if not (constraints.get('static', False) or constraints.get('final', False)):
+                if not (constraints.get('static') or constraints.get('final')):
                     if self.options['add_jpa']:
-                        p += self.get_jpa_annotations(constraints)
+                        p += self.get_data_annotations(constraints)
                     if self.options['add_builder'] and property_def['default_value']:
                         p += "@Builder.Default\n\t"
 
                 p += self.get_property_access(property_def)
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     p += " static"
-                if constraints.get('final', False):
+                if constraints.get('final'):
                     p += " final"
                 p += f" {self.map_type(property_def['type'], constraints)} {property_def['name']}"
                 if property_def['default_value']:
@@ -267,7 +267,7 @@ class JavaCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
 
                 target, modifier = "this",  " "
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     target, modifier = class_name, " static "
 
                 getter_prefix = "is" if accessor_type == "boolean" else "get"
@@ -275,7 +275,7 @@ class JavaCodeGenerator(CodeGenerator):
                           f"\t\treturn {property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     setter = (f"\tpublic{modifier}void set{accessor_name}({accessor_type} {property_def['name']}) {{\n"
                               f"\t\t{target}.{property_def['name']} = {property_def['name']};\n\t}}\n\n")
                     accessors_string += setter
@@ -329,11 +329,11 @@ class JavaCodeGenerator(CodeGenerator):
                 constraints = method_def['constraints']
 
                 modifier = ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
                 elif constraints.get('abstract', False):
                     modifier += " abstract"
-                elif constraints.get('final', False):
+                elif constraints.get('final'):
                     modifier += " final"
                 modifier += " "
 
@@ -509,19 +509,19 @@ class JavaCodeGenerator(CodeGenerator):
 
         return lombok_imported_classes
 
-    def get_jpa_annotations(self, constraints):
+    def get_data_annotations(self, constraints):
         jpa_annotations = ""
 
-        if constraints.get('required', False):
+        if constraints.get('required'):
             jpa_annotations += "@NotNull\n\t"
 
-        if constraints.get('pk', False):
+        if constraints.get('pk'):
             jpa_annotations += "@Id\n\t"
 
-        if constraints.get('identity', False):
+        if constraints.get('identity'):
             jpa_annotations += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
 
-        if constraints.get('lob', False):
+        if constraints.get('lob'):
             jpa_annotations += "@Lob\n\t"
 
         constraint = constraints.get('size')
@@ -530,7 +530,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         constraint = constraints.get('format')
         if constraint == "phone":
-            jpa_annotations += r'@Pattern(regexp="^\\+?\\d([ -]?\\d)+$")' + "\n\t"
+            jpa_annotations += r'@Pattern(regexp="^(((\\+|00)[1-9]+)[ -]?)?((\\(\d+\\))|\\d)([ -]?\\d)+$")' + "\n\t"
         elif constraint == "email":
             jpa_annotations += "@Email\n\t"
         elif constraint == "url":

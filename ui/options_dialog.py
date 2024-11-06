@@ -25,6 +25,10 @@ class OptionDialog(OptionDialogBase):
         self.chkGenerateEqHc.SetValue(options['generate']['equal_hashcode'])
         self.chkGenerateToString.SetValue(options['generate']['to_string'])
         self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
+        self.chkEncapsulateAllProps.SetValue(options['encapsulate_all_props'])
+        self.chkInferKeys.SetValue(options['infer_keys'])
+        self.txtPKPattern.SetValue(options['pk_pattern'])
+        self.chkInferKeysOnCheckBox(None)
 
         language_specific = options['language_specific']
         languages = ["java", "cs", "cpp", "python", "ts", "php", "sql"]
@@ -48,6 +52,9 @@ class OptionDialog(OptionDialogBase):
 
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 
+    def chkInferKeysOnCheckBox(self, event):
+        self.txtPKPattern.Enable(self.chkInferKeys.IsChecked())
+
     def dialogButtonSizerOnApplyButtonClick(self, event):
         language_specific = {}
 
@@ -64,6 +71,8 @@ class OptionDialog(OptionDialogBase):
                 'to_string': self.chkGenerateToString.IsChecked(),
             },
             'encapsulate_all_props': self.chkEncapsulateAllProps.IsChecked(),
+            'infer_keys': self.chkInferKeys.IsChecked(),
+            'pk_pattern': self.txtPKPattern.GetValue(),
             'language_specific': language_specific,
         }
 

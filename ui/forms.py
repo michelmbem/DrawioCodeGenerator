@@ -208,7 +208,7 @@ class MainFrameBase ( wx.Frame ):
 class OptionDialogBase ( wx.Dialog ):
 
     def __init__( self, parent ):
-        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,650 ), style = wx.DEFAULT_DIALOG_STYLE )
+        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,700 ), style = wx.DEFAULT_DIALOG_STYLE )
 
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
@@ -237,22 +237,57 @@ class OptionDialogBase ( wx.Dialog ):
         genMemberSizer = wx.WrapSizer( wx.HORIZONTAL, wx.WRAPSIZER_DEFAULT_FLAGS )
 
         self.chkGenerateDefaultCtor = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Default constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateDefaultCtor.SetToolTip( u"Check if you want to generate a parameterless constructor in each class" )
+
         genMemberSizer.Add( self.chkGenerateDefaultCtor, 0, wx.ALL, 5 )
 
         self.chkGenerateFullArgCtor = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Full args constructor", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateFullArgCtor.SetToolTip( u"Check if you want to generate a constructor that initializes every instance property in each class" )
+
         genMemberSizer.Add( self.chkGenerateFullArgCtor, 0, wx.ALL, 5 )
 
         self.chkGenerateEqHc = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Equals and HashCode", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateEqHc.SetToolTip( u"Check if you want to generate an ovveride of the \"equals\" and \"hashCode\" methods in each class (doesn't apply to all languages)" )
+
         genMemberSizer.Add( self.chkGenerateEqHc, 0, wx.ALL, 5 )
 
         self.chkGenerateToString = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"ToString", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkGenerateToString.SetToolTip( u"Check if you want to generate an ovveride of the \"toString\" method in each class (doesn't apply to all languages)" )
+
         genMemberSizer.Add( self.chkGenerateToString, 0, wx.ALL, 5 )
 
-        self.chkEncapsulateAllProps = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Make all properties private and generate public accessors", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkEncapsulateAllProps = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Encapsulate all properties", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkEncapsulateAllProps.SetToolTip( u"Check if you want to make all properties private and generate public accessors for them" )
+
         genMemberSizer.Add( self.chkEncapsulateAllProps, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.chkInferKeys = wx.CheckBox( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Infer keys from property names", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkInferKeys.SetToolTip( u"Check if you want the generators to guess that a property represents a primary key based on its name" )
+
+        genMemberSizer.Add( self.chkInferKeys, 0, wx.ALL, 5 )
 
 
         formSizer.Add( genMemberSizer, 1, wx.EXPAND, 5 )
+
+        self.m_staticText24 = wx.StaticText( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"Primary key pattern:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText24.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText24, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtPKPattern = wx.TextCtrl( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtPKPattern.SetToolTip( u"Type in the regular expression that will be used to identify primary key attributes" )
+
+        formSizer.Add( self.txtPKPattern, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.m_staticText27 = wx.StaticText( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText27.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText27, 0, 0, 5 )
+
+        self.m_staticText26 = wx.StaticText( commonOptionsSizer.GetStaticBox(), wx.ID_ANY, u"(The regular expression is case insensitive. Use the \"@class\" macro to insert the current class name)", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText26.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText26, 0, wx.BOTTOM|wx.LEFT|wx.RIGHT, 5 )
 
 
         commonOptionsSizer.Add( formSizer, 0, wx.EXPAND, 5 )
@@ -287,6 +322,7 @@ class OptionDialogBase ( wx.Dialog ):
         self.Centre( wx.BOTH )
 
         # Connect Events
+        self.chkInferKeys.Bind( wx.EVT_CHECKBOX, self.chkInferKeysOnCheckBox )
         self.dialogButtonSizerApply.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnApplyButtonClick )
         self.dialogButtonSizerCancel.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnCancelButtonClick )
         self.dialogButtonSizerOK.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnOKButtonClick )
@@ -296,6 +332,9 @@ class OptionDialogBase ( wx.Dialog ):
 
 
     # Virtual event handlers, override them in your derived class
+    def chkInferKeysOnCheckBox( self, event ):
+        event.Skip()
+
     def dialogButtonSizerOnApplyButtonClick( self, event ):
         event.Skip()
 
@@ -511,7 +550,7 @@ class JavaOptionPageBase ( wx.Panel ):
         importFormSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
         self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
-        self.txtSymbolNames.SetToolTip( u"Type in the names of tclasses that should be imported from the above package in each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetToolTip( u"Type in the names of classes that should be imported from the above package in each generated code file.\nSeparate the names with spaces or commas" )
         self.txtSymbolNames.SetMinSize( wx.Size( -1,50 ) )
 
         importFormSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
@@ -704,88 +743,151 @@ class CSharpOptionPageBase ( wx.Panel ):
 
 
 ###########################################################################
-## Class SqlOptionPageBase
+## Class CppOptionPageBase
 ###########################################################################
 
-class SqlOptionPageBase ( wx.Panel ):
+class CppOptionPageBase ( wx.Panel ):
 
     def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
 
-        rbxDialectChoices = [ u"Generic", u"MySQL", u"PostgreSQL", u"Firebird", u"Oracle", u"DB2", u"SQL Server", u"Sybase", u"Access", u"SQLite", u"Derby", u"HSQLDB", u"H2" ]
-        self.rbxDialect = wx.RadioBox( self, wx.ID_ANY, u"SQL Dialect", wx.DefaultPosition, wx.DefaultSize, rbxDialectChoices, 7, wx.RA_SPECIFY_COLS )
-        self.rbxDialect.SetSelection( 0 )
-        self.rbxDialect.SetToolTip( u"Select the SQL dialect that should be used in generated scripts" )
+        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
 
-        mainSizer.Add( self.rbxDialect, 0, wx.ALL|wx.EXPAND, 5 )
+        self.chkUseBoost = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Use the boost libraries", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkUseBoost.SetToolTip( u"Tells whether to use the boost libraries to represent large numbers,  dates and uuids or not" )
 
-        scriptSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Script generation" ), wx.VERTICAL )
-
-        numScriptSizer = wx.BoxSizer( wx.HORIZONTAL )
-
-        self.rbnSingleScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a single database script", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.rbnSingleScript.SetToolTip( u"Select to generate a single file with all the table and foreign keys definitions" )
-
-        numScriptSizer.Add( self.rbnSingleScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-
-        self.rbnMultiScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a script per table", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.rbnMultiScript.SetToolTip( u"Select to generate a specific script for each table and a separate foreign keys script" )
-
-        numScriptSizer.Add( self.rbnMultiScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        featuresSizer.Add( self.chkUseBoost, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
-        scriptSizer.Add( numScriptSizer, 1, wx.EXPAND, 5 )
+        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
-        scriptFormSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
-        scriptFormSizer.AddGrowableCol( 1 )
-        scriptFormSizer.SetFlexibleDirection( wx.BOTH )
-        scriptFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+        self.m_staticText22 = wx.StaticText( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Naming convention:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText22.Wrap( -1 )
 
-        labelSizer = wx.BoxSizer( wx.VERTICAL )
+        featuresSizer.Add( self.m_staticText22, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.m_staticText14 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Script filename", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText14.SetLabelMarkup( u"Script filename" )
-        self.m_staticText14.Wrap( -1 )
+        chcNamingConventionChoices = [ u"Pascal case (Get/Set)", u"Camel case (get/set)", u"Snake case (get_/set_)" ]
+        self.chcNamingConvention = wx.Choice( featuresSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, chcNamingConventionChoices, 0 )
+        self.chcNamingConvention.SetSelection( 0 )
+        self.chcNamingConvention.SetToolTip( u"Defines accessors and generated methods are named" )
 
-        labelSizer.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_HORIZONTAL, 5 )
-
-        self.m_staticText15 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"(without extension):", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText15.Wrap( -1 )
-
-        labelSizer.Add( self.m_staticText15, 0, wx.ALIGN_CENTER_HORIZONTAL, 5 )
+        featuresSizer.Add( self.chcNamingConvention, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
-        scriptFormSizer.Add( labelSizer, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
-        self.txtScriptFilename = wx.TextCtrl( scriptSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtScriptFilename.SetToolTip( u"Enter the name of the unique script file without the \".sql\" extension" )
+        self.chkLBraceOnSameLine = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Opening brace on same line", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.chkLBraceOnSameLine.SetToolTip( u"Tells if the opening curved brace of a block should be on the same line or not" )
 
-        scriptFormSizer.Add( self.txtScriptFilename, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
-
-
-        scriptSizer.Add( scriptFormSizer, 1, wx.EXPAND, 5 )
+        featuresSizer.Add( self.chkLBraceOnSameLine, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
-        mainSizer.Add( scriptSizer, 0, wx.ALL|wx.EXPAND, 5 )
+        mainSizer.Add( featuresSizer, 0, wx.ALL|wx.EXPAND, 5 )
+
+        importSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Imports" ), wx.VERTICAL )
+
+        self.lscImport = wx.ListCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
+        importSizer.Add( self.lscImport, 1, wx.ALL|wx.EXPAND, 5 )
+
+        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        formSizer.AddGrowableCol( 1 )
+        formSizer.SetFlexibleDirection( wx.BOTH )
+        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+
+        self.lblModuleName = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"C++ header file:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblModuleName.Wrap( -1 )
+
+        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtModuleName.SetToolTip( u"Type in the name of a header file that should be automatically included in each generated code file" )
+
+        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.lblSymbolNames = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.lblSymbolNames.Wrap( -1 )
+
+        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+
+        self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
+        self.txtSymbolNames.SetToolTip( u"Type in the fully qualified name of each type, constant  and/or function for which a \"using\" directive should be added to each generated code file.\nSeparate the names with spaces or commas" )
+        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
+
+        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+
+        self.m_staticText221 = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText221.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText221, 0, wx.ALL, 5 )
+
+        self.m_staticText23 = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Use the \"ns:\" prefix to indicate that you want to import an entire namespace", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText23.Wrap( -1 )
+
+        formSizer.Add( self.m_staticText23, 0, wx.LEFT, 5 )
+
+
+        importSizer.Add( formSizer, 0, wx.EXPAND, 5 )
+
+        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+
+
+        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+
+        self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
+
+        buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
+
+        self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
+
+        buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
+
+        self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
+        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
+
+        buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
+
+
+        importSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
+
+
+        mainSizer.Add( importSizer, 1, wx.EXPAND, 5 )
 
 
         self.SetSizer( mainSizer )
         self.Layout()
 
         # Connect Events
-        self.rbnSingleScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
-        self.rbnMultiScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
+        self.lscImport.Bind( wx.EVT_LIST_ITEM_SELECTED, self.lscImportOnListItemSelected )
+        self.btnAddImport.Bind( wx.EVT_BUTTON, self.btnAddImportOnButtonClick )
+        self.btnUpdateImport.Bind( wx.EVT_BUTTON, self.btnUpdateImportOnButtonClick )
+        self.btnRemoveImport.Bind( wx.EVT_BUTTON, self.btnRemoveImportOnButtonClick )
 
     def __del__( self ):
         pass
 
 
     # Virtual event handlers, override them in your derived class
-    def onScriptRadioButtonClicked( self, event ):
+    def lscImportOnListItemSelected( self, event ):
         event.Skip()
 
+    def btnAddImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnUpdateImportOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnRemoveImportOnButtonClick( self, event ):
+        event.Skip()
 
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):
@@ -910,141 +1012,88 @@ class TypeScriptOptionPageBase ( wx.Panel ):
 
 
 ###########################################################################
-## Class CppOptionPageBase
+## Class SqlOptionPageBase
 ###########################################################################
 
-class CppOptionPageBase ( wx.Panel ):
+class SqlOptionPageBase ( wx.Panel ):
 
     def __init__( self, parent, id = wx.ID_ANY, pos = wx.DefaultPosition, size = wx.Size( 600,400 ), style = wx.TAB_TRAVERSAL, name = wx.EmptyString ):
         wx.Panel.__init__ ( self, parent, id = id, pos = pos, size = size, style = style, name = name )
 
         mainSizer = wx.BoxSizer( wx.VERTICAL )
 
-        featuresSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Additional features" ), wx.HORIZONTAL )
+        rbxDialectChoices = [ u"Generic", u"MySQL", u"PostgreSQL", u"Firebird", u"Oracle", u"DB2", u"SQL Server", u"Sybase", u"Access", u"SQLite", u"Derby", u"HSQLDB", u"H2" ]
+        self.rbxDialect = wx.RadioBox( self, wx.ID_ANY, u"SQL Dialect", wx.DefaultPosition, wx.DefaultSize, rbxDialectChoices, 7, wx.RA_SPECIFY_COLS )
+        self.rbxDialect.SetSelection( 0 )
+        self.rbxDialect.SetToolTip( u"Select the SQL dialect that should be used in generated scripts" )
 
-        self.chkUseBoost = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Use the boost libraries", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.chkUseBoost.SetToolTip( u"Tells whether to use the boost libraries to represent large numbers,  dates and uuids or not" )
+        mainSizer.Add( self.rbxDialect, 0, wx.ALL|wx.EXPAND, 5 )
 
-        featuresSizer.Add( self.chkUseBoost, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        scriptSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Script generation" ), wx.VERTICAL )
 
+        numScriptSizer = wx.BoxSizer( wx.HORIZONTAL )
 
-        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
+        self.rbnSingleScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a single database script", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.rbnSingleScript.SetToolTip( u"Select to generate a single file with all the table and foreign keys definitions" )
 
-        self.m_staticText22 = wx.StaticText( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Naming convention:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.m_staticText22.Wrap( -1 )
+        numScriptSizer.Add( self.rbnSingleScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        featuresSizer.Add( self.m_staticText22, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        self.rbnMultiScript = wx.RadioButton( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Generate a script per table", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.rbnMultiScript.SetToolTip( u"Select to generate a specific script for each table and a separate foreign keys script" )
 
-        chcNamingConventionChoices = [ u"Pascal case (Get/Set)", u"Camel case (get/set)", u"Snake case (get_/set_)" ]
-        self.chcNamingConvention = wx.Choice( featuresSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, chcNamingConventionChoices, 0 )
-        self.chcNamingConvention.SetSelection( 0 )
-        self.chcNamingConvention.SetToolTip( u"Defines accessors and generated methods are named" )
-
-        featuresSizer.Add( self.chcNamingConvention, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-
-
-        featuresSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
-
-        self.chkLBraceOnSameLine = wx.CheckBox( featuresSizer.GetStaticBox(), wx.ID_ANY, u"Opening brace on same line", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.chkLBraceOnSameLine.SetToolTip( u"Tells if the opening curved brace of a block should be on the same line or not" )
-
-        featuresSizer.Add( self.chkLBraceOnSameLine, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        numScriptSizer.Add( self.rbnMultiScript, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
 
-        mainSizer.Add( featuresSizer, 0, wx.ALL|wx.EXPAND, 5 )
+        scriptSizer.Add( numScriptSizer, 0, wx.EXPAND, 5 )
 
-        importSizer = wx.StaticBoxSizer( wx.StaticBox( self, wx.ID_ANY, u"Imports" ), wx.VERTICAL )
+        scriptFormSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
+        scriptFormSizer.AddGrowableCol( 1 )
+        scriptFormSizer.SetFlexibleDirection( wx.BOTH )
+        scriptFormSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
 
-        self.lscImport = wx.ListCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.DefaultPosition, wx.DefaultSize, wx.LC_HRULES|wx.LC_REPORT|wx.LC_SINGLE_SEL )
-        importSizer.Add( self.lscImport, 1, wx.ALL|wx.EXPAND, 5 )
+        self.m_staticText14 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"Database script filename:", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText14.SetLabelMarkup( u"Database script filename:" )
+        self.m_staticText14.Wrap( -1 )
 
-        formSizer = wx.FlexGridSizer( 0, 2, 0, 0 )
-        formSizer.AddGrowableCol( 1 )
-        formSizer.SetFlexibleDirection( wx.BOTH )
-        formSizer.SetNonFlexibleGrowMode( wx.FLEX_GROWMODE_SPECIFIED )
+        scriptFormSizer.Add( self.m_staticText14, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
 
-        self.lblModuleName = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"C++ header file:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.lblModuleName.Wrap( -1 )
+        self.txtScriptFilename = wx.TextCtrl( scriptSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.txtScriptFilename.SetToolTip( u"Enter the name of the unique script file" )
 
-        formSizer.Add( self.lblModuleName, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
+        scriptFormSizer.Add( self.txtScriptFilename, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
 
-        self.txtModuleName = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.txtModuleName.SetToolTip( u"Type in the name of a header file that should be automatically included in each generated code file" )
+        self.m_staticText24 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText24.Wrap( -1 )
 
-        formSizer.Add( self.txtModuleName, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+        scriptFormSizer.Add( self.m_staticText24, 0, 0, 5 )
 
-        self.lblSymbolNames = wx.StaticText( importSizer.GetStaticBox(), wx.ID_ANY, u"Symbols to import:", wx.DefaultPosition, wx.DefaultSize, 0 )
-        self.lblSymbolNames.Wrap( -1 )
+        self.m_staticText15 = wx.StaticText( scriptSizer.GetStaticBox(), wx.ID_ANY, u"(without the \".sql\" extension)", wx.DefaultPosition, wx.DefaultSize, 0 )
+        self.m_staticText15.Wrap( -1 )
 
-        formSizer.Add( self.lblSymbolNames, 0, wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5 )
-
-        self.txtSymbolNames = wx.TextCtrl( importSizer.GetStaticBox(), wx.ID_ANY, wx.EmptyString, wx.DefaultPosition, wx.DefaultSize, wx.TE_MULTILINE|wx.TE_WORDWRAP )
-        self.txtSymbolNames.SetToolTip( u"Type in the names of types, constants  and/or functions that should be imported from the above module in each generated code file.\nSeparate the names with spaces or commas" )
-        self.txtSymbolNames.SetMinSize( wx.Size( -1,60 ) )
-
-        formSizer.Add( self.txtSymbolNames, 1, wx.ALIGN_CENTER_VERTICAL|wx.ALL|wx.EXPAND, 5 )
+        scriptFormSizer.Add( self.m_staticText15, 0, wx.BOTTOM|wx.LEFT|wx.RIGHT, 5 )
 
 
-        importSizer.Add( formSizer, 0, wx.EXPAND, 5 )
-
-        buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
+        scriptSizer.Add( scriptFormSizer, 0, wx.EXPAND, 5 )
 
 
-        buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
-
-        self.btnAddImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Add to list", wx.DefaultPosition, wx.DefaultSize, 0 )
-
-        self.btnAddImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/add.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnAddImport.SetToolTip( u"Add the above definition to the list of imports" )
-
-        buttonSizer.Add( self.btnAddImport, 0, wx.ALL, 5 )
-
-        self.btnUpdateImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Update", wx.DefaultPosition, wx.DefaultSize, 0 )
-
-        self.btnUpdateImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/accept.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnUpdateImport.SetToolTip( u"Update the selected import" )
-
-        buttonSizer.Add( self.btnUpdateImport, 0, wx.ALL, 5 )
-
-        self.btnRemoveImport = wx.Button( importSizer.GetStaticBox(), wx.ID_ANY, u"Remove selected", wx.DefaultPosition, wx.DefaultSize, 0 )
-
-        self.btnRemoveImport.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/delete.png" ), wx.BITMAP_TYPE_ANY ) )
-        self.btnRemoveImport.SetToolTip( u"Remove the selected import from the list" )
-
-        buttonSizer.Add( self.btnRemoveImport, 0, wx.ALL, 5 )
-
-
-        importSizer.Add( buttonSizer, 0, wx.EXPAND, 5 )
-
-
-        mainSizer.Add( importSizer, 1, wx.EXPAND, 5 )
+        mainSizer.Add( scriptSizer, 0, wx.ALL|wx.EXPAND, 5 )
 
 
         self.SetSizer( mainSizer )
         self.Layout()
 
         # Connect Events
-        self.lscImport.Bind( wx.EVT_LIST_ITEM_SELECTED, self.lscImportOnListItemSelected )
-        self.btnAddImport.Bind( wx.EVT_BUTTON, self.btnAddImportOnButtonClick )
-        self.btnUpdateImport.Bind( wx.EVT_BUTTON, self.btnUpdateImportOnButtonClick )
-        self.btnRemoveImport.Bind( wx.EVT_BUTTON, self.btnRemoveImportOnButtonClick )
+        self.rbnSingleScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
+        self.rbnMultiScript.Bind( wx.EVT_RADIOBUTTON, self.onScriptRadioButtonClicked )
 
     def __del__( self ):
         pass
 
 
     # Virtual event handlers, override them in your derived class
-    def lscImportOnListItemSelected( self, event ):
+    def onScriptRadioButtonClicked( self, event ):
         event.Skip()
 
-    def btnAddImportOnButtonClick( self, event ):
-        event.Skip()
-
-    def btnUpdateImportOnButtonClick( self, event ):
-        event.Skip()
-
-    def btnRemoveImportOnButtonClick( self, event ):
-        event.Skip()
 
     # Virtual image path resolution method. Override this in your derived class.
     def asset_path( self, bitmap_path ):

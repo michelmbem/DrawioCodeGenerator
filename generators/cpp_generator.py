@@ -85,29 +85,16 @@ class CppCodeGenerator(CodeGenerator):
 
         if class_type != "enum":
             header_files = set(self.options['imports'].keys())
-            usings = {"std::string", "std::wstring", "std::array", "std::vector"}
+            usings = set(symbol for symbols in self.options['imports'].values() for symbol in symbols if symbol)
+
+            if self.options['use_boost']:
+                boost_dependencies = self.get_boost_dependencies()
+                header_files |= set(boost_dependencies.keys())
+                usings |= set(symbol for symbols in boost_dependencies.values() for symbol in symbols if symbol)
 
             header_files |= set(f"\"{baseclass}.hpp\"" for baseclass in baseclasses)
             header_files |= set(f"\"{interface}.hpp\"" for interface in interfaces)
             header_files |= set(f"\"{reference[1]}.hpp\"" for reference in references if reference[1] != class_name)
-
-            if self.options['use_boost']:
-                header_files |= {
-                    "<boost/multiprecision/cpp_int.hpp>",
-                    "<boost/multiprecision/cpp_dec_float.hpp>",
-                    "<boost/date_time/gregorian/gregorian.hpp>",
-                    "<boost/date_time/posix_time/posix_time.hpp>",
-                    "<boost/uuid/uuid.hpp>"
-                }
-
-                usings |= {
-                    "boost::multiprecision::cpp_int",
-                    "boost::multiprecision::cpp_dec_float_50",
-                    "boost::gregorian::date",
-                    "boost::posix_time::time_duration",
-                    "boost::posix_time::ptime",
-                    "boost::uuids::uuid"
-                }
 
             header_files = sorted(header_files)
             usings = sorted(usings)
@@ -120,14 +107,15 @@ class CppCodeGenerator(CodeGenerator):
                 if header_file.endswith('"'):
                     class_header += f"#include {header_file}\n"
 
-            if len(header_files) > 0:
-                class_header += "\n"
+            if len(header_files) > 0: class_header += "\n"
 
             for using in usings:
-                class_header += f"using {using};\n"
+                if using.startswith("ns:"):
+                    class_header += f"using namespace {using[3:]};\n"
+                else:
+                    class_header += f"using {using};\n"
 
-            if len(usings) > 0:
-                class_header += "\n"
+            if len(usings) > 0: class_header += "\n"
 
         if self.options['package']:
             class_header += self.package_directive(self.options['package'])
@@ -210,16 +198,16 @@ class CppCodeGenerator(CodeGenerator):
                 modifier = f"{self.get_property_access(property_def)}:"
                 constraints = property_def['constraints']
 
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
-                if constraints.get('final', False):
+                if constraints.get('final'):
                     modifier += " const"
 
                 p = f"\t\t{modifier} {self.map_type(property_def['type'])} {property_def['name']}"
                 if property_def['default_value']:
-                    if constraints.get('static', False):
+                    if constraints.get('static'):
                         self.initializer_string += "\t"
-                        if constraints.get('final', False):
+                        if constraints.get('final'):
                             self.initializer_string += "const "
                         self.initializer_string += f"{self.map_type(property_def['type'])} {self.current_class_name}::"
                         self.initializer_string += f"{property_def['name']}{{{property_def['default_value']}}};\n"
@@ -269,21 +257,21 @@ class CppCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
 
                 target, modifier = "this->", ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     target = f"{class_name}::"
                     modifier += " static"
-                if constraints.get('final', False):
+                if constraints.get('final'):
                     modifier += " const"
                 modifier += " "
 
                 getter_prefix = prefix[2] if accessor_type == "bool" else prefix[0]
                 getter = f"\t\tpublic:{modifier}{accessor_type} {getter_prefix}{accessor_name}()"
-                if not constraints.get('static', False):
+                if not constraints.get('static'):
                     getter += " const"
                 getter += f"{lbrace}\n\t\t\treturn {property_def['name']};\n\t\t}}\n\n"
                 accessors_string += getter
 
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     setter = (f"\t\tpublic:{modifier}void {prefix[1]}{accessor_name}({accessor_type} {property_def['name']})"
                               f"{lbrace}\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
                     accessors_string += setter
@@ -337,11 +325,11 @@ class CppCodeGenerator(CodeGenerator):
                 constraints = method_def['constraints']
 
                 modifier = ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
                 elif constraints.get('abstract', False) or constraints.get('virtual', False):
                     modifier += " virtual"
-                if constraints.get('final', False):
+                if constraints.get('final'):
                     modifier += " const"
                 modifier += " "
 
@@ -435,6 +423,13 @@ class CppCodeGenerator(CodeGenerator):
         return "hpp"
 
     def lbrace(self, tabs = 0):
-        if self.options['lbrace_same_line']:
-            return " {"
-        return '\n' + '\t' * tabs + '{'
+        return " {" if self.options['lbrace_same_line'] else '\n' + '\t' * tabs + '{'
+
+    def get_boost_dependencies(self):
+        return {
+            '<boost/multiprecision/cpp_int.hpp>': ["boost::multiprecision::cpp_int"],
+            '<boost/multiprecision/cpp_dec_float.hpp>': ["boost::multiprecision::cpp_dec_float_50"],
+            '<boost/date_time/gregorian/gregorian.hpp>': ["boost::gregorian::date"],
+            '<boost/date_time/posix_time/posix_time.hpp>': ["boost::posix_time::time_duration", "boost::posix_time::ptime"],
+            '<boost/uuid/uuid.hpp>': ["boost::uuids::uuid"]
+        }

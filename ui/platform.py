@@ -6,7 +6,7 @@ OS_NAME = platform.system()
 
 if OS_NAME == "Windows":
     MAIN_FRAME_SIZE = (1000, 750)
-    OPTION_DLG_SIZE = (700, 650)
+    OPTION_DLG_SIZE = (700, 700)
     FACES = {
         'serif': 'Cambria',
         'sans-serif': 'Calibri',
@@ -16,7 +16,7 @@ if OS_NAME == "Windows":
     }
 elif OS_NAME == "Darwin":
     MAIN_FRAME_SIZE = (1000, 750)   # Check on a Mac
-    OPTION_DLG_SIZE = (700, 650)    # Check on a Mac
+    OPTION_DLG_SIZE = (700, 700)    # Check on a Mac
     FACES = {
         'serif': 'Times New Roman',
         'sans-serif': 'Arial',
@@ -27,7 +27,7 @@ elif OS_NAME == "Darwin":
 else:   # Unix/Linux
     OS_RELEASE = platform.freedesktop_os_release()
     MAIN_FRAME_SIZE = (1100, 850)
-    OPTION_DLG_SIZE = (800, 750)
+    OPTION_DLG_SIZE = (800, 800)
     FACES = {
         'serif': 'Times',
         'sans-serif': 'Helvetica',

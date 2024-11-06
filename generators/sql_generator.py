@@ -17,7 +17,7 @@ class SqlCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
-        self.dialect = SQLDialects.get(options.get('dialect', "ansi"))
+        self.dialect = SQLDialects.get(options['dialect'])
         self.primary_keys = {}
         self.foreign_keys = {}
         self.tmp_primary_key = []
@@ -43,8 +43,7 @@ class SqlCodeGenerator(CodeGenerator):
                 class_name = class_def['name']
                 file_contents = self.generate_class_header(None, class_name, baseclasses)
                 file_contents += self.generate_properties(instance_props, False, references)
-                if len(self.tmp_primary_key) > 0:
-                    file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
+                file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
                 file_contents += self.generate_class_footer(None, class_name)
 
                 self.files.append((class_name, file_contents))
@@ -119,9 +118,10 @@ class SqlCodeGenerator(CodeGenerator):
             pk = self.get_primary_key(baseclasses[0])
 
             for p in pk:
-                header_string += f"\t{p['name']} {self.map_type(p['type'])},\n"
+                header_string += f"\t{p['name']} {self.map_type(p['type'])} not null,\n"
 
-            self.tmp_primary_key = self.tmp_foreign_keys[baseclasses[0]] = [p['name'] for p in pk]
+            self.tmp_primary_key = [p['name'] for p in pk]
+            self.tmp_foreign_keys[baseclasses[0]] = (self.tmp_primary_key, True)
 
         return header_string
 
@@ -152,12 +152,12 @@ class SqlCodeGenerator(CodeGenerator):
             properties_string: string of the properties
         """
 
+        generated_id_string = ""
         properties_string = ""
         first_prop = True
 
         for property_def in properties.values():
             constraints = property_def['constraints']
-            is_identity = False
 
             if first_prop:
                 first_prop = False
@@ -166,28 +166,59 @@ class SqlCodeGenerator(CodeGenerator):
 
             p = f"\t{property_def['name']} {self.map_type(property_def['type'], constraints)}"
 
-            if constraints.get('required', False):
+            if constraints.get('required'):
                 p += " not null"
-            if constraints.get('unique', False):
-                p += " unique"
-            if constraints.get('identity', False):
-                is_identity = True
-                p += f" {self.dialect.identity_spec()}".rstrip()
-            if constraints.get('pk', False):
-                self.tmp_primary_key.append(property_def['name'])
-            if constraints.get('fk', False):
-                fk_target = constraints['fk_target']
-                if fk_target in self.tmp_foreign_keys:
-                    self.tmp_foreign_keys[fk_target].append(property_def['name'])
-                else:
-                    self.tmp_foreign_keys[fk_target] = [property_def['name']]
 
-            if property_def['default_value'] and not is_identity:
+            if constraints.get('unique'):
+                p += " unique"
+
+            if constraints.get('pk'):
+                self.tmp_primary_key.append(property_def['name'])
+                if constraints.get('identity'):
+                    p += f" {self.dialect.identity_spec()}".rstrip()
+
+            if property_def['default_value'] and not constraints.get('identity'):
                 p += f" default {property_def['default_value']}"
 
             properties_string += p
 
-        return properties_string
+        if len(self.tmp_primary_key) <= 0:
+            generated_id = ("id", "integer", {'pk': True, 'identity': True})
+            generated_id_string = f"\t{generated_id[0]} {self.map_type(generated_id[1], generated_id[2])},\n"
+            self.tmp_primary_key.append(generated_id[0])
+
+        for reference in references:
+            if reference[0] != "to": continue
+
+            fk_columns = []
+            fk_column_prefix = f"{reference[1][0].lower()}{reference[1][1:]}"
+            pk_columns = self.get_primary_key(reference[1])
+
+            if first_prop:
+                first_prop = False
+            else:
+                properties_string += ",\n"
+
+            if len(pk_columns) > 0:
+                for pk_column in pk_columns:
+                    if pk_column['name'].lower().startswith(reference[1].lower()):
+                        fk_column_name = pk_column['name']
+                    else:
+                        fk_column_name = f"{fk_column_prefix}_{pk_column['name']}"
+
+                    fk_columns.append(fk_column_name)
+                    properties_string += f"\t{fk_column_name} {self.map_type(pk_column['type'])}"
+            else:
+                fk_column_name = f"{fk_column_prefix}_id"
+                fk_columns.append(fk_column_name)
+                properties_string += f"\t{fk_column_name} {self.map_type('integer')}"
+
+            if reference[2]:
+                properties_string += " not null"
+
+            self.tmp_foreign_keys[reference[1]] = (fk_columns, reference[2])
+
+        return generated_id_string + properties_string
 
     def package_directive(self, package_name):
         return f"use {self.split_package_name(package_name)[-1]};\n\n"
@@ -218,8 +249,10 @@ class SqlCodeGenerator(CodeGenerator):
 
     def write_foreign_keys(self, f):
         for table_name, foreign_keys in self.foreign_keys.items():
-            for foreign_table, columns in foreign_keys.items():
+            for foreign_table, settings in foreign_keys.items():
                 fk_name = f"fk_{table_name}_{foreign_table}"
                 foreign_columns = ', '.join(self.primary_keys[foreign_table])
-                f.write(f"alter table {table_name} add constraint {fk_name} foreign key ({', '.join(columns)})"
-                        f" references {foreign_table} ({foreign_columns});\n")
+                f.write(f"alter table {table_name} add constraint {fk_name} foreign key ({', '.join(settings[0])})"
+                        f" references {foreign_table} ({foreign_columns})")
+                if settings[1]: f.write(" on delete cascade")
+                f.write(";\n")

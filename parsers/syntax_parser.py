@@ -72,29 +72,15 @@ class SyntaxParser:
     @staticmethod
     def to_constraint_dict(constraints):
         constraint_dict = {}
-        other_constraints = set()
 
         for constraint in constraints:
-            if constraint in ("static", "abstract", "virtual", "final", "required",
-                              "unique", "pk", "identity", "generated", "lob"):
-                constraint_dict[constraint] = True
-            elif constraint in ("sealed", "const", "readonly", "notnull", "nonnull",
-                                "key", "id", "computed", "counter", "serial"):
-                constraint_dict[SyntaxParser.CONSTRAINT_MAPPINGS[constraint]] = True
-            elif constraint.startswith("fk:"):
-                constraint_dict['fk'] = True
-                constraint_dict['fk_target'] = constraint[3:]
-            elif constraint.startswith("length:"):
-                constraint_dict['length'] = int(constraint[7:])
-            elif constraint.startswith("size:"):
-                parts = constraint[5:].split(':')
-                constraint_dict['size'] = (int(parts[0].strip()), int(parts[1].strip()))
-            elif constraint.startswith("format:"):
-                constraint_dict['format'] = constraint[7:]
-            else:
-                other_constraints.add(constraint)
+            parts = constraint.split(':')
+            if not parts[0]: continue
+            name = SyntaxParser.CONSTRAINT_MAPPINGS.get(parts[0], parts[0])
+            constraint_dict[name] = parts[1:] if len(parts) > 1 else True
 
-        constraint_dict['other'] = other_constraints
+        if constraint_dict.get("identity"):
+            constraint_dict['pk'] = True
 
         return constraint_dict
 
@@ -277,8 +263,7 @@ class SyntaxParser:
 
         if values:
             for value in values:
-                if len(value) == 0:
-                    continue
+                if len(value) == 0: continue
 
                 property_id += 1
                 access, name, data_type, default_value, constraints = self.parse_property_signature(value)
@@ -309,8 +294,7 @@ class SyntaxParser:
 
         if values:
             for value in values:
-                if len(value) == 0:
-                    continue
+                if len(value) == 0: continue
 
                 method_id += 1
                 access, name, parameters, return_type, constraints = self.parse_method_signature(value)

@@ -154,9 +154,9 @@ class TsCodeGenerator(CodeGenerator):
                 modifier = f"{self.get_property_access(property_def)}"
                 constraints = property_def['constraints']
 
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
-                if constraints.get('final', False):
+                if constraints.get('final'):
                     modifier += " readonly"
 
                 p = (f"\t{modifier} {property_prefix}{property_def['name']}{property_suffix}:"
@@ -211,7 +211,7 @@ class TsCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
 
                 target, modifier = "this", ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     target = class_name
                     modifier += " static"
                 modifier += " "
@@ -219,7 +219,7 @@ class TsCodeGenerator(CodeGenerator):
                 accessors_string += (f"\tpublic{modifier}get {accessor_name}(): {accessor_type} {{\n"
                                      f"\t\treturn {target}.{property_name}{param_ref_suffix};\n\t}}\n\n")
 
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     accessors_string += (f"\tpublic{modifier}set {accessor_name}({parameter_name}: {accessor_type}) {{\n"
                                          f"\t\t{target}.{property_name} = {parameter_name};\n\t}}\n\n")
 
@@ -266,7 +266,7 @@ class TsCodeGenerator(CodeGenerator):
                 constraints = method_def['constraints']
 
                 modifier = ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
                 elif constraints.get('abstract', False):
                     modifier += " abstract"

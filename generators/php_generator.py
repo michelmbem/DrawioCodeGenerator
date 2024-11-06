@@ -96,13 +96,13 @@ class PhpCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
                 dollar = '$'
 
-                if constraints.get('static', False):
-                    if constraints.get('final', False):
+                if constraints.get('static'):
+                    if constraints.get('final'):
                         modifier = f"{property_def['access']} const"
                         dollar = ''
                     else:
                         modifier += " static"
-                elif constraints.get('final', False):
+                elif constraints.get('final'):
                     modifier += " final"
 
                 p = f"\t{modifier} {dollar}{property_def['name']}"
@@ -145,8 +145,8 @@ class PhpCodeGenerator(CodeGenerator):
                 constraints = property_def['constraints']
                 modifier, target = " ", "$this->"
 
-                if constraints.get('static', False):
-                    if constraints.get('final', False):
+                if constraints.get('static'):
+                    if constraints.get('final'):
                         continue    # No encapsulation for constants
                     modifier = " static "
                     target = f"{class_name}::"
@@ -156,7 +156,7 @@ class PhpCodeGenerator(CodeGenerator):
                           f"\t\treturn {target}{property_def['name']};\n\t}}\n\n")
                 accessors_string += getter
 
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     setter = (f"\tpublic{modifier}function set_{property_def['name']}(${property_def['name']}) {{\n"
                               f"\t\t{target}{property_def['name']} = ${property_def['name']};\n\t}}\n\n")
                     accessors_string += setter
@@ -202,11 +202,11 @@ class PhpCodeGenerator(CodeGenerator):
                 constraints = method_def['constraints']
 
                 modifier = ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
                 elif constraints.get('abstract', False):
                     modifier += " abstract"
-                elif constraints.get('final', False):
+                elif constraints.get('final'):
                     modifier += " final"
                 modifier += " "
 

@@ -166,12 +166,12 @@ class CSharpCodeGenerator(CodeGenerator):
                 modifier = self.get_property_access(property_def)
                 constraints = property_def['constraints']
 
-                if constraints.get('static', False):
-                    if constraints.get('final', False):
+                if constraints.get('static'):
+                    if constraints.get('final'):
                         modifier = f"{property_def['access']} const"
                     else:
                         modifier += " static"
-                elif constraints.get('final', False):
+                elif constraints.get('final'):
                     modifier += " readonly"
 
                 if not self.options['encapsulate_all_props'] or modifier.endswith("const"):
@@ -222,9 +222,8 @@ class CSharpCodeGenerator(CodeGenerator):
             constraints = property_def['constraints']
             modifier = " "
 
-            if constraints.get('static', False):
-                if constraints.get('final', False):
-                    continue    # No encapsulation for constants
+            if constraints.get('static'):
+                if constraints.get('final'): continue    # No encapsulation for constants
                 modifier = " static "
             elif add_jpa:
                 accessors_string += self.get_data_annotations(property_def['type'], constraints)
@@ -232,14 +231,14 @@ class CSharpCodeGenerator(CodeGenerator):
             if encapsulate_all:
                 accessor_name = self.accessor_name(property_def['name'], False)
                 accessors_string += f"\tpublic{modifier}{self.map_type(property_def['type'])} {accessor_name} {{ get;"
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     accessors_string += " set;"
                 accessors_string += " }\n\n"
             elif property_def['access'] == "private":
                 accessor_name = self.accessor_name(property_def['name'], True)
                 accessors_string += f"\tpublic{modifier}{self.map_type(property_def['type'])} {accessor_name}\n\t{{"
                 accessors_string += f"\n\t\tget => {property_def['name']};"
-                if not constraints.get('final', False):
+                if not constraints.get('final'):
                     accessors_string += f"\n\t\tset => {property_def['name']} = value;"
                 accessors_string += "\n\t}\n\n"
 
@@ -256,8 +255,8 @@ class CSharpCodeGenerator(CodeGenerator):
                                 fk_field_type = pk[0]['type']
                                 fk_field_name = self.foreign_key_name(reference[1], pk[0]['name'])
                             else:
-                                fk_field_type = "object"
-                                fk_field_name = "MissingProperty"
+                                fk_field_type = "int"
+                                fk_field_name = f"{reference[1]}Id"
 
                             accessors_string += f"\tpublic {fk_field_type} {fk_field_name} {{ get; set; }}\n\n"
                             accessors_string += f"\t[ForeignKey(nameof({fk_field_name}))]\n"
@@ -308,7 +307,7 @@ class CSharpCodeGenerator(CodeGenerator):
                 constraints = method_def['constraints']
 
                 modifier = ""
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     modifier += " static"
                 elif constraints.get('abstract', False):
                     modifier += " abstract"
@@ -341,8 +340,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
     def generate_default_ctor(self, class_name, call_super):
         ctor_string = f"\tpublic {class_name}()"
-        if call_super:
-            ctor_string += ": base()"
+        if call_super: ctor_string += ": base()"
         ctor_string += "\n\t{\n\t}\n\n"
 
         return ctor_string
@@ -421,13 +419,13 @@ class CSharpCodeGenerator(CodeGenerator):
         annotation_string = ""
         data_type = data_type.lower()
 
-        if constraints.get('required', False):
+        if constraints.get('required'):
             annotation_string += "\t[Required]\n"
 
-        if constraints.get('pk', False):
+        if constraints.get('pk'):
             annotation_string += "\t[Key]\n"
 
-        if constraints.get('identity', False):
+        if constraints.get('identity'):
             annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Identity)]\n"
         elif constraints.get('generated', False):
             annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Computed)]\n"

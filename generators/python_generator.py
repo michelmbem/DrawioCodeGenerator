@@ -261,7 +261,7 @@ class PythonCodeGenerator(CodeGenerator):
             else:
                 m = ""
 
-                if constraints.get('static', False):
+                if constraints.get('static'):
                     m += "\t@staticmethod\n"
                     params = f"({', '.join(p['name'] for p in method_def['parameters'])})"
 

@@ -63,6 +63,8 @@ class MainFrame (MainFrameBase):
                 'to_string': False
             },
             'encapsulate_all_props': False,
+            'infer_keys': False,
+            'pk_pattern': "^(@class)?_?(id|pk|key)$",
             'language_specific': {
                 'java': {
                     'use_lombok': False,
@@ -89,9 +91,9 @@ class MainFrame (MainFrameBase):
                     'lbrace_same_line': False,
                     'imports': {
                         '<ctime>': None,
-                        '<string>': None,
-                        '<array>': None,
-                        '<vector>': None,
+                        '<string>': ["std::string", "std::wstring"],
+                        '<array>': ["std::array"],
+                        '<vector>': ["std::vector"],
                     },
                 },
                 'python': {

@@ -24,7 +24,7 @@ class OptionPageWithImports(OptionPage):
             if 'symbol_names' in labels:
                 self.lblSymbolNames.SetLabel(labels['symbol_names'])
 
-        if language in ("cs", "cpp", "php"):
+        if language in ("cs", "php"):
             self.lblSymbolNames.Hide()
             self.txtSymbolNames.Hide()
 
