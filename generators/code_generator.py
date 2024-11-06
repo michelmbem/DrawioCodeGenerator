@@ -41,16 +41,15 @@ class CodeGenerator(ABC):
         syntax_tree = deepcopy(self.syntax_tree)
 
         for class_def in syntax_tree.values():
-            pk_found = False
-            pk_candidate = None
+            matcher = re.compile(pk_pattern.replace("@class", class_def['name']), re.IGNORECASE)
+            pk_found, pk_candidate = False, None
 
             for property_def in class_def['properties'].values():
                 if property_def['constraints'].get("pk"):
                     pk_found = True
                     break
 
-                new_pattern = pk_pattern.replace("@class", class_def['name'])
-                if re.match(new_pattern, property_def['name'], re.IGNORECASE):
+                if matcher.match(property_def['name']):
                     pk_candidate = property_def
 
             if pk_candidate and not pk_found:
