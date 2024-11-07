@@ -85,13 +85,12 @@ class PythonCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -101,13 +100,14 @@ class PythonCodeGenerator(CodeGenerator):
 
         return ""
 
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members
             references: the set of classes referenced by or referencing this class
 
         Returns:
@@ -118,7 +118,7 @@ class PythonCodeGenerator(CodeGenerator):
         property_prefix = ""
         counter = 0
 
-        if not is_enum:
+        if class_type != "enum":
             for property_def in properties.values():
                 if property_def['constraints'].get('static', False):
                     p = f"\t{property_def['name']} = "
@@ -152,7 +152,7 @@ class PythonCodeGenerator(CodeGenerator):
                 property_prefix = "_"
 
         for property_def in properties.values():
-            if is_enum:
+            if class_type == "enum":
                 p = f"\t{property_def['name']} = "
                 if property_def['default_value']:
                     p += property_def['default_value']
@@ -234,13 +234,13 @@ class PythonCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, class_type, methods, interface_methods):
         """
         Generate methods for the class
 
         Parameters:
-            methods: dictionary of methods
             class_type: type of class; 'class', 'abstract class' or 'interface'
+            methods: dictionary of methods
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -287,14 +287,14 @@ class PythonCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_equal_hashcode(self, class_name, properties, call_super):
+    def generate_equal_hashcode(self, class_name, baseclasses, properties):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"
 
         method_string = "\tdef __members(self):\n"
         method_string += "\t\treturn ("
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += f"*{self.baseclass_name}.__members(self)"
             if len(properties) > 0:
                 method_string += ", "
@@ -311,14 +311,14 @@ class PythonCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def generate_to_string(self, class_name, properties, call_super):
+    def generate_to_string(self, class_name, baseclasses, properties):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"
 
         method_string = "\tdef __str__(self):\n"
         method_string += f"\t\treturn f\"{class_name} {{{{"
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += f"{{{self.baseclass_name}.__str__(self)}}"
             if len(properties) > 0:
                 method_string += ", "

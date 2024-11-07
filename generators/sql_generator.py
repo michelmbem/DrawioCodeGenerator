@@ -1,5 +1,6 @@
 import traceback
 
+from operator import itemgetter
 from os import path
 from generators.code_generator import CodeGenerator
 from generators.sql_dialect.sql_dialects import SQLDialects
@@ -34,17 +35,18 @@ class SqlCodeGenerator(CodeGenerator):
             self.ensure_dir_exists(self.file_path)
 
             for class_def in self.syntax_tree.values():
+                get_items = itemgetter("name", "type", "properties")
+                class_name, class_type, properties = get_items(class_def)
                 baseclasses, _, references = self.get_class_dependencies(class_def)
-                instance_props = {k: p for k, p in class_def['properties'].items() if not p['constraints'].get("static", False)}
+                instance_props = {k: p for k, p in properties.items() if not p['constraints'].get("static")}
 
                 if not (class_def['type'] in ("class", "abstract class") and len(instance_props) > 0):
                     continue
 
-                class_name = class_def['name']
-                file_contents = self.generate_class_header(None, class_name, baseclasses)
-                file_contents += self.generate_properties(instance_props, False, references)
+                file_contents = self.generate_class_header(class_type, class_name, baseclasses)
+                file_contents += self.generate_properties(class_type, class_name, instance_props, references)
                 file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
-                file_contents += self.generate_class_footer(None, class_name)
+                file_contents += self.generate_class_footer()
 
                 self.files.append((class_name, file_contents))
                 self.primary_keys[class_name] = self.tmp_primary_key
@@ -125,13 +127,12 @@ class SqlCodeGenerator(CodeGenerator):
 
         return header_string
 
-    def generate_class_footer(self, class_type = None, class_name = None):
+    def generate_class_footer(self, class_type = None):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -139,14 +140,15 @@ class SqlCodeGenerator(CodeGenerator):
 
         return "\n);\n"
 
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members or not; always false
-            references: classes referenced by or referencing this one
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             properties_string: string of the properties

@@ -70,7 +70,6 @@ class JavaCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
-        self.current_class_name = None
 
     @staticmethod
     def accessor_name(property_name):
@@ -93,7 +92,6 @@ class JavaCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        self.current_class_name = class_name
         class_header = ""
         handle_jpa_inheritance = False
 
@@ -156,29 +154,27 @@ class JavaCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
         """
 
-        self.current_class_name = None
-
         return "}\n"
  
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class 
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members
             references: the set of classes referenced by or referencing this class
 
         Returns:
@@ -189,7 +185,7 @@ class JavaCodeGenerator(CodeGenerator):
         first_prop = True
 
         for property_def in properties.values():
-            if is_enum:
+            if class_type == "enum":
                 if first_prop:
                     first_prop = False
                 else:
@@ -222,7 +218,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         for reference in references:
             field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
-            inverse_field_name = f"{self.current_class_name[0].lower()}{self.current_class_name[1:]}"
+            inverse_field_name = f"{class_name[0].lower()}{class_name[1:]}"
             p = "\t"
 
             match reference[0]:
@@ -250,6 +246,7 @@ class JavaCodeGenerator(CodeGenerator):
         Parameters:
             class_name: name of class
             properties: dictionary of properties
+            references: the set of classes referenced by or referencing this class
 
         Returns:
             accessors_string: string of the property accessors
@@ -305,13 +302,13 @@ class JavaCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, class_type, methods, interface_methods):
         """
         Generate methods for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
             methods: dictionary of methods
-            class_type: type of class; 'class', 'abstract class' or 'interface'
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -361,37 +358,37 @@ class JavaCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name, call_super):
+    def generate_default_ctor(self, class_name, baseclasses):
         if self.options['use_lombok']:
             return ""
 
         ctor_string = f"\tpublic {class_name}() {{\n"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += "\t\tsuper();\n"
         ctor_string += "\t}\n\n"
 
         return ctor_string
 
-    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
+    def generate_full_arg_ctor(self, class_name, baseclasses, properties, inherited_properties):
         if self.options['use_lombok']:
             return ""
 
         separator = ",\n\t\t\t" if len(properties) + len(inherited_properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
             if not ctor_string.endswith('(') and len(properties) > 0:
                 ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ") {\n"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += f"\t\tsuper({', '.join(p['name'] for p in inherited_properties)});\n"
         ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {p['name']};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties, call_super):
+    def generate_equal_hashcode(self, class_name, baseclasses, properties):
         if self.options['use_lombok']:
             return ""
 
@@ -405,7 +402,7 @@ class JavaCodeGenerator(CodeGenerator):
         method_string = "\t@Override\n\tpublic boolean equals(Object obj) {\n"
         method_string += "\t\tif (this == obj) return true;\n"
         method_string += f"\t\tif (obj instanceof {class_name} other) {{\n\t\t\treturn "
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "super.equals(other)"
             if len(properties) > 0:
                 method_string += sep1
@@ -414,7 +411,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         method_string += "\t@Override\n\tpublic int hashCode() {\n"
         method_string += "\t\treturn Objects.hash("
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "super.hashCode()"
             if len(properties) > 0:
                 method_string += sep2
@@ -423,7 +420,7 @@ class JavaCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def generate_to_string(self, class_name, properties, call_super):
+    def generate_to_string(self, class_name, baseclasses, properties):
         if self.options['use_lombok']:
             return ""
 
@@ -431,7 +428,7 @@ class JavaCodeGenerator(CodeGenerator):
         sep2 = f".append(\", \"){sep1}"
         method_string = "\t@Override\n\tpublic String toString() {\n"
         method_string += f"\t\treturn new StringBuilder(\"{class_name} {{\"){sep1}"
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += ".append(super.toString())"
             if len(properties) > 0:
                 method_string += sep2

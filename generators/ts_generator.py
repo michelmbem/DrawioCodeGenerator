@@ -104,13 +104,12 @@ class TsCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -118,13 +117,14 @@ class TsCodeGenerator(CodeGenerator):
 
         return "}\n"
  
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members
             references: the set of classes referenced by or referencing this class
 
         Returns:
@@ -134,14 +134,14 @@ class TsCodeGenerator(CodeGenerator):
         properties_string = property_prefix = property_suffix = ""
         first_prop = True
 
-        if not is_enum:
+        if class_type != "enum":
             if self.options['encapsulate_all_props']:
                 property_prefix = "_"
             if self.options['optional_props']:
                 property_suffix = "?"
 
         for property_def in properties.values():
-            if is_enum:
+            if class_type == "enum":
                 if first_prop:
                     first_prop = False
                 else:
@@ -241,13 +241,13 @@ class TsCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, class_type, methods, interface_methods):
         """
         Generate methods for the class
 
         Parameters:
-            methods: dictionary of methods
             class_type: type of class; 'class', 'abstract class' or 'interface'
+            methods: dictionary of methods
             interface_methods: methods of implemented interfaces
         
         Returns:
@@ -295,7 +295,7 @@ class TsCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
+    def generate_full_arg_ctor(self, class_name, baseclasses, properties, inherited_properties):
         prefix = ""
         if self.options['encapsulate_all_props']:
             prefix = "_"
@@ -306,23 +306,23 @@ class TsCodeGenerator(CodeGenerator):
 
         separator = ",\n\t\t\t" if len(properties) + len(inherited_properties) > 4 else ", "
         ctor_string = "\tpublic constructor("
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += separator.join(f"{p['name']}?: {self.map_type(p['type'])}" for p in inherited_properties)
             if not ctor_string.endswith('(') and len(properties) > 0:
                 ctor_string += ", "
         ctor_string += separator.join(f"{p['name']}?: {self.map_type(p['type'])}" for p in properties.values())
         ctor_string += ") {\n"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += f"\t\tsuper({', '.join(p['name'] for p in inherited_properties)});\n"
         ctor_string += '\n'.join(f"\t\tthis.{prefix}{p['name']} = {p['name']}{suffix};" for p in properties.values())
         ctor_string += "\n\t}\n\n"
 
         return ctor_string
 
-    def generate_to_string(self, class_name, properties, call_super):
+    def generate_to_string(self, class_name, baseclasses, properties):
         method_string = "\tpublic toString(): string {\n"
         method_string += f"\t\treturn `{class_name} \\{{"
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "${super.toString()}"
             if len(properties) > 0:
                 method_string += ", "

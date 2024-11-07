@@ -51,7 +51,6 @@ class CSharpCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
-        self.current_class_name = None
 
     @staticmethod
     def accessor_name(property_name, avoid_conflict):
@@ -87,7 +86,6 @@ class CSharpCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        self.current_class_name = class_name
         class_header = ""
 
         if class_type != "enum":
@@ -120,29 +118,27 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
         """
 
-        self.current_class_name = None
-
         return "}\n"
  
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members
             references: the set of classes referenced by or referencing this class
 
         Returns:
@@ -153,7 +149,7 @@ class CSharpCodeGenerator(CodeGenerator):
         first_prop = True
 
         for property_def in properties.values():
-            if is_enum:
+            if class_type == "enum":
                 if first_prop:
                     first_prop = False
                 else:
@@ -252,7 +248,7 @@ class CSharpCodeGenerator(CodeGenerator):
                             pk = self.get_primary_key(reference[1])
 
                             if len(pk) > 0:
-                                fk_field_type = pk[0]['type']
+                                fk_field_type = self.map_type(pk[0]['type'])
                                 fk_field_name = self.foreign_key_name(reference[1], pk[0]['name'])
                             else:
                                 fk_field_type = "int"
@@ -270,7 +266,7 @@ class CSharpCodeGenerator(CodeGenerator):
                 case "from":
                     if encapsulate_all or add_jpa:
                         if add_jpa:
-                            accessors_string += f"\t[InverseProperty(nameof({reference[1]}.{self.current_class_name}))]\n"
+                            accessors_string += f"\t[InverseProperty(nameof({reference[1]}.{class_name}))]\n"
                         accessors_string += f"\tpublic virtual ICollection<{reference[1]}> {reference[1]}s"
                         accessors_string += f" {{ get; set; }} = new HashSet<{reference[1]}>()\n\n"
                     else:
@@ -283,7 +279,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, class_type, methods, interface_methods):
         """
         Generate methods for the class
 
@@ -338,23 +334,24 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name, call_super):
+    def generate_default_ctor(self, class_name, baseclasses):
         ctor_string = f"\tpublic {class_name}()"
-        if call_super: ctor_string += ": base()"
+        if len(baseclasses) > 0:
+            ctor_string += ": base()"
         ctor_string += "\n\t{\n\t}\n\n"
 
         return ctor_string
 
-    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
+    def generate_full_arg_ctor(self, class_name, baseclasses, properties, inherited_properties):
         separator = ",\n\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\tpublic {class_name}("
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
             if not ctor_string.endswith('(') and len(properties) > 0:
                 ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {self.parameter_name(p['name'])}" for p in properties.values())
         ctor_string += ")"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += f":\n\t\tbase({', '.join(p['name'] for p in inherited_properties)})"
         ctor_string += "\n\t{\n"
         ctor_string += '\n'.join(f"\t\tthis.{p['name']} = {self.parameter_name(p['name'])};" for p in properties.values())
@@ -362,7 +359,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return ctor_string
 
-    def generate_equal_hashcode(self, class_name, properties, call_super):
+    def generate_equal_hashcode(self, class_name, baseclasses, properties):
         if len(properties) > 4:
             sep1 = " &&\n\t\t\t\t\t"
             sep2 = ",\n\t\t\t\t\t"
@@ -373,7 +370,7 @@ class CSharpCodeGenerator(CodeGenerator):
         method_string = "\tpublic override bool Equals(Object obj)\n\t{\n"
         method_string += "\t\tif (ReferenceEquals(this, obj)) return true;\n"
         method_string += f"\t\tif (obj is {class_name} other) {{\n\t\t\treturn "
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "base.Equals(other)"
             if len(properties) > 0:
                 method_string += sep1
@@ -382,7 +379,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         method_string += "\tpublic override int GetHashCode()\n\t{\n"
         method_string += "\t\treturn HashCode.Combine("
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "base.GetHashCode()"
             if len(properties) > 0:
                 method_string += sep2
@@ -391,10 +388,10 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return method_string
 
-    def generate_to_string(self, class_name, properties, call_super):
+    def generate_to_string(self, class_name, baseclasses, properties):
         method_string = "\tpublic override string ToString() {\n"
         method_string += f"\t\treturn $\"{class_name} {{{{"
-        if call_super:
+        if len(baseclasses) > 0:
             method_string += "{base.ToString()}"
             if len(properties) > 0:
                 method_string += ", "

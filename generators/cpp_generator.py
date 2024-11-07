@@ -55,7 +55,6 @@ class CppCodeGenerator(CodeGenerator):
 
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
-        self.current_class_name = None
         self.baseclass_name = None
         self.initializer_string = ""
 
@@ -80,7 +79,6 @@ class CppCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        self.current_class_name = class_name
         class_header = "#pragma once\n\n"
 
         if class_type != "enum":
@@ -141,19 +139,18 @@ class CppCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type, class_name):
+    def generate_class_footer(self, class_type):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
-            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
         """
 
-        self.baseclass_name = self.current_class_name = None
+        self.baseclass_name = None
 
         if self.options['package']:
             braces = '}' * len(self.split_package_name(self.options['package']))
@@ -168,13 +165,14 @@ class CppCodeGenerator(CodeGenerator):
 
         return footer_string
 
-    def generate_properties(self, properties, is_enum, references):
+    def generate_properties(self, class_type, class_name, properties, references):
         """
         Generate properties for the class
 
         Parameters:
+            class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
             properties: dictionary of properties
-            is_enum: tells if we are generating enum members
             references: the set of classes referenced by or referencing this class
 
         Returns:
@@ -185,7 +183,7 @@ class CppCodeGenerator(CodeGenerator):
         first_prop = True
 
         for property_def in properties.values():
-            if is_enum:
+            if class_type == "enum":
                 if first_prop:
                     first_prop = False
                 else:
@@ -209,7 +207,7 @@ class CppCodeGenerator(CodeGenerator):
                         self.initializer_string += "\t"
                         if constraints.get('final'):
                             self.initializer_string += "const "
-                        self.initializer_string += f"{self.map_type(property_def['type'])} {self.current_class_name}::"
+                        self.initializer_string += f"{self.map_type(property_def['type'])} {class_name}::"
                         self.initializer_string += f"{property_def['name']}{{{property_def['default_value']}}};\n"
                     else:
                         p += f"{{{property_def['default_value']}}}"
@@ -301,7 +299,7 @@ class CppCodeGenerator(CodeGenerator):
 
         return accessors_string
 
-    def generate_methods(self, methods, class_type, interface_methods):
+    def generate_methods(self, class_type, methods, interface_methods):
         """
         Generate methods for the class
 
@@ -357,24 +355,24 @@ class CppCodeGenerator(CodeGenerator):
 
         return methods_string
 
-    def generate_default_ctor(self, class_name, call_super):
+    def generate_default_ctor(self, class_name, baseclasses):
         ctor_string = f"\t\tpublic: {class_name}()"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += f": {self.baseclass_name}{{}}"
         ctor_string += f"{self.lbrace(2)}\n\t\t}}\n\n"
 
         return ctor_string
 
-    def generate_full_arg_ctor(self, class_name, properties, call_super, inherited_properties):
+    def generate_full_arg_ctor(self, class_name, baseclasses, properties, inherited_properties):
         separator = ",\n\t\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\t\tpublic: {class_name}("
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
             if not ctor_string.endswith('(') and len(properties) > 0:
                 ctor_string += ", "
         ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
         ctor_string += ")"
-        if call_super:
+        if len(baseclasses) > 0:
             ctor_string += f":\n\t\t\t{self.baseclass_name}{{{', '.join(p['name'] for p in inherited_properties)}}}"
             if len(properties) > 0:
                 ctor_string += ", "
