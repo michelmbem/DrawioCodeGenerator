@@ -46,3 +46,6 @@ class MySQLDialect(SQLDialect):
 
     def identity_spec(self):
         return "auto_increment"
+
+    def enum_spec(self, type_name, type_members):
+        return "enum(" + ", ".join(f"'{m['name']}'" for m in type_members) + ')'

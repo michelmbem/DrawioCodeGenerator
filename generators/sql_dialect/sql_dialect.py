@@ -12,3 +12,9 @@ class SQLDialect:
 
     def identity_spec(self):
         return "generated always as identity (start with 1, increment by 1)"
+
+    def enum_decl(self, class_def):
+        return ""
+
+    def enum_spec(self, type_name, type_members):
+        return self.map_type("string", None)

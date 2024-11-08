@@ -195,12 +195,13 @@ class JavaCodeGenerator(CodeGenerator):
                 if property_def['default_value']:
                     p += f"({property_def['default_value']})"
             else:
+                data_type = property_def['type']
                 constraints = property_def['constraints']
                 p = "\t"
 
                 if not (constraints.get('static') or constraints.get('final')):
                     if self.options['add_jpa']:
-                        p += self.get_data_annotations(constraints)
+                        p += self.get_data_annotations(data_type, constraints)
                     if self.options['add_builder'] and property_def['default_value']:
                         p += "@Builder.Default\n\t"
 
@@ -209,7 +210,7 @@ class JavaCodeGenerator(CodeGenerator):
                     p += " static"
                 if constraints.get('final'):
                     p += " final"
-                p += f" {self.map_type(property_def['type'], constraints)} {property_def['name']}"
+                p += f" {self.map_type(data_type, constraints)} {property_def['name']}"
                 if property_def['default_value']:
                     p += f" = {property_def['default_value']}"
                 p += ";\n"
@@ -479,11 +480,12 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['add_jpa']:
             jpa_imports.append({
                 "package": f"{jee_root_package}.persistence",
-                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "ManyToOne", "OneToMany", "Lob"]
+                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "Enumerated", "EnumType", "ManyToOne",
+                            "OneToMany", "Lob"]
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
-                "classes": ["Size", "Pattern", "Email"]
+                "classes": ["Min", "Max", "Range", "Size", "Pattern", "Email"]
             })
             jpa_imports.append({
                 "package": "org.hibernate.validator.constraints",
@@ -506,8 +508,14 @@ class JavaCodeGenerator(CodeGenerator):
 
         return lombok_imported_classes
 
-    def get_data_annotations(self, constraints):
+    def get_data_annotations(self, data_type, constraints):
         jpa_annotations = ""
+
+        if data_type in self.defined_types:
+            if self.syntax_tree[self.defined_types[data_type]]['type'] == "enum":
+                jpa_annotations += "@Enumerated(EnumType.STRING)\n\t"
+            else:
+                jpa_annotations += "@Embedded\n\t"
 
         if constraints.get('required'):
             jpa_annotations += "@NotNull\n\t"
@@ -521,9 +529,24 @@ class JavaCodeGenerator(CodeGenerator):
         if constraints.get('lob'):
             jpa_annotations += "@Lob\n\t"
 
-        constraint = constraints.get('size')
+        constraint = constraints.get('min')
         if constraint:
-            jpa_annotations += f"@Size(min={constraint[0]},max={constraint[1]})\n\t"
+            jpa_annotations += f"@Min({constraint})\n\t"
+
+        constraint = constraints.get('max')
+        if constraint:
+            jpa_annotations += f"@Max({constraint})\n\t"
+
+        constraint = constraints.get('range')
+        if isinstance(constraint, list) and len(constraint) > 1:
+            jpa_annotations += f"@Range(min={constraint[0]}, max={constraint[1]})\n\t"
+
+        constraint = constraints.get('size')
+        if isinstance(constraint, list):
+            if len(constraint) > 1:
+                jpa_annotations += f"@Size(min={constraint[0]}, max={constraint[1]})\n\t"
+            else:
+                jpa_annotations += f"@Size(max={constraint[0]})\n\t"
 
         constraint = constraints.get('format')
         if constraint == "phone":

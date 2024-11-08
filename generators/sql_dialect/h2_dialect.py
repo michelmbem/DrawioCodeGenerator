@@ -43,3 +43,6 @@ class H2Dialect(SQLDialect):
 
     def __init__(self):
         super().__init__()
+
+    def enum_spec(self, type_name, type_members):
+        return "enum(" + ", ".join(f"'{m['name']}'" for m in type_members) + ')'

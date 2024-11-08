@@ -46,3 +46,10 @@ class FirebirdDialect(SQLDialect):
 
     def identity_spec(self):
         return ""
+
+    def enum_decl(self, class_def):
+        enum_members = ", ".join(f"'{m['name']}'" for m in class_def['properties'].values())
+        return f"create domain {class_def['name']} as varchar(255) check (value is null or value in ({enum_members}));\n\n"
+
+    def enum_spec(self, type_name, type_members):
+        return type_name

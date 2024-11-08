@@ -40,13 +40,19 @@ class SqlCodeGenerator(CodeGenerator):
                 baseclasses, _, references = self.get_class_dependencies(class_def)
                 instance_props = {k: p for k, p in properties.items() if not p['constraints'].get("static")}
 
-                if not (class_def['type'] in ("class", "abstract class") and len(instance_props) > 0):
-                    continue
+                match class_type:
+                    case "enum":
+                        file_contents = self.dialect.enum_decl(class_def)
+                        if not file_contents: continue
+                    case "class" | "abstract class":
+                        if len(instance_props) <= 0: continue
 
-                file_contents = self.generate_class_header(class_type, class_name, baseclasses)
-                file_contents += self.generate_properties(class_type, class_name, instance_props, references)
-                file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
-                file_contents += self.generate_class_footer()
+                        file_contents = self.generate_class_header(class_type, class_name, baseclasses)
+                        file_contents += self.generate_properties(class_type, class_name, instance_props, references)
+                        file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
+                        file_contents += self.generate_class_footer()
+                    case _:
+                        continue
 
                 self.files.append((class_name, file_contents))
                 self.primary_keys[class_name] = self.tmp_primary_key
@@ -159,28 +165,24 @@ class SqlCodeGenerator(CodeGenerator):
         first_prop = True
 
         for property_def in properties.values():
-            constraints = property_def['constraints']
+            data_type = property_def['type']
 
             if first_prop:
                 first_prop = False
             else:
                 properties_string += ",\n"
 
-            p = f"\t{property_def['name']} {self.map_type(property_def['type'], constraints)}"
+            if data_type in self.defined_types:
+                defined_type = self.syntax_tree[self.defined_types[data_type]]
+                defined_type_props = defined_type['properties'].values()
 
-            if constraints.get('required'):
-                p += " not null"
-
-            if constraints.get('unique'):
-                p += " unique"
-
-            if constraints.get('pk'):
-                self.tmp_primary_key.append(property_def['name'])
-                if constraints.get('identity'):
-                    p += f" {self.dialect.identity_spec()}".rstrip()
-
-            if property_def['default_value'] and not constraints.get('identity'):
-                p += f" default {property_def['default_value']}"
+                if defined_type['type'] == "enum":
+                    p = f"\t{property_def['name']} {self.dialect.enum_spec(data_type, defined_type_props)}"
+                else:
+                    p = ",\n".join(self.field_spec(p, f"{property_def['name']}_", property_def['constraints'])
+                                   for p in defined_type_props)
+            else:
+                p = self.field_spec(property_def, "", {})
 
             properties_string += p
 
@@ -244,6 +246,26 @@ class SqlCodeGenerator(CodeGenerator):
 
     def get_file_extension(self):
         return "sql"
+
+    def field_spec(self, property_def, prefix, group_constraints):
+        constraints = property_def['constraints']
+        field_string = f"\t{prefix}{property_def['name']} {self.map_type(property_def['type'], constraints)}"
+
+        if constraints.get('required') or group_constraints.get('required'):
+            field_string += " not null"
+
+        if constraints.get('unique'):
+            field_string += " unique"
+
+        if constraints.get('pk'):
+            self.tmp_primary_key.append(property_def['name'])
+            if constraints.get('identity'):
+                field_string += f" {self.dialect.identity_spec()}".rstrip()
+
+        if property_def['default_value'] and not constraints.get('identity'):
+            field_string += f" default {property_def['default_value']}"
+
+        return field_string
 
     def write_package_directive(self, f):
         if self.options['package'] and self.dialect.multi_catalog:

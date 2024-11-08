@@ -26,6 +26,8 @@ class CodeGenerator(ABC):
         self.options = options
         self.files = []
 
+        self.defined_types = { class_def['name']: class_id for class_id, class_def in syntax_tree.items() }
+
         if options['infer_keys']:
             self.infer_keys_from_names(options['pk_pattern'])
 
