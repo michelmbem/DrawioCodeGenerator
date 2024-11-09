@@ -59,7 +59,10 @@ class PostgreSQLDialect(SQLDialect):
     }
 
     def __init__(self):
-        super().__init__()
+        super().__init__(True)
+
+    def catalog_switch_directive(self, catalog_name):
+        return f"\\c {catalog_name};\n\n"
 
     def map_type(self, typename, constraints):
         if constraints and constraints.get("identity"):

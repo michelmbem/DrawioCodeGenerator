@@ -7,6 +7,9 @@ class SQLDialect:
     def multi_catalog(self):
         return self._multi_catalog
 
+    def catalog_switch_directive(self, catalog_name):
+        return f"use {catalog_name};\n\n"
+
     def map_type(self, typename, constraints):
         return self.TYPE_MAPPINGS.get(typename.lower(), typename)
 

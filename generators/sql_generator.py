@@ -19,6 +19,7 @@ class SqlCodeGenerator(CodeGenerator):
     def __init__(self, syntax_tree, file_path, options):
         super().__init__(syntax_tree, file_path, options)
         self.dialect = SQLDialects.get(options['dialect'])
+        self.custom_types = []
         self.primary_keys = {}
         self.foreign_keys = {}
         self.tmp_primary_key = []
@@ -42,8 +43,10 @@ class SqlCodeGenerator(CodeGenerator):
 
                 match class_type:
                     case "enum":
-                        file_contents = self.dialect.enum_decl(class_def)
-                        if not file_contents: continue
+                        enum_declaration = self.dialect.enum_decl(class_def)
+                        if enum_declaration.strip():
+                            self.custom_types.append(enum_declaration)
+                        continue
                     case "class" | "abstract class":
                         if len(instance_props) <= 0: continue
 
@@ -83,6 +86,10 @@ class SqlCodeGenerator(CodeGenerator):
                 with open(file_path, "w") as f:
                     self.write_package_directive(f)
 
+                    if len(self.custom_types) > 0:
+                        f.write("-- CUSTOM TYPES:\n\n")
+                        self.write_custom_types(f)
+
                     f.write("-- TABLES:\n\n")
                     for table_name, table_def in self.files:
                         f.write(table_def)
@@ -96,6 +103,12 @@ class SqlCodeGenerator(CodeGenerator):
                     with open(file_path, "w") as f:
                         self.write_package_directive(f)
                         f.write(table_def)
+
+                if len(self.custom_types) > 0:
+                    file_path = path.join(self.file_path, f"_custom_types.{self.get_file_extension()}")
+                    with open(file_path, "w") as f:
+                        self.write_package_directive(f)
+                        self.write_custom_types(f)
 
                 file_path = path.join(self.file_path, f"_foreign_keys.{self.get_file_extension()}")
                 with open(file_path, "w") as f:
@@ -225,7 +238,8 @@ class SqlCodeGenerator(CodeGenerator):
         return generated_id_string + properties_string
 
     def package_directive(self, package_name):
-        return f"use {self.split_package_name(package_name)[-1]};\n\n"
+        catalog_name = self.split_package_name(package_name)[-1]
+        return self.dialect.catalog_switch_directive(catalog_name)
 
     def map_type(self, typename, constraints = None):
         mapped_type = self.dialect.map_type(typename, constraints)
@@ -234,8 +248,7 @@ class SqlCodeGenerator(CodeGenerator):
             length = constraints.get("length")
             if not length:
                 size = constraints.get("size")
-                if size:
-                    length = size[1]
+                if size: length = size[1] if len(size) > 1 else size[0]
 
             if length:
                 lparen, rparen = mapped_type.find('('), mapped_type.find(')')
@@ -270,6 +283,10 @@ class SqlCodeGenerator(CodeGenerator):
     def write_package_directive(self, f):
         if self.options['package'] and self.dialect.multi_catalog:
             f.write(self.package_directive(self.options['package']))
+
+    def write_custom_types(self, f):
+        for type_definition in self.custom_types:
+            f.write(type_definition)
 
     def write_foreign_keys(self, f):
         for table_name, foreign_keys in self.foreign_keys.items():
