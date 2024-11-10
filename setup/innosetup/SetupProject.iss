@@ -32,9 +32,9 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputDir={#MyAppSource}\setup\innodb\out
+OutputDir={#MyAppSource}\setup\innosetup
 OutputBaseFilename=DrawioCodeGeneratorSetup
-SetupIconFile={#MyAppSource}\ui\assets\icons\app-icon.ico
+SetupIconFile={#MyAppSource}\setup\app-icon.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
