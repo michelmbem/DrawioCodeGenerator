@@ -4,8 +4,8 @@ from generators.sql_dialect.sql_dialect import SQLDialect
 class AnsiSQLDialect(SQLDialect):
 
     TYPE_MAPPINGS = {
-        "boolean": "smallint",
-        "bool": "smallint",
+        "boolean": "boolean",
+        "bool": "boolean",
         "char": "character(1)",
         "wchar": "national character(1)",
         "sbyte": "smallint",
@@ -21,10 +21,10 @@ class AnsiSQLDialect(SQLDialect):
         "int32": "integer",
         "uint": "integer",
         "uint32": "integer",
-        "long": "decimal(20)",
-        "int64": "decimal(20)",
-        "ulong": "decimal(20)",
-        "uint64": "decimal(20)",
+        "long": "bigint",
+        "int64": "bigint",
+        "ulong": "bigint",
+        "uint64": "bigint",
         "float": "real",
         "single": "real",
         "double": "double precision",
@@ -36,7 +36,15 @@ class AnsiSQLDialect(SQLDialect):
         "time": "time",
         "datetime": "timestamp",
         "timestamp": "timestamp",
+        "uuid": "character(36)",
+        "guid": "character(36)",
+        "byte[]": "binary large object",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "character large object",
+        "wstring": "character large object",
     }
 
     def __init__(self):

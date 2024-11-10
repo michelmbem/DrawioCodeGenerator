@@ -59,12 +59,13 @@ class PhpCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition

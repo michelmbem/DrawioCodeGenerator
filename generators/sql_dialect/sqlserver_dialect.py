@@ -38,7 +38,13 @@ class SQLServerDialect(SQLDialect):
         "timestamp": "datetime",
         "uuid": "uniqueidentifier",
         "guid": "uniqueidentifier",
+        "byte[]": "image",
         "unspecified": "int",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "text",
+        "wstring": "ntext",
     }
 
     def __init__(self):

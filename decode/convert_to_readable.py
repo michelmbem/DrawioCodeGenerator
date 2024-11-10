@@ -51,4 +51,6 @@ class DecodeAndDecompress:
         tag_text = str(tag)
         start = tag_text.find(">") + 1
         end = tag_text.rfind("<")
-        return tag_text[start:end].strip()
+        tag_text = tag_text[start:end]
+
+        return tag_text.encode('ascii', 'ignore').decode().strip()

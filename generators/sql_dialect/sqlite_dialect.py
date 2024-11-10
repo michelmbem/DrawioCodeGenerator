@@ -38,8 +38,11 @@ class SQLiteDialect(SQLDialect):
         "timestamp": "text",
         "uuid": "text",
         "guid": "text",
+        "byte[]": "blob",
         "unspecified": "integer",
     }
+
+    LOB_TYPE_MAPPINGS = TYPE_MAPPINGS
 
     def __init__(self):
         super().__init__()

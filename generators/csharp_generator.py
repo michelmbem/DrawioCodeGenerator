@@ -46,6 +46,7 @@ class CSharpCodeGenerator(CodeGenerator):
         "timestamp": "DateTime",
         "uuid": "Guid",
         "guid": "Guid",
+        "byte[]": "byte[]",
         "unspecified": "object",
     }
 
@@ -118,12 +119,13 @@ class CSharpCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -424,39 +426,50 @@ class CSharpCodeGenerator(CodeGenerator):
 
         if constraints.get('identity'):
             annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Identity)]\n"
-        elif constraints.get('generated', False):
+        elif constraints.get('generated'):
             annotation_string += "\t[DatabaseGenerated(DatabaseGeneratedOption.Computed)]\n"
 
-        if constraints.get('rowversion', False):
+        if constraints.get('rowversion'):
             if data_type == "byte[]":
                 annotation_string += "\t[TimeStamp]\n"
             else:
                 annotation_string += "\t[ConcurrencyCheck]\n"
 
+        constraint = constraints.get('range')
+        if isinstance(constraint, list) and len(constraint) > 1:
+            annotation_string += f"\t[Range({constraint[0]}, {constraint[1]})]\n"
+
         constraint = constraints.get('size')
-        if constraint:
+        if isinstance(constraint, list) and len(constraint) > 1:
             annotation_string += f"\t[MinLength({constraint[0]})]\n"
             annotation_string += f"\t[MaxLength({constraint[1]})]\n"
         else:
             constraint = constraints.get('length')
-            if constraint:
-                annotation_string += f"\t[StringLength({constraint})]\n"
+            if isinstance(constraint, list):
+                annotation_string += f"\t[Length({constraint[0]})]\n"
 
-        if data_type == "date":
-            annotation_string += "\t[DataType(DataType.Date)]\n"
-        elif data_type == "time":
-            annotation_string += "\t[DataType(DataType.Time)]\n"
-        elif data_type == "datetime":
-            annotation_string += "\t[DataType(DataType.DateTime)]\n"
-        else:
-            constraint = constraints.get('format')
-            if constraint == "phone":
-                annotation_string += "\t[DataType(DataType.PhoneNumber)]\n"
-            elif constraint == "email":
-                annotation_string += "\t[DataType(DataType.EmailAddress)]\n"
-            elif constraint == "url":
-                annotation_string += "\t[DataType(DataType.Url)]\n"
-            elif constraint == "creditcard":
-                annotation_string += "\t[DataType(DataType.CreditCard)]\n"
+        match data_type:
+            case "date":
+                annotation_string += "\t[DataType(DataType.Date)]\n"
+            case "time":
+                annotation_string += "\t[DataType(DataType.Time)]\n"
+            case "datetime":
+                annotation_string += "\t[DataType(DataType.DateTime)]\n"
+            case _:
+                match constraints.get('format', [""])[0].lower():
+                    case "date":
+                        annotation_string += "\t[DataType(DataType.Date)]\n"
+                    case "time":
+                        annotation_string += "\t[DataType(DataType.Time)]\n"
+                    case "datetime":
+                        annotation_string += "\t[DataType(DataType.DateTime)]\n"
+                    case "phone":
+                        annotation_string += "\t[DataType(DataType.PhoneNumber)]\n"
+                    case "email":
+                        annotation_string += "\t[DataType(DataType.EmailAddress)]\n"
+                    case "url":
+                        annotation_string += "\t[DataType(DataType.Url)]\n"
+                    case "creditcard":
+                        annotation_string += "\t[DataType(DataType.CreditCard)]\n"
 
         return annotation_string

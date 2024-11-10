@@ -38,7 +38,13 @@ class MySQLDialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "binary(16)",
         "guid": "binary(16)",
+        "byte[]": "longblob",
         "unspecified": "int",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "longtext",
+        "wstring": "longtext",
     }
 
     def __init__(self):

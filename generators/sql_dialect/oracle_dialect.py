@@ -38,7 +38,13 @@ class OracleDialect(SQLDialect):
         "timestamp": "date",
         "uuid": "raw(16)",
         "guid": "raw(16)",
+        "byte[]": "blob",
         "unspecified": "number",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "clob",
+        "wstring": "nclob",
     }
 
     def __init__(self):

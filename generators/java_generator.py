@@ -46,6 +46,7 @@ class JavaCodeGenerator(CodeGenerator):
         "timestamp": {'java8_local': "LocalDateTime", 'java8_offset': "OffsetDateTime", 'sql_date': "Timestamp", 'util_date': "Date", 'calendar': "Calendar"},
         "uuid": "UUID",
         "guid": "UUID",
+        "byte[]": "byte[]",
         "unspecified": "Object",
     }
 
@@ -130,7 +131,11 @@ class JavaCodeGenerator(CodeGenerator):
 
         if class_type in ("class", "abstract class"):
             if self.options['add_jpa']:
-                class_header += "@Entity\n"
+                if self.get_stereotype(class_name) == "embeddable":
+                    class_header += "@Embeddable\n"
+                else:
+                    class_header += "@Entity\n"
+
                 if handle_jpa_inheritance:
                     pk = self.get_primary_key(baseclasses[0])
                     pk = pk[0]['name'] if len(pk) > 0 else "--no-primary-key-found--"
@@ -154,12 +159,13 @@ class JavaCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -480,8 +486,9 @@ class JavaCodeGenerator(CodeGenerator):
         if self.options['add_jpa']:
             jpa_imports.append({
                 "package": f"{jee_root_package}.persistence",
-                "classes": ["Entity", "Id", "GeneratedValue", "GenerationType", "Enumerated", "EnumType", "ManyToOne",
-                            "OneToMany", "Lob"]
+                "classes": ["Entity", "Embeddable", "Embedded", "Id", "GeneratedValue", "GenerationType", "Generated",
+                            "GenerationTime", "Temporal", "TemporalType", "Enumerated", "EnumType", "Lob", "Version",
+                            "ManyToOne", "OneToMany"]
             })
             jpa_imports.append({
                 "package": f"{jee_root_package}.validation.constraints",
@@ -509,53 +516,71 @@ class JavaCodeGenerator(CodeGenerator):
         return lombok_imported_classes
 
     def get_data_annotations(self, data_type, constraints):
-        jpa_annotations = ""
+        annotation_string = ""
 
         if data_type in self.defined_types:
             if self.syntax_tree[self.defined_types[data_type]]['type'] == "enum":
-                jpa_annotations += "@Enumerated(EnumType.STRING)\n\t"
+                annotation_string += "@Enumerated(EnumType.STRING)\n\t"
             else:
-                jpa_annotations += "@Embedded\n\t"
+                annotation_string += "@Embedded\n\t"
 
         if constraints.get('required'):
-            jpa_annotations += "@NotNull\n\t"
+            annotation_string += "@NotNull\n\t"
 
         if constraints.get('pk'):
-            jpa_annotations += "@Id\n\t"
+            annotation_string += "@Id\n\t"
 
         if constraints.get('identity'):
-            jpa_annotations += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
+            annotation_string += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
+        elif constraints.get('generated'):
+            annotation_string += "@Generated(GenerationTime.INSERT)\n\t"
 
         if constraints.get('lob'):
-            jpa_annotations += "@Lob\n\t"
+            annotation_string += "@Lob\n\t"
+
+        if constraints.get('rowversion'):
+            annotation_string += "@Version\n\t"
 
         constraint = constraints.get('min')
-        if constraint:
-            jpa_annotations += f"@Min({constraint})\n\t"
+        if isinstance(constraint, list):
+            annotation_string += f"@Min({constraint[0]})\n\t"
 
         constraint = constraints.get('max')
-        if constraint:
-            jpa_annotations += f"@Max({constraint})\n\t"
+        if isinstance(constraint, list):
+            annotation_string += f"@Max({constraint[0]})\n\t"
 
         constraint = constraints.get('range')
-        if isinstance(constraint, list) and len(constraint) > 1:
-            jpa_annotations += f"@Range(min={constraint[0]}, max={constraint[1]})\n\t"
+        if isinstance(constraint, list):
+            if len(constraint) > 1:
+                annotation_string += f"@Range(min={constraint[0]}, max={constraint[1]})\n\t"
+            else:
+                annotation_string += f"@Max({constraint[0]})\n\t"
 
         constraint = constraints.get('size')
         if isinstance(constraint, list):
             if len(constraint) > 1:
-                jpa_annotations += f"@Size(min={constraint[0]}, max={constraint[1]})\n\t"
+                annotation_string += f"@Size(min={constraint[0]}, max={constraint[1]})\n\t"
             else:
-                jpa_annotations += f"@Size(max={constraint[0]})\n\t"
+                annotation_string += f"@Size(max={constraint[0]})\n\t"
+        else:
+            constraint = constraints.get('length')
+            if isinstance(constraint, list):
+                annotation_string += f"@Size(max={constraint[0]})\n\t"
 
-        constraint = constraints.get('format')
-        if constraint == "phone":
-            jpa_annotations += r'@Pattern(regexp="^(((\\+|00)[1-9]+)[ -]?)?((\\(\d+\\))|\\d)([ -]?\\d)+$")' + "\n\t"
-        elif constraint == "email":
-            jpa_annotations += "@Email\n\t"
-        elif constraint == "url":
-            jpa_annotations += "@URL\n\t"
-        elif constraint == "creditcard":
-            jpa_annotations += "@CreditCardNumber\n\t"
+        match constraints.get('format', [""])[0].lower():
+            case "date":
+                annotation_string += "@Temporal(TemporalType.DATE)\n\t"
+            case "time":
+                annotation_string += "@Temporal(TemporalType.TIME)\n\t"
+            case "datetime":
+                annotation_string += "@Temporal(TemporalType.TIMESTAMP)\n\t"
+            case "phone":
+                annotation_string += r'@Pattern(regexp="^(((\\+|00)[1-9]+)[ -]?)?((\\(\\d+\\))|\\d)([ -]?\\d)+$")' + "\n\t"
+            case "email":
+                annotation_string += "@Email\n\t"
+            case "url":
+                annotation_string += "@URL\n\t"
+            case "creditcard":
+                annotation_string += "@CreditCardNumber\n\t"
 
-        return jpa_annotations
+        return annotation_string

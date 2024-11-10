@@ -8,7 +8,7 @@
     <img src="./github_assets/code.png" width="125" height="125" alt="code_logo">
 </div>
 
-### Generate source code in various programming languages from a [draw.io](https://draw.io/) UML class diagram
+### Generate source code in different programming languages ​​from a UML class diagram created with [draw.io](https://draw.io/)
 
 Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 
@@ -19,21 +19,21 @@ Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 ## About this fork
 
 This is a fork of the https://github.com/Daandelange/DrawioCodeGenerator repository.<br>
-It brings the following noticeable improvements:
+It brings the following notable improvements:
 
-1. A [wxPython](https://wxpython.org/) based GUI for an enhanced user experience.
-2. The original Java and TypeScript code generators were extended with new functionalities. 
-3. New code generators were added for C#, C++, Python, PHP and SQL with the same level of functionalities than the initial ones.
-4. The generated xml and json documents are no more stored in files but displayed on the GUI.
-5. Abstract classes can either be identified by a name in italics or by an **\<\<abstract\>\>** stereotype besides their name.
-6. The **\<\<enum\>\>** and **\<\<enumeration\>\>** stereotypes indicate that a class is in fact an enumeration.
-7. A default value can be defined for a property if the property's definition ends with a _" = default_value"_ string, which is very practical for enumeration's members.
-8. Class attributes can also have constraints attached to them. Those constraints should be listed between curved braces to the right of the attribute's definition. **e.g.**: `-customer_id: int {id}` or `+getTotalCount(): int {static}`. The recognized constraints are listed in one of the tables bellow
-9. Code generators can produce a **package** or **namespace** directive if required. They will also automatically generate an **import**<br>(**using** or **#include** or **require_once**) directive for any symbol that the class being generated depends on.
-10. Users can define additional module and/or symbols to import in their class headers through a configuration dialog.
-11. If required code generators can also produce other members like accessors (in the form of encapsulated properties or getter/setter pairs), a default constructor, a fully parameterized constructor and overrides for the _equals_, _hashCode_ and _toString_ methods in languages that support those features.
-12. Each code generator supports a set of specific options (like using _Lombok_ and/or _JPA_ annotations for the Java code generator or specifying a SQL dialect for the SQL code generator).
-13. The program recognizes a set of pseudo data types that can be mapped to equivalent data types in each of the target languages. They are listed in one of the tables bellow.
+1. A GUI based on [wxPython](https://wxpython.org/) for an enhanced user experience.
+2. The original Java and TypeScript code generators have been extended with new features.
+3. New code generators have been added for C#, C++, Python, PHP and SQL with the same level of functionality as the original ones.
+4. Generated xml and json documents are no longer stored in files but displayed on the GUI.
+5. Abstract classes can be identified either by an italicized name or by a **\<\<abstract\>\>** stereotype applied to their name.
+6. The **\<\<enum\>\>** and **\<\<enumeration\>\>** stereotypes indicate that a class is actually an enumeration.
+7. A default value can be set for a property if the property definition ends with a string of the form _" = default_value"_, which is very convenient for enumeration members.
+8. It is also possible to attach constraints to class attributes. These must appear in curly braces to the right of the attribute definition. **e.g.**: `-customer_id : int {id}` or `+getTotalCount() : int {static}`. The recognized constraints are listed in one of the tables below
+9. Code generators can produce a **package** or **namespace** directive if needed. They will also automatically generate an **import** (or **using** or **#include** or **require_once**) directive for any symbol that the generated class depends on.
+10. Users can define additional modules and/or symbols to import into their class headers via the configuration dialog.
+11. If necessary, code generators can produce other class members such as accessors (in the form of wrapped properties or getter/setter pairs), a default constructor, a fully parameterized constructor, and overrides for the _equals_, _hashCode_, and _toString_ methods in languages ​​that support these features.
+12. Each code generator supports a specific set of options (such as using the _Lombok_ and/or _JPA_ annotations for the Java code generator or specifying a SQL dialect for the SQL code generator).
+13. The program recognizes a set of pseudo-data types that can be mapped to equivalent data types in each of the target languages. These are listed in one of the tables below.
 
 ## Recognized symbols
 
@@ -41,19 +41,19 @@ It brings the following noticeable improvements:
 
 |Pseudo-type|Java equivalent|C# equivalent|C++ equivalent|TypeScript equivalent|SQL equivalent|
 |-|-|-|-|-|-|
-|boolean, bool|boolean|bool|bool|boolean|smallint/tinyint/bit|
+|boolean, bool|boolean|bool|bool|boolean|boolean/bit/tinyint|
 |char|char|char|char|string|character(1)|
 |wchar|char|char|wchar_t|string|national character(1)|
 |sbyte, int8|byte|sbyte|signed char|number|smallint/tinyint|
 |byte, uint8|byte|byte|unsigned char|number|smallint/tinyint|
 |short, int16|short|short|short|number|smallint|
 |ushort, uint16|short|ushort|unsigned short|number|smallint|
-|integer, int, int32|int|int|int|number|integer|
-|uint, uint32|int|uint|unsigned int|number|integer|
+|integer, int, int32|int|int|int|number|int\[eger\]|
+|uint, uint32|int|uint|unsigned int|number|int\[eger\]|
 |long, int64|long|long|long long|number|bigint|
 |ulong, uint64|long|ulong|unsigned long long|number|bigint|
 |foat, single|float|float|float|number|real/float|
-|double|double|double|double|number|float/double precision|
+|double|double|double|double|number|double precision/float|
 |bigint|BigInteger|BigInteger|long long<br>(boost::multiprecision::cpp_int with **boost** enabled)|bigint|decimal(30)|
 |decimal|BigDecimal|decimal|long double<br>(boost::multiprecision::cpp_dec_float_50 with **boost** enabled)|number|decimal(30, 10)|
 |string|String|string|std::string|string|varchar(2000)|
@@ -62,7 +62,8 @@ It brings the following noticeable improvements:
 |time|LocalTime|DateTime|time_t<br>(boost::posix_time::time_duration with **boost** enabled)|Date|time|
 |datetime, timestamp|LocalDateTime|DateTime|time_t<br>(boost::posix_time::ptime with **boost** enabled)|Date|datetime|
 |uuid, guid|UUID|Guid|std::array<char, 16><br>(boost::uuids::uuid with **boost** enabled)|string|depends on the chosen dialect|
-|unspecified|Object|object|int|any|integer|
+|byte\[\]|byte\[\]|byte\[\]|std::vector<char>|UInt8Array|binary large object/\[long\]blob/image/bytea/oleobject|
+|unspecified|Object|object|int|any|int\[eger\]|
 
 ### 2: Attribute constraints
 
@@ -81,6 +82,7 @@ It brings the following noticeable improvements:
 |-|-|-|-|
 |pk or key|@Id|[Key]|primary key|
 |identity or id|@GeneratedValue(strategy=GenerationType.IDENTITY)|[DatabaseGenerated(DatabaseGeneratedOption.Identity)]|generated always as identity|
+|generated|@Generated(GenerationTime.INSERT)|[DatabaseGenerated(DatabaseGeneratedOption.Computed)]|use the DEFAULT constraint with a dialect specific expression|
 |required|@NotNull|[Required]|not null|
 |lob|@Lob|_N/A_|clob/blob/binary depending on the chosen dialect|
 |rowversion|@Version|[TimeStamp] if the data type is byte[], [ConcurrencyCheck] otherwise|depends on the chosen dialect|
@@ -154,30 +156,44 @@ python3 main.py
 
 ## State
 
-A continuous effort is made for the program to become compatible with the largest variety of class diagrams but at this stage
-some may not be correctly parsed, especially the entity-relation diagrams witch are a particular type of class diagrams.
-More improvements are still to come.
+An ongoing effort is being made to make the program compatible with the widest variety of class diagrams but at this stage,
+some may not be parsed correctly, particularly entity-relationship diagrams which are a special type of class diagrams optimized for relational databases.
+Further improvements are still to come.
 
 ## Screenshots
 
-#### Main window (Windows - Light mode)
+### Main window
+
+#### Windows - Light mode
 
 ![main_frame](github_assets/main_frame.jpg)
 
-#### Main window (Ubuntu - Dark mode)
+#### Ubuntu - Dark mode
 
 ![main_frame_ubuntu](github_assets/main_frame_ubuntu.png)
 
-#### Options dialog (Windows - Light mode)
+### Options dialog
+
+#### Windows - Light mode
 
 ![options_dialog](github_assets/options_dialog.jpg)
 
-#### Options dialog (Ubuntu - Dark mode)
+#### Ubuntu - Dark mode
 
 ![options_dialog_ubuntu](github_assets/options_dialog_ubuntu.png)
 
-#### Generated code
+### Generated code
 
-![generated_code](github_assets/generated_code.jpg)
+#### Java
 
-#### Voilà, that's it!!
+![generated_java_code](github_assets/generated_java_code.jpg)
+
+#### TypeScript
+
+![generated_ts_code](github_assets/generated_ts_code.jpg)
+
+#### SQL
+
+![generated_sql_code](github_assets/generated_sql_code.jpg)
+
+### Et voilà, that's it!!

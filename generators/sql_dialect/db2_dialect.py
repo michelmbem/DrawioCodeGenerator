@@ -38,7 +38,13 @@ class DB2Dialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "char(16)",
         "guid": "char(16)",
+        "byte[]": "blob",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "clob",
+        "wstring": "dclob",
     }
 
     def __init__(self):

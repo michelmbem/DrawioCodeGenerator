@@ -38,7 +38,13 @@ class SybaseDialect(SQLDialect):
         "timestamp": "datetime",
         "uuid": "uniqueidentifier",
         "guid": "uniqueidentifier",
+        "byte[]": "image",
         "unspecified": "int",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "text",
+        "wstring": "unitext",
     }
 
     def __init__(self):

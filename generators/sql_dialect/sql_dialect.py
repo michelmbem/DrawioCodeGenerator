@@ -11,7 +11,13 @@ class SQLDialect:
         return f"use {catalog_name};\n\n"
 
     def map_type(self, typename, constraints):
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        lower_typename = typename.lower()
+
+        if constraints and constraints.get("lob"):
+            lob_type = self.LOB_TYPE_MAPPINGS.get(lower_typename)
+            if lob_type: return lob_type
+
+        return self.TYPE_MAPPINGS.get(lower_typename, typename)
 
     def identity_spec(self):
         return "generated always as identity (start with 1, increment by 1)"

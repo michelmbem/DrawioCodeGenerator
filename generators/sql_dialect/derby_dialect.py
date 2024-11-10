@@ -38,7 +38,13 @@ class DerbyDialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "char(16) for bit data",
         "guid": "char(16) for bit data",
+        "byte[]": "blob",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "clob",
+        "wstring": "clob",
     }
 
     def __init__(self):

@@ -4,9 +4,9 @@
 .idea
 .vs[code]
 venv
-__pycache__
-build
-out[put]
-bin
-lib
-dist
+**/__pycache__
+**/build
+**/out[put]
+**/bin
+**/lib
+**/dist

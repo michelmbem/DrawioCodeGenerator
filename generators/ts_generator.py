@@ -39,13 +39,14 @@ class TsCodeGenerator(CodeGenerator):
         "bigint": "bigint",
         "decimal": "number",
         "string": "string",
-        "wstring": "wstring",
+        "wstring": "string",
         "date": "Date",
         "time": "Date",
         "datetime": "Date",
         "timestamp": "Date",
         "uuid": "string",
         "guid": "string",
+        "byte[]": "UInt8Array",
         "unspecified": "any",
     }
 
@@ -85,9 +86,9 @@ class TsCodeGenerator(CodeGenerator):
             for module, symbols in self.options['imports'].items():
                 imports.add(f"import {{ {', '.join(symbols)} }} from '{module}';")
 
-            imports |= set(f"import {baseclass} from './{baseclass}.ts';" for baseclass in baseclasses)
-            imports |= set(f"import {interface} from './{interface}.ts';" for interface in interfaces)
-            imports |= set(f"import {reference[1]} from './{reference[1]}.ts';" for reference in references if reference[1] != class_name)
+            imports |= set(f"import {{ {baseclass} }} from './{baseclass}.ts';" for baseclass in baseclasses)
+            imports |= set(f"import {{ {interface} }} from './{interface}.ts';" for interface in interfaces)
+            imports |= set(f"import {{ {reference[1]} }} from './{reference[1]}.ts';" for reference in references if reference[1] != class_name)
 
             for import_line in sorted(imports):
                 class_header += f"{import_line}\n"
@@ -104,12 +105,13 @@ class TsCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -225,16 +227,21 @@ class TsCodeGenerator(CodeGenerator):
 
         for reference in references:
             field_name = f"_{reference[1][0].lower()}{reference[1][1:]}"
-            if reference[0] == "from": field_name += 's'
+            field_type = reference[1]
+
+            if reference[0] == "from":
+                field_name += 's'
+                field_type += "[]"
+
             accessor_name = self.accessor_name(field_name)
             parameter_name = self.parameter_name(field_name)
 
             match reference[0]:
                 case "to" | "from":
-                    accessors_string += (f"\tpublic get {accessor_name}(): {reference[1]} {{\n"
+                    accessors_string += (f"\tpublic get {accessor_name}(): {field_type} {{\n"
                                          f"\t\treturn this.{field_name};\n\t}}\n\n")
 
-                    accessors_string += (f"\tpublic set {accessor_name}({parameter_name}: {reference[1]}) {{\n"
+                    accessors_string += (f"\tpublic set {accessor_name}({parameter_name}: {field_type}) {{\n"
                                          f"\t\tthis.{field_name} = {parameter_name};\n\t}}\n\n")
                 case _:
                     continue

@@ -106,7 +106,7 @@ class CodeGenerator(ABC):
                     self.get_interface_methods(class_def['relationships']['implements'], interface_methods)
                     file_contents += self.generate_methods(class_type, class_def['methods'], interface_methods)
 
-                file_contents += self.generate_class_footer(class_type)
+                file_contents += self.generate_class_footer(class_type, class_name)
 
                 self.files.append((class_name, file_contents))
 
@@ -198,6 +198,14 @@ class CodeGenerator(ABC):
             interface_methods += interface['methods'].values()
             self.get_interface_methods(interface['relationships']['implements'], interface_methods)
 
+    def get_class_by_name(self, class_name):
+        class_id = self.defined_types.get(class_name)
+        return self.syntax_tree.get(class_id) if class_id else None
+
+    def get_stereotype(self, class_name):
+        class_def = self.get_class_by_name(class_name)
+        return class_def['stereotype'] if class_def else None
+
     def get_primary_key(self, class_name):
         """
         Searches for the set of properties that represent the primary key of an entity
@@ -206,17 +214,15 @@ class CodeGenerator(ABC):
             class_name: the class name
         """
 
-        for class_def in self.syntax_tree.values():
-            if class_def['name'] == class_name:
-                pk = [p for p in class_def['properties'].values() if p['constraints'].get("pk", False)]
+        class_def = self.get_class_by_name(class_name)
+        if class_def:
+            pk = [p for p in class_def['properties'].values() if p['constraints'].get("pk")]
+            if len(pk) > 0: return pk
+
+            baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
+            for baseclass in baseclasses:
+                pk = self.get_primary_key(baseclass)
                 if len(pk) > 0: return pk
-
-                baseclasses = [self.syntax_tree[r]['name'] for r in class_def['relationships']['extends']]
-                for baseclass in baseclasses:
-                    pk = self.get_primary_key(baseclass)
-                    if len(pk) > 0: return pk
-
-                break
 
         return []
 
@@ -267,7 +273,7 @@ class CodeGenerator(ABC):
         pass
 
     @abstractmethod
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         pass
 
     @abstractmethod

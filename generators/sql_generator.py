@@ -2,6 +2,8 @@ import traceback
 
 from operator import itemgetter
 from os import path
+from tabnanny import check
+
 from generators.code_generator import CodeGenerator
 from generators.sql_dialect.sql_dialects import SQLDialects
 
@@ -22,8 +24,9 @@ class SqlCodeGenerator(CodeGenerator):
         self.custom_types = []
         self.primary_keys = {}
         self.foreign_keys = {}
-        self.tmp_primary_key = []
-        self.tmp_foreign_keys = {}
+        self.table_primary_key = []
+        self.table_foreign_keys = {}
+        self.table_constraints = []
 
     def generate_code(self):
         """
@@ -48,20 +51,22 @@ class SqlCodeGenerator(CodeGenerator):
                             self.custom_types.append(enum_declaration)
                         continue
                     case "class" | "abstract class":
-                        if len(instance_props) <= 0: continue
+                        if self.get_stereotype(class_name) == "embeddable" or len(instance_props) <= 0:
+                            continue
 
                         file_contents = self.generate_class_header(class_type, class_name, baseclasses)
                         file_contents += self.generate_properties(class_type, class_name, instance_props, references)
-                        file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.tmp_primary_key)})"
-                        file_contents += self.generate_class_footer()
+                        file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.table_primary_key)})"
+                        file_contents += self.generate_class_footer(class_type, class_name)
                     case _:
                         continue
 
                 self.files.append((class_name, file_contents))
-                self.primary_keys[class_name] = self.tmp_primary_key
-                self.foreign_keys[class_name] = self.tmp_foreign_keys
-                self.tmp_primary_key = []
-                self.tmp_foreign_keys = {}
+                self.primary_keys[class_name] = self.table_primary_key
+                self.foreign_keys[class_name] = self.table_foreign_keys
+                self.table_primary_key = []
+                self.table_foreign_keys = {}
+                self.table_constraints = []
 
             self.generate_files()
         except Exception as e:
@@ -136,28 +141,45 @@ class SqlCodeGenerator(CodeGenerator):
         header_string = f"CREATE TABLE {class_name} (\n"
 
         if len(baseclasses) > 0:
-            pk = self.get_primary_key(baseclasses[0])
+            for pk_field in self.get_primary_key(baseclasses[0]):
+                self.table_primary_key.append(pk_field['name'])
+                header_string += f"\t{pk_field['name']} {self.map_type(pk_field['type'])} not null,\n"
 
-            for p in pk:
-                header_string += f"\t{p['name']} {self.map_type(p['type'])} not null,\n"
-
-            self.tmp_primary_key = [p['name'] for p in pk]
-            self.tmp_foreign_keys[baseclasses[0]] = (self.tmp_primary_key, True)
+            self.table_foreign_keys[baseclasses[0]] = (self.table_primary_key, True)
 
         return header_string
 
-    def generate_class_footer(self, class_type = None):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
         """
 
-        return "\n);\n"
+        footer_string = ""
+        check_constraints = {}
+
+        for constraint in self.table_constraints:
+            match constraint[0]:
+                case "unique":
+                    footer_string += f",\n\tconstraint un_{class_name}_{constraint[1]} unique ({constraint[1]})"
+                case "check":
+                    if constraint[1] in check_constraints:
+                        check_constraints[constraint[1]] += 1
+                    else:
+                        check_constraints[constraint[1]] = 1
+
+                    footer_string += (f",\n\tconstraint chk_{class_name}_{constraint[1]}{check_constraints[constraint[1]]}"
+                                      f" check ({constraint[1]} {constraint[2]})")
+
+        footer_string += "\n);\n"
+
+        return footer_string
 
     def generate_properties(self, class_type, class_name, properties, references):
         """
@@ -178,31 +200,31 @@ class SqlCodeGenerator(CodeGenerator):
         first_prop = True
 
         for property_def in properties.values():
-            data_type = property_def['type']
+            property_type = property_def['type']
+            property_type_def = self.get_class_by_name(property_type)
 
             if first_prop:
                 first_prop = False
             else:
                 properties_string += ",\n"
 
-            if data_type in self.defined_types:
-                defined_type = self.syntax_tree[self.defined_types[data_type]]
-                defined_type_props = defined_type['properties'].values()
+            if property_type_def:
+                property_type_props = property_type_def['properties'].values()
 
-                if defined_type['type'] == "enum":
-                    p = f"\t{property_def['name']} {self.dialect.enum_spec(data_type, defined_type_props)}"
+                if property_type_def['type'] == "enum":
+                    p = f"\t{property_def['name']} {self.dialect.enum_spec(property_type, property_type_props)}"
                 else:
                     p = ",\n".join(self.field_spec(p, f"{property_def['name']}_", property_def['constraints'])
-                                   for p in defined_type_props)
+                                   for p in property_type_props)
             else:
                 p = self.field_spec(property_def, "", {})
 
             properties_string += p
 
-        if len(self.tmp_primary_key) <= 0:
+        if len(self.table_primary_key) <= 0:
             generated_id = ("id", "integer", {'pk': True, 'identity': True})
             generated_id_string = f"\t{generated_id[0]} {self.map_type(generated_id[1], generated_id[2])},\n"
-            self.tmp_primary_key.append(generated_id[0])
+            self.table_primary_key.append(generated_id[0])
 
         for reference in references:
             if reference[0] != "to": continue
@@ -233,7 +255,7 @@ class SqlCodeGenerator(CodeGenerator):
             if reference[2]:
                 properties_string += " not null"
 
-            self.tmp_foreign_keys[reference[1]] = (fk_columns, reference[2])
+            self.table_foreign_keys[reference[1]] = (fk_columns, reference[2])
 
         return generated_id_string + properties_string
 
@@ -245,15 +267,15 @@ class SqlCodeGenerator(CodeGenerator):
         mapped_type = self.dialect.map_type(typename, constraints)
 
         if constraints:
-            length = constraints.get("length")
-            if not length:
-                size = constraints.get("size")
-                if size: length = size[1] if len(size) > 1 else size[0]
+            size = constraints.get("size")
+            if not size:
+                size = constraints.get("length")
+                if size: size = ", ".join(size)
 
-            if length:
+            if size:
                 lparen, rparen = mapped_type.find('('), mapped_type.find(')')
                 if 0 <= lparen < rparen:
-                    return f"{mapped_type[:lparen]}({length}){mapped_type[rparen + 1:]}"
+                    return f"{mapped_type[:lparen]}({size}){mapped_type[rparen + 1:]}"
 
         return mapped_type
 
@@ -262,21 +284,35 @@ class SqlCodeGenerator(CodeGenerator):
 
     def field_spec(self, property_def, prefix, group_constraints):
         constraints = property_def['constraints']
-        field_string = f"\t{prefix}{property_def['name']} {self.map_type(property_def['type'], constraints)}"
+        property_name = property_def['name']
+
+        field_string = f"\t{prefix}{property_name} {self.map_type(property_def['type'], constraints)}"
 
         if constraints.get('required') or group_constraints.get('required'):
             field_string += " not null"
 
-        if constraints.get('unique'):
-            field_string += " unique"
-
         if constraints.get('pk'):
-            self.tmp_primary_key.append(property_def['name'])
+            self.table_primary_key.append(property_name)
             if constraints.get('identity'):
                 field_string += f" {self.dialect.identity_spec()}".rstrip()
 
         if property_def['default_value'] and not constraints.get('identity'):
             field_string += f" default {property_def['default_value']}"
+
+        if constraints.get('unique'):
+            self.table_constraints.append(("unique", property_name))
+
+        constraint = constraints.get('min')
+        if isinstance(constraint, list):
+            self.table_constraints.append(("check", property_name, f">= {constraint[0]}"))
+
+        constraint = constraints.get('max')
+        if isinstance(constraint, list):
+            self.table_constraints.append(("check", property_name, f"<= {constraint[0]}"))
+
+        constraint = constraints.get('range')
+        if isinstance(constraint, list) and len(constraint) > 1:
+            self.table_constraints.append(("check", property_name, f"between {constraint[0]} and {constraint[1]}"))
 
         return field_string
 

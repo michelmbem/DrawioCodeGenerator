@@ -38,7 +38,13 @@ class FirebirdDialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "char(16) character set octets",
         "guid": "char(16) character set octets",
+        "byte[]": "blob sub_type binary",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "blob sub_type text",
+        "wstring": "blob sub_type text",
     }
 
     def __init__(self):

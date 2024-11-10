@@ -38,7 +38,13 @@ class HSQLDBDialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "uuid",
         "guid": "uuid",
+        "byte[]": "blob",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "clob",
+        "wstring": "clob",
     }
 
     def __init__(self):

@@ -36,6 +36,9 @@ class PostgreSQLDialect(SQLDialect):
         "time": "time",
         "datetime": "datetime",
         "timestamp": "timestamp",
+        "uuid": "uuid",
+        "guid": "uuid",
+        "byte[]": "bytea",
         "unspecified": "int",
     }
 
@@ -53,9 +56,12 @@ class PostgreSQLDialect(SQLDialect):
         "int64": "bigserial",
         "ulong": "bigserial",
         "uint64": "bigserial",
-        "uuid": "uuid",
-        "guid": "uuid",
         "unspecified": "bigserial",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "text",
+        "wstring": "text",
     }
 
     def __init__(self):
@@ -65,9 +71,17 @@ class PostgreSQLDialect(SQLDialect):
         return f"\\c {catalog_name};\n\n"
 
     def map_type(self, typename, constraints):
-        if constraints and constraints.get("identity"):
-            return self.SERIAL_TYPE_MAPPINGS.get(typename.lower(), "serial")
-        return self.TYPE_MAPPINGS.get(typename.lower(), typename)
+        lower_typename = typename.lower()
+
+        if constraints:
+            if constraints.get("identity"):
+                return self.SERIAL_TYPE_MAPPINGS.get(lower_typename, "serial")
+
+            if constraints.get("lob"):
+                lob_type = self.LOB_TYPE_MAPPINGS.get(lower_typename)
+                if lob_type: return lob_type
+
+        return self.TYPE_MAPPINGS.get(lower_typename, typename)
 
     def identity_spec(self):
         return ""

@@ -1,3 +1,5 @@
+import re
+
 from generators.code_generator import CodeGenerator
 
 
@@ -46,8 +48,11 @@ class CppCodeGenerator(CodeGenerator):
         "timestamp": {'std': "time_t", 'boost': "ptime"},
         "uuid": {'std': "array<char, 16>", 'boost': "uuid"},
         "guid": {'std': "array<char, 16>", 'boost': "uuid"},
+        "byte[]": "vector<char>",
         "unspecified": "int",
     }
+
+    STRUTURED_TYPE = re.compile(r"^date|time_duration|ptime|uuid|w?string|\w+<.+>$", re.IGNORECASE)
 
     ACCESSORS_PREFIX = { 'pascal': ("Get", "Set", "Is", "To", "From", "Of") }
     ACCESSORS_PREFIX['camel'] = tuple(prefix.lower() for prefix in ACCESSORS_PREFIX['pascal'])
@@ -63,6 +68,12 @@ class CppCodeGenerator(CodeGenerator):
         if naming_conv != "snake" and property_name[0].islower():
             return f"{property_name[0].upper()}{property_name[1:]}"
         return property_name
+
+    @staticmethod
+    def parameter_type(typename):
+        if CppCodeGenerator.STRUTURED_TYPE.match(typename):
+            return f"const {typename}&"
+        return typename
 
     def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
@@ -139,12 +150,13 @@ class CppCodeGenerator(CodeGenerator):
 
         return class_header
 
-    def generate_class_footer(self, class_type):
+    def generate_class_footer(self, class_type, class_name):
         """
         Generate the class footer
 
         Parameters:
             class_type: type of class; 'class', 'abstract class', 'interface' or 'enum'
+            class_name: name of class
 
         Returns:
             properties_string: the closing brace of a class definition
@@ -252,6 +264,7 @@ class CppCodeGenerator(CodeGenerator):
             if self.get_property_access(property_def) == "private":
                 accessor_name = self.accessor_name(property_def['name'], self.options['naming'])
                 accessor_type = self.map_type(property_def['type'])
+                parameter_type = self.parameter_type(accessor_type)
                 constraints = property_def['constraints']
 
                 target, modifier = "this->", ""
@@ -270,7 +283,7 @@ class CppCodeGenerator(CodeGenerator):
                 accessors_string += getter
 
                 if not constraints.get('final'):
-                    setter = (f"\t\tpublic:{modifier}void {prefix[1]}{accessor_name}({accessor_type} {property_def['name']})"
+                    setter = (f"\t\tpublic:{modifier}void {prefix[1]}{accessor_name}({parameter_type} {property_def['name']})"
                               f"{lbrace}\n\t\t\t{target}{property_def['name']} = {property_def['name']};\n\t\t}}\n\n")
                     accessors_string += setter
 
@@ -367,10 +380,10 @@ class CppCodeGenerator(CodeGenerator):
         separator = ",\n\t\t\t\t" if len(properties) > 4 else ", "
         ctor_string = f"\t\tpublic: {class_name}("
         if len(baseclasses) > 0:
-            ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in inherited_properties)
+            ctor_string += separator.join(f"{self.parameter_type(self.map_type(p['type']))} {p['name']}" for p in inherited_properties)
             if not ctor_string.endswith('(') and len(properties) > 0:
                 ctor_string += ", "
-        ctor_string += separator.join(f"{self.map_type(p['type'])} {p['name']}" for p in properties.values())
+        ctor_string += separator.join(f"{self.parameter_type(self.map_type(p['type']))} {p['name']}" for p in properties.values())
         ctor_string += ")"
         if len(baseclasses) > 0:
             ctor_string += f":\n\t\t\t{self.baseclass_name}{{{', '.join(p['name'] for p in inherited_properties)}}}"
@@ -415,7 +428,7 @@ class CppCodeGenerator(CodeGenerator):
         return f"{typename}()"
 
     def get_parameter_list(self, parameters):
-        return f"({', '.join(f"{self.map_type(p['type'])} {p['name']}" for p in parameters)})"
+        return f"({', '.join(f"{self.parameter_type(self.map_type(p['type']))} {p['name']}" for p in parameters)})"
 
     def get_file_extension(self):
         return "hpp"

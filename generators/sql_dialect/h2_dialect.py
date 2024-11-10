@@ -11,7 +11,7 @@ class H2Dialect(SQLDialect):
         "sbyte": "tinyint",
         "int8": "tinyint",
         "byte": "tinyint",
-        "uint8": "smallint",
+        "uint8": "tinyint",
         "short": "smallint",
         "int16": "smallint",
         "ushort": "smallint",
@@ -38,7 +38,13 @@ class H2Dialect(SQLDialect):
         "timestamp": "timestamp",
         "uuid": "uuid",
         "guid": "uuid",
+        "byte[]": "binary large object",
         "unspecified": "integer",
+    }
+
+    LOB_TYPE_MAPPINGS = {
+        "string": "character large object",
+        "wstring": "character large object",
     }
 
     def __init__(self):
