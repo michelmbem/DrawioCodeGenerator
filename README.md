@@ -8,7 +8,7 @@
     <img src="./github_assets/code.png" width="125" height="125" alt="code_logo">
 </div>
 
-### Generate source code in different programming languages ​​from a UML class diagram created with [draw.io](https://draw.io/)
+### Generate source code in different programming languages from a UML class diagram created with [draw.io](https://draw.io/)
 
 Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 
@@ -192,8 +192,8 @@ Further improvements are still to come.
 
 ![generated_ts_code](github_assets/generated_ts_code.jpg)
 
-#### SQL
+#### SQL (with PostgreSQL dialect)
 
-![generated_sql_code](github_assets/generated_sql_code.jpg)
+![generated_sql_code](github_assets/generated_sql_code.png)
 
 ### Et voilà, that's it!!
