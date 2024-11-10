@@ -455,7 +455,7 @@ class CSharpCodeGenerator(CodeGenerator):
             elif constraint == "email":
                 annotation_string += "\t[DataType(DataType.EmailAddress)]\n"
             elif constraint == "url":
-                annotation_string += "\t[DataType(DataType.PhoneNumber)]\n"
+                annotation_string += "\t[DataType(DataType.Url)]\n"
             elif constraint == "creditcard":
                 annotation_string += "\t[DataType(DataType.CreditCard)]\n"
 
