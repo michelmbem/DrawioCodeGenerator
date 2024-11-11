@@ -32,8 +32,8 @@ DisableProgramGroupPage=yes
 ; Uncomment the following line to run in non administrative install mode (install for current user only.)
 ;PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputDir={#MyAppSource}\setup\innosetup
-OutputBaseFilename=DrawioCodeGeneratorSetup
+OutputDir={#MyAppSource}\dist
+OutputBaseFilename=drawiocodegen-windows-amd64
 SetupIconFile={#MyAppSource}\setup\app-icon.ico
 Compression=lzma
 SolidCompression=yes
