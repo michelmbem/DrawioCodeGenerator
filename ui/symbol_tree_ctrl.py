@@ -1,8 +1,6 @@
 import wx
 import wx.lib.gizmos as gizmos
 
-from ui.platform import MAIN_FRAME_SIZE
-
 
 class SymbolTreeCtrl(gizmos.TreeListCtrl):
 
@@ -17,9 +15,9 @@ class SymbolTreeCtrl(gizmos.TreeListCtrl):
         self.file_img_ndx = image_list.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, image_size))
         self.SetImageList(image_list)
 
-        win_width = MAIN_FRAME_SIZE[0] - 80
-        self.AddColumn("Attribute name", width=int(.33 * win_width))
-        self.AddColumn("Attribue value", width=int(.67 * win_width))
+        total_width = self.GetParent().GetClientSize().width - 30
+        self.AddColumn("Attribute name", width=int(.33 * total_width))
+        self.AddColumn("Attribue value", width=int(.67 * total_width))
         self.SetMainColumn(0)
 
     def load_dict(self, dictionary):

@@ -1,10 +1,6 @@
 import re
-from lib2to3.pygram import Symbols
-from modulefinder import Module
-
 import wx
 
-from ui.platform import OPTION_DLG_SIZE
 from ui.option_page import OptionPage
 
 
@@ -31,12 +27,12 @@ class OptionPageWithImports(OptionPage):
         self.lscImport.InsertColumn(0, self.lblModuleName.GetLabel()[:-1])
         self.lscImport.InsertColumn(1, self.lblSymbolNames.GetLabel()[:-1])
 
-        dlg_width = OPTION_DLG_SIZE[0] - 90
+        total_width = self.GetParent().GetClientSize().width - 50
         if self.lblSymbolNames.Shown:
-            self.lscImport.SetColumnWidth(0, int(.4 * dlg_width))
-            self.lscImport.SetColumnWidth(1, int(.6 * dlg_width))
+            self.lscImport.SetColumnWidth(0, int(.4 * total_width))
+            self.lscImport.SetColumnWidth(1, int(.6 * total_width))
         else:
-            self.lscImport.SetColumnWidth(0, dlg_width)
+            self.lscImport.SetColumnWidth(0, total_width)
             self.lscImport.SetColumnWidth(1, 0)
 
         for module, symbols in options.get('imports', {}).items():

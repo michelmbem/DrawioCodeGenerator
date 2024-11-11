@@ -2,7 +2,7 @@ import wx
 import wx.stc as stc
 
 from bs4 import BeautifulSoup as bs
-from ui.platform import FACES
+from ui.host_platform import FACES
 
 
 class XMLStyledTextCtrl(stc.StyledTextCtrl):

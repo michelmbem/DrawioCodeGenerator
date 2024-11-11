@@ -9,7 +9,7 @@ from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
 from generators.code_generators import CodeGenerators
-from ui.platform import MAIN_FRAME_SIZE, FACES, fit_size
+from ui.host_platform import FACES, adjust_window_to_display
 from ui.persistent_window import PersistentWindow
 from ui.forms import MainFrameBase
 from ui.xml_styled_text_ctrl import XMLStyledTextCtrl
@@ -28,7 +28,7 @@ class MainFrame (MainFrameBase, PersistentWindow):
         self.captured_output = sys.stdout = StringIO()
 
         self.SetIcon(wx.Icon(self.asset_path(u"assets/icons/app-icon.png"), wx.BITMAP_TYPE_PNG))
-        self.SetSize(fit_size(MAIN_FRAME_SIZE))
+        adjust_window_to_display(self)
         self.load_settings()
 
         image_list = wx.ImageList(16, 16)
@@ -126,6 +126,7 @@ class MainFrame (MainFrameBase, PersistentWindow):
 
     def MainFrameBaseOnClose(self, event):
         self.save_settings()
+        event.Skip()
 
     def fpcDiagramPathOnFileChanged(self, event):
         self.dpcOutputDir.SetPath(path.join(path.dirname(self.fpcDiagramPath.GetPath()), "src"))

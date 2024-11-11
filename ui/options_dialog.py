@@ -1,7 +1,7 @@
 import wx
 
 from generators.code_generators import CodeGenerators
-from ui.platform import OPTION_DLG_SIZE, fit_size
+from ui.host_platform import adjust_window_to_display
 from ui.persistent_window import PersistentWindow
 from ui.forms import OptionDialogBase
 from ui.common_option_page import CommonOptionPage
@@ -19,7 +19,7 @@ class OptionDialog(OptionDialogBase, PersistentWindow):
         PersistentWindow.__init__(self, "option_dialog.json")
         self.options = options
 
-        self.SetSize(fit_size(OPTION_DLG_SIZE))
+        adjust_window_to_display(self)
         self.load_settings()
 
         self.txtRootPackage.SetValue(options['package'])
@@ -57,6 +57,7 @@ class OptionDialog(OptionDialogBase, PersistentWindow):
 
     def OptionDialogBaseOnClose(self, event):
         self.save_settings()
+        event.Skip()
 
     def chkInferKeysOnCheckBox(self, event):
         self.txtPKPattern.Enable(self.chkInferKeys.IsChecked())
