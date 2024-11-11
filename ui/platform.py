@@ -1,5 +1,14 @@
 # Importing the standard 'platform' module, not this module!
 import platform
+import wx
+
+
+def fit_size(size):
+    width, height = size
+    screen_width, screen_height = wx.DisplaySize()
+    if width > screen_width: width = screen_width
+    if height > screen_height: height = screen_height
+    return width, height
 
 
 OS_NAME = platform.system()

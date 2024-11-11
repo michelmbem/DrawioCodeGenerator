@@ -131,6 +131,11 @@ class MainFrameBase ( wx.Frame ):
 
         buttonSizer = wx.BoxSizer( wx.HORIZONTAL )
 
+        self.btnAbout = wx.Button( self, wx.ID_ANY, u"About", wx.DefaultPosition, wx.DefaultSize, 0 )
+
+        self.btnAbout.SetBitmap( wx.Bitmap( self.asset_path( u"assets/icons/help.png" ), wx.BITMAP_TYPE_ANY ) )
+        buttonSizer.Add( self.btnAbout, 0, wx.ALL, 5 )
+
 
         buttonSizer.Add( ( 0, 0), 1, wx.EXPAND, 5 )
 
@@ -170,8 +175,10 @@ class MainFrameBase ( wx.Frame ):
         self.Centre( wx.BOTH )
 
         # Connect Events
+        self.Bind( wx.EVT_CLOSE, self.MainFrameBaseOnClose )
         self.fpcDiagramPath.Bind( wx.EVT_FILEPICKER_CHANGED, self.fpcDiagramPathOnFileChanged )
         self.btnLangOptions.Bind( wx.EVT_BUTTON, self.btnLangOptionsOnButtonClick )
+        self.btnAbout.Bind( wx.EVT_BUTTON, self.btnAboutOnButtonClick )
         self.btnParse.Bind( wx.EVT_BUTTON, self.btnParseOnButtonClick )
         self.btnGenerate.Bind( wx.EVT_BUTTON, self.btnGenerateOnButtonClick )
         self.btnExit.Bind( wx.EVT_BUTTON, self.btnExitOnButtonClick )
@@ -181,10 +188,16 @@ class MainFrameBase ( wx.Frame ):
 
 
     # Virtual event handlers, override them in your derived class
+    def MainFrameBaseOnClose( self, event ):
+        event.Skip()
+
     def fpcDiagramPathOnFileChanged( self, event ):
         event.Skip()
 
     def btnLangOptionsOnButtonClick( self, event ):
+        event.Skip()
+
+    def btnAboutOnButtonClick( self, event ):
         event.Skip()
 
     def btnParseOnButtonClick( self, event ):
@@ -208,7 +221,7 @@ class MainFrameBase ( wx.Frame ):
 class OptionDialogBase ( wx.Dialog ):
 
     def __init__( self, parent ):
-        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,700 ), style = wx.DEFAULT_DIALOG_STYLE )
+        wx.Dialog.__init__ ( self, parent, id = wx.ID_ANY, title = u"Code Generation Options", pos = wx.DefaultPosition, size = wx.Size( 700,700 ), style = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER )
 
         self.SetSizeHints( wx.DefaultSize, wx.DefaultSize )
 
@@ -322,6 +335,7 @@ class OptionDialogBase ( wx.Dialog ):
         self.Centre( wx.BOTH )
 
         # Connect Events
+        self.Bind( wx.EVT_CLOSE, self.OptionDialogBaseOnClose )
         self.chkInferKeys.Bind( wx.EVT_CHECKBOX, self.chkInferKeysOnCheckBox )
         self.dialogButtonSizerApply.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnApplyButtonClick )
         self.dialogButtonSizerCancel.Bind( wx.EVT_BUTTON, self.dialogButtonSizerOnCancelButtonClick )
@@ -332,6 +346,9 @@ class OptionDialogBase ( wx.Dialog ):
 
 
     # Virtual event handlers, override them in your derived class
+    def OptionDialogBaseOnClose( self, event ):
+        event.Skip()
+
     def chkInferKeysOnCheckBox( self, event ):
         event.Skip()
 

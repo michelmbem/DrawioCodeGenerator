@@ -1,7 +1,8 @@
 import wx
 
 from generators.code_generators import CodeGenerators
-from ui.platform import OPTION_DLG_SIZE
+from ui.platform import OPTION_DLG_SIZE, fit_size
+from ui.persistent_window import PersistentWindow
 from ui.forms import OptionDialogBase
 from ui.common_option_page import CommonOptionPage
 from ui.java_option_page import JavaOptionPage
@@ -11,13 +12,15 @@ from ui.ts_option_page import TypeScriptOptionPage
 from ui.sql_option_page import SqlOptionPage
 
 
-class OptionDialog(OptionDialogBase):
+class OptionDialog(OptionDialogBase, PersistentWindow):
 
     def __init__(self, parent, options):
-        super().__init__(parent)
+        OptionDialogBase.__init__(self, parent)
+        PersistentWindow.__init__(self, "option_dialog.json")
         self.options = options
 
-        self.SetSize(OPTION_DLG_SIZE)
+        self.SetSize(fit_size(OPTION_DLG_SIZE))
+        self.load_settings()
 
         self.txtRootPackage.SetValue(options['package'])
         self.chkGenerateDefaultCtor.SetValue(options['generate']['default_ctor'])
@@ -51,6 +54,9 @@ class OptionDialog(OptionDialogBase):
                     option_page = CommonOptionPage(self.nbLanguageOptions, language, language_options)
 
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
+
+    def OptionDialogBaseOnClose(self, event):
+        self.save_settings()
 
     def chkInferKeysOnCheckBox(self, event):
         self.txtPKPattern.Enable(self.chkInferKeys.IsChecked())

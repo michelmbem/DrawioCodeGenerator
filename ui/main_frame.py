@@ -1,5 +1,6 @@
 import sys
 import wx
+import wx.adv as adv
 
 from os import path
 from io import StringIO
@@ -8,30 +9,31 @@ from decode.convert_to_readable import DecodeAndDecompress
 from parsers.style_parser import StyleParser
 from parsers.syntax_parser import SyntaxParser
 from generators.code_generators import CodeGenerators
-from ui.platform import MAIN_FRAME_SIZE, FACES
+from ui.platform import MAIN_FRAME_SIZE, FACES, fit_size
+from ui.persistent_window import PersistentWindow
 from ui.forms import MainFrameBase
 from ui.xml_styled_text_ctrl import XMLStyledTextCtrl
 from ui.symbol_tree_ctrl import SymbolTreeCtrl
 from ui.options_dialog import OptionDialog
 
 
-class MainFrame (MainFrameBase):
+class MainFrame (MainFrameBase, PersistentWindow):
 
     def __init__(self):
-        super().__init__(None)
+        MainFrameBase.__init__(self, None)
+        PersistentWindow.__init__(self, "main_frame.json")
         self.syntax_tree = None
         self.options = self.default_options()
         self.original_stdout = sys.stdout
-        sys.stdout = self.captured_output = StringIO()
+        self.captured_output = sys.stdout = StringIO()
 
-        icon = wx.Icon()
-        icon.CopyFromBitmap(wx.Bitmap(self.asset_path(u"assets/icons/app-icon.png"), wx.BITMAP_TYPE_ANY))
-        self.SetIcon(icon)
-        self.SetSize(MAIN_FRAME_SIZE)
+        self.SetIcon(wx.Icon(self.asset_path(u"assets/icons/app-icon.png"), wx.BITMAP_TYPE_PNG))
+        self.SetSize(fit_size(MAIN_FRAME_SIZE))
+        self.load_settings()
 
         image_list = wx.ImageList(16, 16)
-        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/page_white_code.png"), wx.BITMAP_TYPE_ANY))
-        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/node-tree.png"), wx.BITMAP_TYPE_ANY))
+        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/page_white_code.png"), wx.BITMAP_TYPE_PNG))
+        image_list.Add(wx.Bitmap(self.asset_path(u"assets/icons/node-tree.png"), wx.BITMAP_TYPE_PNG))
         self.nbTrees.AssignImageList(image_list)
 
         self.stcDecodedXml = XMLStyledTextCtrl(self.nbTrees)
@@ -114,12 +116,16 @@ class MainFrame (MainFrameBase):
             },
         }
 
+
     def update_log(self):
         self.rtcStdout.SetValue(self.captured_output.getvalue())
         self.rtcStdout.ShowPosition(self.rtcStdout.GetLastPosition())
 
     def asset_path(self, bitmap_path):
         return path.join(path.dirname(__file__), bitmap_path)
+
+    def MainFrameBaseOnClose(self, event):
+        self.save_settings()
 
     def fpcDiagramPathOnFileChanged(self, event):
         self.dpcOutputDir.SetPath(path.join(path.dirname(self.fpcDiagramPath.GetPath()), "src"))
@@ -132,6 +138,20 @@ class MainFrame (MainFrameBase):
         option_dialog = OptionDialog(self, self.options)
         if option_dialog.ShowModal() == wx.ID_OK:
             self.options = option_dialog.options
+
+
+    def btnAboutOnButtonClick(self, event):
+        info = adv.AboutDialogInfo()
+
+        info.SetIcon(wx.Icon(self.asset_path(u"assets/icons/app-icon-small.png"), wx.BITMAP_TYPE_PNG))
+        info.SetName("Drawio Code Generator")
+        info.SetVersion("1.0.1")
+        info.SetDescription("Generate source code in different programming\nlanguages from a draw.io UML class diagram")
+        info.SetCopyright("(c) 2024 Michel Mbem")
+        info.SetWebSite("https://github.com/michelmbem/DrawioCodeGenerator")
+        info.AddDeveloper("Michel Mbem<michel.mbem@gmail.com>")
+
+        adv.AboutBox(info)
 
     def btnParseOnButtonClick(self, event):
         message = None
