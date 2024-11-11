@@ -3,6 +3,7 @@
 .vim
 .idea
 .vs[code]
+Thumbs.db
 venv
 __pycache__
 build
