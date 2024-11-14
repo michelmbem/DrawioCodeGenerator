@@ -63,5 +63,8 @@ class AccessDialect(SQLDialect):
 
         return self.TYPE_MAPPINGS.get(lower_typename, typename)
 
+    def escape(self, name):
+        return f"[{name}]"
+
     def identity_spec(self):
         return ""

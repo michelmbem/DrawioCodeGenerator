@@ -55,6 +55,10 @@ class OptionDialog(OptionDialogBase, PersistentWindow):
 
             self.nbLanguageOptions.AddPage(option_page, CodeGenerators.language_name(language))
 
+    def close_with_result(self, result):
+        self.save_settings()
+        self.EndModal(result)
+
     def OptionDialogBaseOnClose(self, event):
         self.save_settings()
         event.Skip()
@@ -84,8 +88,8 @@ class OptionDialog(OptionDialogBase, PersistentWindow):
         }
 
     def dialogButtonSizerOnCancelButtonClick(self, event):
-        self.EndModal(wx.ID_CANCEL)
+        self.close_with_result(wx.ID_CANCEL)
 
     def dialogButtonSizerOnOKButtonClick(self, event):
         self.dialogButtonSizerOnApplyButtonClick(event)
-        self.EndModal(wx.ID_OK)
+        self.close_with_result(wx.ID_OK)

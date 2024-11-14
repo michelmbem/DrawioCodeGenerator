@@ -50,5 +50,8 @@ class SQLServerDialect(SQLDialect):
     def __init__(self):
         super().__init__(True)
 
+    def escape(self, name):
+        return f"[{name}]"
+
     def identity_spec(self):
         return "identity(1, 1)"

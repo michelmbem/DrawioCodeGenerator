@@ -372,6 +372,10 @@ class SyntaxParser:
                     target_relations['aggregation'].append(('from', source))
             case "open":
                 match start_arrow_style:
+                    case "none":
+                        # association
+                        source_relations['association'].append(('to', target))
+                        target_relations['association'].append(('from', source))
                     case "diamondthin":
                         if start_arrow_filled:
                             # composition

@@ -19,6 +19,9 @@ class SQLDialect:
 
         return self.TYPE_MAPPINGS.get(lower_typename, typename)
 
+    def escape(self, name):
+        return f'"{name}"'
+
     def identity_spec(self):
         return "generated always as identity (start with 1, increment by 1)"
 

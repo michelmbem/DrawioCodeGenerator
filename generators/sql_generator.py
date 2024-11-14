@@ -2,7 +2,6 @@ import traceback
 
 from operator import itemgetter
 from os import path
-from tabnanny import check
 
 from generators.code_generator import CodeGenerator
 from generators.sql_dialect.sql_dialects import SQLDialects
@@ -56,7 +55,8 @@ class SqlCodeGenerator(CodeGenerator):
 
                         file_contents = self.generate_class_header(class_type, class_name, baseclasses)
                         file_contents += self.generate_properties(class_type, class_name, instance_props, references)
-                        file_contents += f",\n\tconstraint pk_{class_name} primary key ({', '.join(self.table_primary_key)})"
+                        file_contents += (f",\n\tconstraint {self.dialect.escape(f"pk_{class_name}")} primary key"
+                                          f" ({', '.join(self.table_primary_key)})")
                         file_contents += self.generate_class_footer(class_type, class_name)
                     case _:
                         continue
@@ -138,12 +138,13 @@ class SqlCodeGenerator(CodeGenerator):
             class_header: class header string
         """
 
-        header_string = f"CREATE TABLE {class_name} (\n"
+        header_string = f"CREATE TABLE {self.dialect.escape(class_name)} (\n"
 
         if len(baseclasses) > 0:
             for pk_field in self.get_primary_key(baseclasses[0]):
-                self.table_primary_key.append(pk_field['name'])
-                header_string += f"\t{pk_field['name']} {self.map_type(pk_field['type'])} not null,\n"
+                pk_field_name = self.dialect.escape(pk_field['name'])
+                self.table_primary_key.append(pk_field_name)
+                header_string += f"\t{pk_field_name} {self.map_type(pk_field['type'])} not null,\n"
 
             self.table_foreign_keys[baseclasses[0]] = (self.table_primary_key, True)
 
@@ -162,20 +163,22 @@ class SqlCodeGenerator(CodeGenerator):
         """
 
         footer_string = ""
-        check_constraints = {}
+        count = {}
 
         for constraint in self.table_constraints:
+            column_name = self.dialect.escape(constraint[1])
             match constraint[0]:
                 case "unique":
-                    footer_string += f",\n\tconstraint un_{class_name}_{constraint[1]} unique ({constraint[1]})"
+                    constraint_name = self.dialect.escape(f"un_{class_name}_{constraint[1]}")
+                    footer_string += f",\n\tconstraint {constraint_name} unique ({column_name})"
                 case "check":
-                    if constraint[1] in check_constraints:
-                        check_constraints[constraint[1]] += 1
+                    if constraint[1] in count:
+                        count[constraint[1]] += 1
                     else:
-                        check_constraints[constraint[1]] = 1
+                        count[constraint[1]] = 1
 
-                    footer_string += (f",\n\tconstraint chk_{class_name}_{constraint[1]}{check_constraints[constraint[1]]}"
-                                      f" check ({constraint[1]} {constraint[2]})")
+                    constraint_name = self.dialect.escape(f"ch_{class_name}_{constraint[1]}{count[constraint[1]]}")
+                    footer_string += f",\n\tconstraint {constraint_name} check ({column_name} {constraint[2]})"
 
         footer_string += "\n);\n"
 
@@ -212,7 +215,7 @@ class SqlCodeGenerator(CodeGenerator):
                 property_type_props = property_type_def['properties'].values()
 
                 if property_type_def['type'] == "enum":
-                    p = f"\t{property_def['name']} {self.dialect.enum_spec(property_type, property_type_props)}"
+                    p = f"\t{self.dialect.escape(property_def['name'])} {self.dialect.enum_spec(property_type, property_type_props)}"
                 else:
                     p = ",\n".join(self.field_spec(p, f"{property_def['name']}_", property_def['constraints'])
                                    for p in property_type_props)
@@ -223,7 +226,7 @@ class SqlCodeGenerator(CodeGenerator):
 
         if len(self.table_primary_key) <= 0:
             generated_id = ("id", "integer", {'pk': True, 'identity': True})
-            generated_id_string = f"\t{generated_id[0]} {self.map_type(generated_id[1], generated_id[2])},\n"
+            generated_id_string = f"\t{self.dialect.escape(generated_id[0])} {self.map_type(generated_id[1], generated_id[2])},\n"
             self.table_primary_key.append(generated_id[0])
 
         for reference in references:
@@ -241,14 +244,14 @@ class SqlCodeGenerator(CodeGenerator):
             if len(pk_columns) > 0:
                 for pk_column in pk_columns:
                     if pk_column['name'].lower().startswith(reference[1].lower()):
-                        fk_column_name = pk_column['name']
+                        fk_column_name = self.dialect.escape(pk_column['name'])
                     else:
-                        fk_column_name = f"{fk_column_prefix}_{pk_column['name']}"
+                        fk_column_name = self.dialect.escape(f"{fk_column_prefix}_{pk_column['name']}")
 
                     fk_columns.append(fk_column_name)
                     properties_string += f"\t{fk_column_name} {self.map_type(pk_column['type'])}"
             else:
-                fk_column_name = f"{fk_column_prefix}_id"
+                fk_column_name = self.dialect.escape(f"{fk_column_prefix}_id")
                 fk_columns.append(fk_column_name)
                 properties_string += f"\t{fk_column_name} {self.map_type('integer')}"
 
@@ -286,13 +289,14 @@ class SqlCodeGenerator(CodeGenerator):
         constraints = property_def['constraints']
         property_name = property_def['name']
 
-        field_string = f"\t{prefix}{property_name} {self.map_type(property_def['type'], constraints)}"
+        field_name = self.dialect.escape(f"{prefix}{property_def['name']}")
+        field_string = f"\t{field_name} {self.map_type(property_def['type'], constraints)}"
 
         if constraints.get('required') or group_constraints.get('required'):
             field_string += " not null"
 
         if constraints.get('pk'):
-            self.table_primary_key.append(property_name)
+            self.table_primary_key.append(field_name)
             if constraints.get('identity'):
                 field_string += f" {self.dialect.identity_spec()}".rstrip()
 
@@ -326,10 +330,12 @@ class SqlCodeGenerator(CodeGenerator):
 
     def write_foreign_keys(self, f):
         for table_name, foreign_keys in self.foreign_keys.items():
+            escaped_table_name = self.dialect.escape(table_name)
             for foreign_table, settings in foreign_keys.items():
-                fk_name = f"fk_{table_name}_{foreign_table}"
+                escaped_foreign_table = self.dialect.escape(foreign_table)
+                fk_name = self.dialect.escape(f"fk_{table_name}_{foreign_table}")
                 foreign_columns = ', '.join(self.primary_keys[foreign_table])
-                f.write(f"alter table {table_name} add constraint {fk_name} foreign key ({', '.join(settings[0])})"
-                        f" references {foreign_table} ({foreign_columns})")
+                f.write(f"alter table {escaped_table_name} add constraint {fk_name} foreign key ({', '.join(settings[0])})"
+                        f" references {escaped_foreign_table} ({foreign_columns})")
                 if settings[1]: f.write(" on delete cascade")
                 f.write(";\n")

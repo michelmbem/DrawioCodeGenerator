@@ -47,5 +47,8 @@ class SQLiteDialect(SQLDialect):
     def __init__(self):
         super().__init__()
 
+    def escape(self, name):
+        return f"`{name}`"
+
     def identity_spec(self):
         return ""
