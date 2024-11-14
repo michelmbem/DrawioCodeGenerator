@@ -484,20 +484,11 @@ class JavaCodeGenerator(CodeGenerator):
             jee_root_package = "javax"
 
         if self.options['add_jpa']:
-            jpa_imports.append({
-                "package": f"{jee_root_package}.persistence",
-                "classes": ["Entity", "Embeddable", "Embedded", "Id", "GeneratedValue", "GenerationType", "Generated",
-                            "GenerationTime", "Temporal", "TemporalType", "Enumerated", "EnumType", "Lob", "Version",
-                            "ManyToOne", "OneToMany"]
-            })
-            jpa_imports.append({
-                "package": f"{jee_root_package}.validation.constraints",
-                "classes": ["Min", "Max", "Range", "Size", "Pattern", "Email"]
-            })
-            jpa_imports.append({
-                "package": "org.hibernate.validator.constraints",
-                "classes": ["CreditCardNumber", "URL"]
-            })
+            jpa_imports.append({"package": f"{jee_root_package}.persistence", "classes": ["*"]})
+            jpa_imports.append({"package": f"{jee_root_package}.validation.constraints", "classes": ["*"]})
+            jpa_imports.append({"package": "org.hibernate.validator.constraints", "classes": ["*"]})
+            jpa_imports.append({"package": "org.hibernate.annotations", "classes": ["Generated"]})
+            jpa_imports.append({"package": "org.hibernate.generator", "classes": ["EventType"]})
 
         return jpa_imports
 
@@ -505,13 +496,13 @@ class JavaCodeGenerator(CodeGenerator):
         lombok_imported_classes = []
 
         if self.options['use_lombok']:
-            lombok_imported_classes += ["Data"]
+            lombok_imported_classes.append("Data")
             if self.options['add_builder']:
-                lombok_imported_classes += ["Builder"]
+                lombok_imported_classes.append("Builder")
             if self.options['generate']['default_ctor']:
-                lombok_imported_classes += ["NoArgsConstructor"]
+                lombok_imported_classes.append("NoArgsConstructor")
             if self.options['generate']['full_arg_ctor']:
-                lombok_imported_classes += ["AllArgsConstructor"]
+                lombok_imported_classes.append("AllArgsConstructor")
 
         return lombok_imported_classes
 
@@ -533,7 +524,7 @@ class JavaCodeGenerator(CodeGenerator):
         if constraints.get('identity'):
             annotation_string += "@GeneratedValue(strategy=GenerationType.IDENTITY)\n\t"
         elif constraints.get('generated'):
-            annotation_string += "@Generated(GenerationTime.INSERT)\n\t"
+            annotation_string += "@Generated(event={EventType.INSERT})\n\t"
 
         if constraints.get('lob'):
             annotation_string += "@Lob\n\t"
