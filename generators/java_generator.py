@@ -235,7 +235,7 @@ class JavaCodeGenerator(CodeGenerator):
         for reference in references:
             field_name = f"{reference[1][0].lower()}{reference[1][1:]}"
             inverse_field_name = f"{class_name[0].lower()}{class_name[1:]}"
-            p = "\t"
+            p = "\n\t" if add_jpa else "\t"
 
             match reference[0]:
                 case "to":
@@ -248,12 +248,12 @@ class JavaCodeGenerator(CodeGenerator):
                         if pk_len > 1:
                             p += "@JoinColumns({"
                             p += ','.join(f"\n\t\t@JoinColumn(name=\"{self.foreign_key_name(reference[1], p['name'])}\""
-                                          f" referencedColumnName=\"{p['name']}\")" for p in pk)
+                                          f", referencedColumnName=\"{p['name']}\")" for p in pk)
                             p += "\n\t})\n\t"
                         else:
                             pk_field_name = pk[0]['name'] if pk_len > 0 else "id"
                             p += (f"@JoinColumn(name=\"{self.foreign_key_name(reference[1], pk_field_name)}\""
-                                  f" referencedColumnName=\"{pk_field_name}\")\n\t")
+                                  f", referencedColumnName=\"{pk_field_name}\")\n\t")
 
                     p += f"private {reference[1]} {field_name};\n"
                 case "from":
@@ -599,5 +599,8 @@ class JavaCodeGenerator(CodeGenerator):
                 annotation_string += "@URL\n\t"
             case "creditcard":
                 annotation_string += "@CreditCardNumber\n\t"
+
+        if annotation_string:
+            annotation_string = f"\n\t{annotation_string}"
 
         return annotation_string

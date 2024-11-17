@@ -273,12 +273,10 @@ class SqlCodeGenerator(CodeGenerator):
             size = constraints.get("size")
             if not size:
                 size = constraints.get("length")
-                if size: size = ", ".join(size)
-
-            if size:
+            if isinstance(size, list):
                 lparen, rparen = mapped_type.find('('), mapped_type.find(')')
                 if 0 <= lparen < rparen:
-                    return f"{mapped_type[:lparen]}({size}){mapped_type[rparen + 1:]}"
+                    return f"{mapped_type[:lparen]}({size[-1]}){mapped_type[rparen + 1:]}"
 
         return mapped_type
 
