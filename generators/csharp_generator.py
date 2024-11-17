@@ -214,7 +214,7 @@ class CSharpCodeGenerator(CodeGenerator):
 
         accessors_string = ""
         encapsulate_all = self.options['encapsulate_all_props']
-        add_jpa = self.options['add_efcore']
+        add_efcore = self.options['add_efcore']
 
         for property_def in properties.values():
             constraints = property_def['constraints']
@@ -223,7 +223,7 @@ class CSharpCodeGenerator(CodeGenerator):
             if constraints.get('static'):
                 if constraints.get('final'): continue    # No encapsulation for constants
                 modifier = " static "
-            elif add_jpa:
+            elif add_efcore:
                 accessors_string += self.get_data_annotations(property_def['type'], constraints)
 
             if encapsulate_all:
@@ -245,8 +245,8 @@ class CSharpCodeGenerator(CodeGenerator):
 
             match reference[0]:
                 case "to":
-                    if encapsulate_all or add_jpa:
-                        if add_jpa:
+                    if encapsulate_all or add_efcore:
+                        if add_efcore:
                             pk = self.get_primary_key(reference[1])
 
                             if len(pk) > 0:
@@ -266,8 +266,8 @@ class CSharpCodeGenerator(CodeGenerator):
                         accessors_string += f"\n\t\tset => {field_name} = value;"
                         accessors_string += "\n\t}\n\n"
                 case "from":
-                    if encapsulate_all or add_jpa:
-                        if add_jpa:
+                    if encapsulate_all or add_efcore:
+                        if add_efcore:
                             accessors_string += f"\t[InverseProperty(nameof({reference[1]}.{class_name}))]\n"
                         accessors_string += f"\tpublic virtual ICollection<{reference[1]}> {reference[1]}s"
                         accessors_string += f" {{ get; set; }} = new HashSet<{reference[1]}>()\n\n"

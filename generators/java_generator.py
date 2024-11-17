@@ -78,6 +78,13 @@ class JavaCodeGenerator(CodeGenerator):
             return f"{property_name[0].upper()}{property_name[1:]}"
         return property_name
 
+    @staticmethod
+    def foreign_key_name(class_name, property_name):
+        fk_name = property_name
+        if not fk_name.lower().startswith(class_name.lower()):
+            fk_name = f"{class_name[0].lower()}{class_name[1:]}_{fk_name}"
+        return fk_name
+
     def generate_class_header(self, class_type, class_name, baseclasses, interfaces, references):
         """
         Generate the class header 
@@ -189,6 +196,8 @@ class JavaCodeGenerator(CodeGenerator):
 
         properties_string = ""
         first_prop = True
+        add_jpa = self.options['add_jpa']
+        add_builder = self.options['add_builder']
 
         for property_def in properties.values():
             if class_type == "enum":
@@ -206,9 +215,9 @@ class JavaCodeGenerator(CodeGenerator):
                 p = "\t"
 
                 if not (constraints.get('static') or constraints.get('final')):
-                    if self.options['add_jpa']:
+                    if add_jpa:
                         p += self.get_data_annotations(data_type, constraints)
-                    if self.options['add_builder'] and property_def['default_value']:
+                    if add_builder and property_def['default_value']:
                         p += "@Builder.Default\n\t"
 
                 p += self.get_property_access(property_def)
@@ -230,13 +239,28 @@ class JavaCodeGenerator(CodeGenerator):
 
             match reference[0]:
                 case "to":
-                    if self.options['add_jpa']:
+                    if add_jpa:
+                        pk = self.get_primary_key(reference[1])
+                        pk_len = len(pk)
+
                         p += "@ManyToOne\n\t"
+
+                        if pk_len > 1:
+                            p += "@JoinColumns({"
+                            p += ','.join(f"\n\t\t@JoinColumn(name=\"{self.foreign_key_name(reference[1], p['name'])}\")" for p in pk)
+                            p += "\n\t})\n\t"
+                        else:
+                            fk_field_name = pk[0]['name'] if pk_len > 0 else "id"
+                            p += f"@JoinColumn(name=\"{self.foreign_key_name(reference[1], fk_field_name)}\")\n\t"
+
                     p += f"private {reference[1]} {field_name};\n"
                 case "from":
-                    if self.options['add_jpa']:
-                        p += f"@OneToMany(mappedBy=\"{inverse_field_name}\")\n\t"
-                    if self.options['add_builder']:
+                    if add_jpa:
+                        p += f"@OneToMany(mappedBy=\"{inverse_field_name}\""
+                        if reference[2]:
+                            p += ", cascade=CascadeType.ALL, orphanRemoval=true"
+                        p += ")\n\t"
+                    if add_builder:
                         p += "@Builder.Default\n\t"
                     p += f"private Set<{reference[1]}> {field_name}s = new HashSet<>();\n"
                 case _:
