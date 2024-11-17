@@ -247,11 +247,13 @@ class JavaCodeGenerator(CodeGenerator):
 
                         if pk_len > 1:
                             p += "@JoinColumns({"
-                            p += ','.join(f"\n\t\t@JoinColumn(name=\"{self.foreign_key_name(reference[1], p['name'])}\")" for p in pk)
+                            p += ','.join(f"\n\t\t@JoinColumn(name=\"{self.foreign_key_name(reference[1], p['name'])}\""
+                                          f" referencedColumnName=\"{p['name']}\")" for p in pk)
                             p += "\n\t})\n\t"
                         else:
-                            fk_field_name = pk[0]['name'] if pk_len > 0 else "id"
-                            p += f"@JoinColumn(name=\"{self.foreign_key_name(reference[1], fk_field_name)}\")\n\t"
+                            pk_field_name = pk[0]['name'] if pk_len > 0 else "id"
+                            p += (f"@JoinColumn(name=\"{self.foreign_key_name(reference[1], pk_field_name)}\""
+                                  f" referencedColumnName=\"{pk_field_name}\")\n\t")
 
                     p += f"private {reference[1]} {field_name};\n"
                 case "from":
