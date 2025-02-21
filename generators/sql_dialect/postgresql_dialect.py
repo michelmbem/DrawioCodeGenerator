@@ -88,7 +88,7 @@ class PostgreSQLDialect(SQLDialect):
 
     def enum_decl(self, class_def):
         enum_members = ", ".join(f"'{m['name']}'" for m in class_def['properties'].values())
-        return f"create type {class_def['name']} enum({enum_members});\n\n"
+        return f"create type {class_def['name']} as enum({enum_members});\n\n"
 
     def enum_spec(self, type_name, type_members):
         return type_name
