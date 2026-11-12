@@ -1,0 +1,117 @@
+name: Build release packages
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            artifact: linux-x64
+            linux: true
+          - runner: ubuntu-24.04-arm
+            artifact: linux-arm64
+            linux: true
+          - runner: windows-latest
+            artifact: windows-x64
+            linux: false
+            arch: x64
+          - runner: windows-11-arm
+            artifact: windows-arm64
+            linux: false
+            arch: arm64
+          - runner: macos-15-intel
+            artifact: macos-x64
+            linux: false
+          - runner: macos-15
+            artifact: macos-arm64
+            linux: false
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: ${{ !matrix.linux }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Linux wxPython and build dependencies
+        if: matrix.linux
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes python3-venv python3-wxgtk4.0
+          python3 -m venv --system-site-packages .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install lxml beautifulsoup4 universal-startfile pyinstaller
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+
+      - name: Install application and build dependencies
+        if: ${{ !matrix.linux }}
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Build standalone package
+        run: python -m PyInstaller --noconfirm --clean packaging/DrawioCodeGenerator.spec
+
+      - name: Archive Linux package
+        if: startsWith(matrix.artifact, 'linux-')
+        shell: bash
+        run: tar -czf "DrawioCodeGenerator-${{ matrix.artifact }}.tar.gz" -C dist DrawioCodeGenerator
+
+      - name: Create macOS installer image
+        if: startsWith(matrix.artifact, 'macos-')
+        run: |
+          mkdir dmg-root
+          ditto dist/DrawioCodeGenerator.app dmg-root/DrawioCodeGenerator.app
+          ln -s /Applications dmg-root/Applications
+          hdiutil create -volname "Draw.io Code Generator" -srcfolder dmg-root -ov -format UDZO "DrawioCodeGenerator-${{ matrix.artifact }}.dmg"
+
+      - name: Install Inno Setup
+        if: startsWith(matrix.artifact, 'windows-')
+        run: choco install innosetup --yes --no-progress
+
+      - name: Create Windows installer
+        if: startsWith(matrix.artifact, 'windows-')
+        shell: pwsh
+        run: |
+          $env:APP_VERSION = $env:GITHUB_REF_NAME.Substring(1)
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DAppArch=${{ matrix.arch }}" "/DSourcePath=$PWD\dist\DrawioCodeGenerator" packaging\SetupProject.iss
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrawioCodeGenerator-${{ matrix.artifact }}
+          path: |
+            DrawioCodeGenerator-${{ matrix.artifact }}.tar.gz
+            DrawioCodeGenerator-${{ matrix.artifact }}.dmg
+            dist/DrawioCodeGenerator-${{ matrix.artifact }}-setup.exe
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: DrawioCodeGenerator-*
+          merge-multiple: true
+
+      - name: Create release and attach packages
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*

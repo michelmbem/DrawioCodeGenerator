@@ -47,7 +47,13 @@ class MainFrame (MainFrameBase, PersistentWindow):
 
         self.rtcStdout.SetFont(wx.Font(wx.FontInfo(FACES['medium']).FaceName(FACES['mono'])))
 
-        self.fpcDiagramPath.SetPath("examples/simple_class_diagram.drawio")
+        examples_dir = path.join(
+            getattr(sys, "_MEIPASS", path.dirname(path.dirname(__file__))),
+            "examples",
+        )
+        self.fpcDiagramPath.SetPath(
+            path.join(examples_dir, "simple_class_diagram.drawio")
+        )
         self.fpcDiagramPathOnFileChanged(None)
 
     def __del__(self):
