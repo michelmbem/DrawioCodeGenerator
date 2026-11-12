@@ -152,9 +152,9 @@ class MainFrame (MainFrameBase, PersistentWindow):
 
         info.SetIcon(wx.Icon(self.asset_path(u"assets/icons/app-icon-small.png"), wx.BITMAP_TYPE_PNG))
         info.SetName("Drawio Code Generator")
-        info.SetVersion("1.0.1")
+        info.SetVersion("1.1.0")
         info.SetDescription("Generate source code in different programming\nlanguages from a draw.io UML class diagram")
-        info.SetCopyright("(c) 2024 Michel Mbem")
+        info.SetCopyright("(c) 2026 Michel Mbem")
         info.SetWebSite("https://github.com/michelmbem/DrawioCodeGenerator")
         info.AddDeveloper("Michel Mbem<michel.mbem@gmail.com>")
 
