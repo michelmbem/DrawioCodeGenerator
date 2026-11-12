@@ -85,9 +85,12 @@ jobs:
         if: startsWith(matrix.artifact, 'windows-')
         shell: pwsh
         run: |
-          $env:APP_VERSION = $env:GITHUB_REF_NAME.Substring(1)
+          $env:APP_VERSION = $env:GITHUB_REF_NAME -replace '^v-?', ''
           $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
           & $iscc "/DAppVersion=$env:APP_VERSION" "/DAppArch=${{ matrix.arch }}" "/DSourcePath=$PWD\dist\DrawioCodeGenerator" packaging\SetupProject.iss
+          $installer = "dist\DrawioCodeGenerator-windows-${{ matrix.arch }}-setup.exe"
+          if (-not (Test-Path $installer)) { throw "Installer was not created: $installer" }
+          Move-Item $installer .
 
       - name: Upload package
         uses: actions/upload-artifact@v4
@@ -96,7 +99,7 @@ jobs:
           path: |
             DrawioCodeGenerator-${{ matrix.artifact }}.tar.gz
             DrawioCodeGenerator-${{ matrix.artifact }}.dmg
-            dist/DrawioCodeGenerator-${{ matrix.artifact }}-setup.exe
+            DrawioCodeGenerator-${{ matrix.artifact }}-setup.exe
           if-no-files-found: error
 
   release:
@@ -114,4 +117,4 @@ jobs:
       - name: Create release and attach packages
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/*
+          files: release-assets/**/*
