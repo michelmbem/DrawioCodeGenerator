@@ -1,17 +1,19 @@
+import os
 import sys
 
 from PyInstaller.utils.hooks import collect_all
 
 
 wx_datas, wx_binaries, wx_hiddenimports = collect_all("wx")
+project_root = os.path.abspath(os.path.join(SPECPATH, os.pardir))
 
 a = Analysis(
-    ["main.py"],
-    pathex=["."],
+    [os.path.join(project_root, "main.py")],
+    pathex=[project_root],
     binaries=wx_binaries,
     datas=wx_datas + [
-        ("ui/assets", "ui/assets"),
-        ("examples", "examples"),
+        (os.path.join(project_root, "ui", "assets"), "ui/assets"),
+        (os.path.join(project_root, "examples"), "examples"),
     ],
     hiddenimports=wx_hiddenimports,
     hookspath=[],
@@ -39,7 +41,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="packaging/app-icon.ico" if sys.platform == "win32" else None,
+    icon=os.path.join(project_root, "packaging", "app-icon.ico") if sys.platform == "win32" else None,
 )
 coll = COLLECT(
     exe,
@@ -54,6 +56,6 @@ if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="DrawioCodeGenerator.app",
-        icon="packaging/app-icon.icns",
+        icon=os.path.join(project_root, "packaging", "app-icon.icns"),
         bundle_identifier="org.addy.drawio.codegen",
     )
