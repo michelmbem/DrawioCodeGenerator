@@ -1,5 +1,4 @@
 lxml
 beautifulsoup4
 universal-startfile
-# Comment the next line on Linux
 wxPython

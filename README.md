@@ -21,17 +21,17 @@ Supported target languages are: Java, C#, C++, Python, TypeScript, PHP and SQL.
 This is a fork of the https://github.com/Daandelange/DrawioCodeGenerator repository.<br>
 It brings the following notable improvements:
 
-1. A GUI based on [wxPython](https://wxpython.org/) for an enhanced user experience.
+1. A graphical user interface (GUI) based on [wxPython](https://wxpython.org/) for an enhanced user experience.
 2. The original Java and TypeScript code generators have been extended with new features.
 3. New code generators have been added for C#, C++, Python, PHP and SQL with the same level of functionality as the original ones.
-4. Generated xml and json documents are no longer stored in files but displayed on the GUI.
+4. Generated XML and JSON documents are no longer stored in files but displayed on the GUI.
 5. Abstract classes can be identified either by an italicized name or by a **\<\<abstract\>\>** stereotype applied to their name.
 6. The **\<\<enum\>\>** and **\<\<enumeration\>\>** stereotypes indicate that a class is actually an enumeration.
-7. A default value can be set for a property if the property definition ends with a string of the form _" = default_value"_, which is very convenient for enumeration members.
+7. A default value can be set for a property if the property definition ends with a string of the form ` = default_value`, which is very convenient for enumeration members.
 8. It is also possible to attach constraints to class attributes. These must appear in curly braces to the right of the attribute definition. **e.g.**: `-customer_id : int {id}` or `+getTotalCount() : int {static}`. The recognized constraints are listed in one of the tables below
 9. Code generators can produce a **package** or **namespace** directive if needed. They will also automatically generate an **import** (or **using** or **#include** or **require_once**) directive for any symbol that the generated class depends on.
 10. Users can define additional modules and/or symbols to import into their class headers via the configuration dialog.
-11. If necessary, code generators can produce other class members such as accessors (in the form of wrapped properties or getter/setter pairs), a default constructor, a fully parameterized constructor, and overrides for the _equals_, _hashCode_, and _toString_ methods in languages ​​that support these features.
+11. If necessary, code generators can produce other class members such as accessors (in the form of wrapped properties or getter/setter pairs), a default constructor, a fully parameterized constructor, and overrides for the _equals_, _hashCode_, and _toString_ methods in languages that support these features.
 12. Each code generator supports a specific set of options (such as using the _Lombok_ and/or _JPA_ annotations for the Java code generator or specifying a SQL dialect for the SQL code generator).
 13. The program recognizes a set of pseudo-data types that can be mapped to equivalent data types in each of the target languages. These are listed in one of the tables below.
 
@@ -95,7 +95,7 @@ It brings the following notable improvements:
 
 ## Setup
 
-Before all make sure that you have a python interpreter and a suitable development environment installed on your developper machine.
+Before all make sure that you have a python interpreter and a suitable development environment installed on your developer machine.
 Then open a command prompt on the project's root folder and run the following commands. 
 
 On Windows:
@@ -111,7 +111,20 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-On Unix based platforms:
+On macOS:
+
+```shell
+# create a virtual environment
+python -m venv venv
+
+# activate the virtual environment
+source venv/bin/activate
+
+# install dependencies
+pip install -r requirements.txt
+```
+
+On Linux:
 
 ```shell
 # create a virtual environment
@@ -120,14 +133,13 @@ python3 -m venv venv
 # activate the virtual environment
 source venv/bin/activate
 
-# install the packages required to build the wxPython wheel
-# works on ubuntu 24.04, you should adapt to your distribution
-chmod +x ./install-packages.sh 
-sudo ./install-packages.sh
+# install wxPython as an OS package
+# the above command works on Ubuntu 24.04
+# you should adapt the command to your distribution
+sudo apt install -y python3-wxgtk4.0
 
 # install dependencies
-# building wxPython may take some time!
-pip3 install -r requirements.txt
+pip3 install -r requirements-linux.txt
 ```
 
 ## Usage
@@ -144,7 +156,17 @@ On Windows:
 python main.py
 ```
 
-On Unix based platforms:
+On macOS:
+
+```shell
+# uncomment to activate the virtual environment if not yet done
+# source venv/bin/activate
+
+# invoke python interpreter
+python main.py
+```
+
+On Linux:
 
 ```shell
 # uncomment to activate the virtual environment if not yet done
@@ -168,6 +190,10 @@ Further improvements are still to come.
 
 ![main_frame](github_assets/main_frame.jpg)
 
+#### macOS - Dark mode
+
+![main_frame_macos](github_assets/main_frame_macos.jpg)
+
 #### Ubuntu - Dark mode
 
 ![main_frame_ubuntu](github_assets/main_frame_ubuntu.png)
@@ -177,6 +203,10 @@ Further improvements are still to come.
 #### Windows - Light mode
 
 ![options_dialog](github_assets/options_dialog.jpg)
+
+#### macOS - Dark mode
+
+![options_dialog_macos](github_assets/options_dialog_macos.jpg)
 
 #### Ubuntu - Dark mode
 
